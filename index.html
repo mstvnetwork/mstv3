@@ -19,12 +19,12 @@
       text-align: center;
       background: #111;
     }
-    #fallback button {
+    #fallback a {
       padding: 10px 20px;
       font-size: 18px;
       background: #1e90ff;
       color: white;
-      border: none;
+      text-decoration: none;
       border-radius: 5px;
       cursor: pointer;
     }
@@ -39,10 +39,10 @@
 
   <!-- Fallback for iOS -->
   <div id="fallback">
-    <p>This stream may not play inside the page on iOS. Tap the button below to open it in a new tab:</p>
-    <button onclick="window.open('https://cdn.stmify.com/embed-free.php?id=Music_India', '_blank')">
+    <p>This stream may not play inside the page on iOS. Tap the link below to open it in a new tab:</p>
+    <a href="https://cdn.stmify.com/embed-free.php?id=Music_India" target="_blank">
       Open Stream
-    </button>
+    </a>
   </div>
 
   <!-- Main iframe stream -->
