@@ -10,19 +10,55 @@
       padding: 0;
       height: 100%;
       background-color: #000;
+      color: white;
+      font-family: sans-serif;
+    }
+    #fallback {
+      display: none;
+      padding: 20px;
+      text-align: center;
+      background: #111;
+    }
+    #fallback button {
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #1e90ff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
     }
     iframe {
-      border: none;
       width: 100%;
-      height: 100%;
+      height: 100vh;
+      border: none;
     }
   </style>
 </head>
 <body>
+
+  <!-- Fallback for iOS -->
+  <div id="fallback">
+    <p>This stream may not play inside the page on iOS. Tap the button below to open it in a new tab:</p>
+    <button onclick="window.open('https://cdn.stmify.com/embed-free.php?id=Music_India', '_blank')">
+      Open Stream
+    </button>
+  </div>
+
+  <!-- Main iframe stream -->
   <iframe 
+    id="streamFrame"
     src="https://cdn.stmify.com/embed-free.php?id=Music_India" 
-    allowfullscreen
+    allowfullscreen 
     allow="autoplay; encrypted-media">
   </iframe>
+
+  <script>
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      document.getElementById("fallback").style.display = "block";
+      document.getElementById("streamFrame").style.display = "none";
+    }
+  </script>
 </body>
 </html>
