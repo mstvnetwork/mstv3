@@ -1,76 +1,24 @@
-const https = require("https");
+export default async (event) => {
+  const url = event.queryStringParameters?.url;
+  const referer = event.headers.referer || "";
 
-const redirects = {
-  aiodigital: "https://player.twitch.tv/?channel=aiodigital&parent=sunny-sawine-a9011f.netlify.app",
-  desiplay: "https://desiplaylive.akamaized.net/ptnr-yupptv/v1/manifest/611d79b11b77e2f571934fd80ca1413453772ac7/vglive-sk-660691/4cf68f50-0c5e-47a6-96e3-b78797a2b6fe/1.m3u8",
-  sonykal: "https://spt-sonykal-1-us.lg.wurl.tv/playlist.m3u8",
-  aajtak: "https://feeds.intoday.in/aajtak/api/aajtakhd/master.m3u8",
-  zeenews: "https://vg-zeefta.akamaized.net/ptnr-yupptv/title-zeenews/v1/master/611d79b11b77e2f571934fd80ca1413453772ac7/8744f9fb-d696-4204-9795-5215ad930c39/main.m3u8?hdnts=st=1746610244~exp=1746613844~acl=!*/611d79b11b77e2f571934fd80ca1413453772ac7/8744f9fb-d696-4204-9795-5215ad930c39/*!yuppTVCom_61_-1_5446c7d23048499b_AU_101.119.102.10/payload/yuppTVCom_61_-1_5446c7d23048499b_AU_101.119.102.10/*~hmac=910cda5125d118c635f063d895701b07094a7f360d69b4392b4d3e769ba153ba&ads.app_bundle=&ads.app_store_url=&ads.content_livestream=1&ads.language=HIN&ads.content_genre=NEWS&ads.channel=1501&ads.channel_name=ZeeNews&ads.network_name=yupptv&ads.user=0",
-  geonews: "https://jk3lz82elw79-hls-live.5centscdn.com/newgeonews/07811dc6c422334ce36a09ff5cd6fe71.sdp/playlist.m3u8",
-  pknews1: "https://www.youtube.com/embed/RqUZ2Fv9l8w?si=JossLSYsuorpY1y_",
-  pknews2: "https://www.youtube.com/embed/00HnCKJcpsU?si=8jaWfqb5IdNf3cqF",
-  indiatvhd: "https://pl-indiatvnews.akamaized.net/out/v1/db79179b608641ceaa5a4d0dd0dca8da/index.m3u8",
-  speednews: "https://poclive-indiatvnews.akamaized.net/hlslive/Admin/px0219297/live/janya/master.m3u8",
-  zeecinema: "https://dreyfus.securitytactics.com/zeecinema.html",
-  cbeebies: "https://dreyfus.securitytactics.com/ceebies.html",
-  aapadalat: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01550-indiatv-indiatv-aapkiadalat-mi-xiaomi/playlist.m3u8"
-};
+  // Your site domain (edit if you use custom domain later)
+  const allowedReferer = "https://sunny-sawine-a9011f.netlify.app";
 
-exports.handler = async function(event, context) {
-  const { ch } = event.queryStringParameters;
-  const referer = event.headers.Referer;
-
-  // Check if the referer matches your site
-  if (referer && referer.includes("sunny-sawine-a9011f.netlify.app")) {
-    if (redirects[ch]) {
-      const url = redirects[ch];
-
-      // If the URL is a direct stream URL (m3u8), proxy it
-      if (url.endsWith('.m3u8')) {
-        const response = await proxyStream(url);
-        return {
-          statusCode: 200,
-          body: response,
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        };
-      } else {
-        // If not a stream URL, just redirect normally
-        return {
-          statusCode: 302,
-          headers: {
-            Location: url
-          }
-        };
-      }
-    } else {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ error: "Channel not found." }),
-      };
-    }
-  } else {
+  // Block if no referer or wrong referer
+  if (!url || !referer.startsWith(allowedReferer)) {
     return {
       statusCode: 403,
       body: JSON.stringify({ error: "Access denied." }),
     };
   }
-};
 
-// Function to proxy the .m3u8 stream securely
-function proxyStream(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, (response) => {
-      let data = '';
-      response.on('data', chunk => {
-        data += chunk;
-      });
-      response.on('end', () => {
-        resolve(data);
-      });
-    }).on('error', (err) => {
-      reject(err);
-    });
-  });
-}
+  // Allow redirection
+  return {
+    statusCode: 302,
+    headers: {
+      Location: url,
+      "Cache-Control": "no-store",
+    },
+  };
+};
