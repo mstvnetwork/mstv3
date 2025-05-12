@@ -19,20 +19,29 @@ const redirects = {
 exports.handler = async function(event, context) {
   const { ch } = event.queryStringParameters;
 
-  // If the channel exists in the redirects object, proxy the request
   if (redirects[ch]) {
     const url = redirects[ch];
-    const response = await proxyRequest(url);
-    
-    return {
-      statusCode: 200,
-      body: response,
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    };
+
+    // If the URL is a direct stream URL (m3u8), proxy it
+    if (url.endsWith('.m3u8')) {
+      const response = await proxyStream(url);
+      return {
+        statusCode: 200,
+        body: response,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      };
+    } else {
+      // If not a stream URL, just redirect normally
+      return {
+        statusCode: 302,
+        headers: {
+          Location: url
+        }
+      };
+    }
   } else {
-    // If channel is not found, return an error message
     return {
       statusCode: 404,
       body: JSON.stringify({ error: "Channel not found." }),
@@ -40,8 +49,8 @@ exports.handler = async function(event, context) {
   }
 };
 
-// Function to make a proxy request to the real stream URL
-function proxyRequest(url) {
+// Function to proxy the .m3u8 stream securely
+function proxyStream(url) {
   return new Promise((resolve, reject) => {
     https.get(url, (response) => {
       let data = '';
