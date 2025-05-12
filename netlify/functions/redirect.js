@@ -1,3 +1,5 @@
+const https = require("https");
+
 const redirects = {
   aiodigital: "https://player.twitch.tv/?channel=aiodigital&parent=sunny-sawine-a9011f.netlify.app",
   desiplay: "https://desiplaylive.akamaized.net/ptnr-yupptv/v1/manifest/611d79b11b77e2f571934fd80ca1413453772ac7/vglive-sk-660691/4cf68f50-0c5e-47a6-96e3-b78797a2b6fe/1.m3u8",
@@ -17,19 +19,40 @@ const redirects = {
 exports.handler = async function(event, context) {
   const { ch } = event.queryStringParameters;
 
-  // If the channel exists in the redirects object, redirect to the URL
+  // If the channel exists in the redirects object, proxy the request
   if (redirects[ch]) {
+    const url = redirects[ch];
+    const response = await proxyRequest(url);
+    
     return {
-      statusCode: 302,
+      statusCode: 200,
+      body: response,
       headers: {
-        Location: redirects[ch],
-      },
+        'Content-Type': 'application/json',
+      }
     };
   } else {
-    // If channel is not found, return an error message or redirect to a default page
+    // If channel is not found, return an error message
     return {
       statusCode: 404,
-      body: "Channel not found.",
+      body: JSON.stringify({ error: "Channel not found." }),
     };
   }
 };
+
+// Function to make a proxy request to the real stream URL
+function proxyRequest(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (response) => {
+      let data = '';
+      response.on('data', chunk => {
+        data += chunk;
+      });
+      response.on('end', () => {
+        resolve(data);
+      });
+    }).on('error', (err) => {
+      reject(err);
+    });
+  });
+}
