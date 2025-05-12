@@ -18,33 +18,42 @@ const redirects = {
 
 exports.handler = async function(event, context) {
   const { ch } = event.queryStringParameters;
+  const referer = event.headers.Referer;
 
-  if (redirects[ch]) {
-    const url = redirects[ch];
+  // Check if the referer matches your site
+  if (referer && referer.includes("sunny-sawine-a9011f.netlify.app")) {
+    if (redirects[ch]) {
+      const url = redirects[ch];
 
-    // If the URL is a direct stream URL (m3u8), proxy it
-    if (url.endsWith('.m3u8')) {
-      const response = await proxyStream(url);
-      return {
-        statusCode: 200,
-        body: response,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      };
+      // If the URL is a direct stream URL (m3u8), proxy it
+      if (url.endsWith('.m3u8')) {
+        const response = await proxyStream(url);
+        return {
+          statusCode: 200,
+          body: response,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        };
+      } else {
+        // If not a stream URL, just redirect normally
+        return {
+          statusCode: 302,
+          headers: {
+            Location: url
+          }
+        };
+      }
     } else {
-      // If not a stream URL, just redirect normally
       return {
-        statusCode: 302,
-        headers: {
-          Location: url
-        }
+        statusCode: 404,
+        body: JSON.stringify({ error: "Channel not found." }),
       };
     }
   } else {
     return {
-      statusCode: 404,
-      body: JSON.stringify({ error: "Channel not found." }),
+      statusCode: 403,
+      body: JSON.stringify({ error: "Access denied." }),
     };
   }
 };
