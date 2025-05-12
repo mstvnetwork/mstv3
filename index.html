@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Video Stream Gallery</title>
   <style>
     body {
@@ -19,8 +19,7 @@
       text-align: center;
       margin-bottom: 1rem;
     }
-    .controls input,
-    .controls select {
+    .controls input, .controls select {
       padding: 0.5rem;
       margin: 0.25rem;
       font-size: 1rem;
@@ -36,7 +35,7 @@
     .card {
       background-color: #fff;
       border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       overflow: hidden;
       width: 90%;
       max-width: 200px;
@@ -44,7 +43,7 @@
     }
     .card:hover {
       transform: translateY(-10px);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
     }
     .card img {
       width: 100%;
@@ -87,7 +86,7 @@
   <h1>Video Stream Gallery</h1>
 
   <div class="controls">
-    <input type="text" id="search" placeholder="Search streams..." />
+    <input type="text" id="search" placeholder="Search streams...">
     <select id="filter">
       <option value="all">All</option>
       <option value="news">News</option>
@@ -98,60 +97,95 @@
   </div>
 
   <div class="gallery" id="gallery">
-    <div class="card" data-category="news">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Al_Jazeera_English_logo.svg/1200px-Al_Jazeera_English_logo.svg.png" alt="Al Jazeera" />
-      <h3>Al Jazeera</h3>
-      <a href="https://mstvnet.netlify.app/.netlify/functions/redirect?ch=aljazeera" target="_blank">Watch Now</a>
-    </div>
-    <div class="card" data-category="news">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/6/67/ABC_News_screenshot.png" alt="ABC News" />
-      <h3>ABC News</h3>
-      <a href="https://mstvnet.netlify.app/.netlify/functions/redirect?ch=abc" target="_blank">Watch Now</a>
-    </div>
-    <div class="card" data-category="sports">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/ESPN_wordmark.svg/2560px-ESPN_wordmark.svg.png" alt="ESPN" />
-      <h3>ESPN</h3>
-      <a href="https://mstvnet.netlify.app/.netlify/functions/redirect?ch=espn" target="_blank">Watch Now</a>
+    <div class="card" data-category="entertainment">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Twitch_logo.svg" alt="MSTV CH.1">
+      <h3>MSTV CH.1</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=aiodigital" target="_blank">Watch Now</a>
     </div>
     <div class="card" data-category="entertainment">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Fox_News_Channel_logo.svg" alt="Fox News" />
-      <h3>Fox News</h3>
-      <a href="https://mstvnet.netlify.app/.netlify/functions/redirect?ch=fox" target="_blank">Watch Now</a>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/YuppTV_logo.png" alt="Desi Play">
+      <h3>MSTV DESI PLAY</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=desiplay" target="_blank">Watch Now</a>
     </div>
-    <div class="card" data-category="music">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/MTV_Logo_2010.svg/2560px-MTV_Logo_2010.svg.png" alt="MTV" />
-      <h3>MTV</h3>
-      <a href="https://mstvnet.netlify.app/.netlify/functions/redirect?ch=mtv" target="_blank">Watch Now</a>
+    <div class="card" data-category="entertainment">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/ESPN_wordmark.svg" alt="Sony Kal">
+      <h3>SONY KAL</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=sonykal" target="_blank">Watch Now</a>
     </div>
     <div class="card" data-category="news">
-      <img src="https://yt3.googleusercontent.com/nGboUZ1XBEEMDk_LWuv5-sWiPXWTWuREv9t8rUkdp6CQ-sNKkxOrqEWWJPnqL5gPM9ICvo0h-Q=s900-c-k-c0x00ffffff-no-rj" alt="Aaj Tak" />
-      <h3>Aaj Tak</h3>
-      <a href="https://mstvnet.netlify.app/.netlify/functions/redirect?ch=aajtak" target="_blank">Watch Now</a>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Aaj_tak_logo.svg/2560px-Aaj_tak_logo.svg.png" alt="Aaj Tak">
+      <h3>Hindi News</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=aajtak" target="_blank">Watch Now</a>
+    </div>
+    <div class="card" data-category="news">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Zee_News_logo.png" alt="War News">
+      <h3>War News</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=warnews" target="_blank">Watch Now</a>
+    </div>
+    <div class="card" data-category="news">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/ee/GNN_Logo.png" alt="Pakistan News">
+      <h3>Pakistan News</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=paknews1" target="_blank">Watch Now</a>
+    </div>
+    <div class="card" data-category="news">
+      <img src="https://img.youtube.com/vi/RqUZ2Fv9l8w/0.jpg" alt="Pakistan News Click Play">
+      <h3>Pakistan News (Click Play)</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=paknews2" target="_blank">Watch Now</a>
+    </div>
+    <div class="card" data-category="news">
+      <img src="https://img.youtube.com/vi/00HnCKJcpsU/0.jpg" alt="Pakistan News">
+      <h3>Pakistan News</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=paknews3" target="_blank">Watch Now</a>
+    </div>
+    <div class="card" data-category="news">
+      <img src="https://upload.wikimedia.org/wikipedia/en/3/36/India_TV_Logo.png" alt="India News">
+      <h3>India News HD</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=indiatv" target="_blank">Watch Now</a>
+    </div>
+    <div class="card" data-category="news">
+      <img src="https://upload.wikimedia.org/wikipedia/en/3/36/India_TV_Logo.png" alt="India Speed News">
+      <h3>India Speed News</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=indiaspeed" target="_blank">Watch Now</a>
+    </div>
+    <div class="card" data-category="entertainment">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/Zee_Cinema_Logo.png" alt="Zee Cinema">
+      <h3>Zee Cinema</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=zeecinema" target="_blank">Watch Now</a>
+    </div>
+    <div class="card" data-category="entertainment">
+      <img src="https://upload.wikimedia.org/wikipedia/en/5/5b/CBeebies_2023_logo.png" alt="CBeebies">
+      <h3>BBC CBeebies</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=cbeebies" target="_blank">Watch Now</a>
+    </div>
+    <div class="card" data-category="entertainment">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/7/75/Zee_Cinema_Logo.png" alt="Aap Ki Adalat">
+      <h3>Aap Ki Adalat</h3>
+      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?ch=aapkiaadalat" target="_blank">Watch Now</a>
     </div>
   </div>
 
   <script>
-    const searchInput = document.getElementById("search");
-    const filterSelect = document.getElementById("filter");
-    const cards = document.querySelectorAll(".card");
+    const searchInput = document.getElementById('search');
+    const filterSelect = document.getElementById('filter');
+    const cards = document.querySelectorAll('.card');
 
     function filterCards() {
       const search = searchInput.value.toLowerCase();
       const category = filterSelect.value;
 
-      cards.forEach((card) => {
-        const title = card.querySelector("h3").textContent.toLowerCase();
-        const cardCategory = card.getAttribute("data-category");
+      cards.forEach(card => {
+        const title = card.querySelector('h3').textContent.toLowerCase();
+        const cardCategory = card.getAttribute('data-category');
 
         const matchesSearch = title.includes(search);
-        const matchesCategory = category === "all" || cardCategory === category;
+        const matchesCategory = category === 'all' || cardCategory === category;
 
-        card.style.display = matchesSearch && matchesCategory ? "block" : "none";
+        card.style.display = (matchesSearch && matchesCategory) ? 'block' : 'none';
       });
     }
 
-    searchInput.addEventListener("input", filterCards);
-    filterSelect.addEventListener("change", filterCards);
+    searchInput.addEventListener('input', filterCards);
+    filterSelect.addEventListener('change', filterCards);
   </script>
 </body>
 </html>
