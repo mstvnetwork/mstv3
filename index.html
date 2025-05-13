@@ -1,105 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MSTV Stream Gallery</title>
-  <style>
-    body { font-family: sans-serif; background-color: #f0f0f0; padding: 1rem; }
-    h1 { text-align: center; }
-    .gallery { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
-    .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 220px; overflow: hidden; transition: transform 0.2s; }
-    .card:hover { transform: scale(1.03); }
-    .card img { width: 100%; height: 120px; object-fit: cover; }
-    .card h3 { text-align: center; margin: 0.5rem; font-size: 1rem; }
-    .card a { display: block; background: #007bff; color: #fff; text-align: center; padding: 0.5rem; text-decoration: none; }
-    .card a:hover { background: #0056b3; }
-  </style>
+  <title>Live Stream</title>
+  <link href="https://vjs.zencdn.net/8.0.4/video-js.css" rel="stylesheet" />
+  <script src="https://vjs.zencdn.net/8.0.4/video.min.js"></script>
 </head>
 <body>
-
-  <h1>MSTV Secure Stream Gallery</h1>
-  <div class="gallery">
-
-    <!-- Stream Cards -->
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=CH.1" />
-      <h3>MSTV CH.1</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fplayer.twitch.tv%2F%3Fchannel%3Daiodigital%26parent%3Dsunny-sawine-a9011f.netlify.app" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=Desi+Play" />
-      <h3>MSTV DESI PLAY</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fdesiplaylive.akamaized.net%2Fptnr-yupptv%2Fv1%2Fmanifest%2F611d79b11b77e2f571934fd80ca1413453772ac7%2Fvglive-sk-660691%2F4cf68f50-0c5e-47a6-96e3-b78797a2b6fe%2F1.m3u8" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=Sony+Kal" />
-      <h3>SONY KAL</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fspt-sonykal-1-us.lg.wurl.tv%2Fplaylist.m3u8" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=News" />
-      <h3>HINDI NEWS</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Ffeeds.intoday.in%2Faajtak%2Fapi%2Faajtakhd%2Fmaster.m3u8" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=Zee+News" />
-      <h3>WAR NEWS</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fvg-zeefta.akamaized.net%2Fptnr-yupptv%2Ftitle-zeenews%2Fv1%2Fmaster%2F611d79b11b77e2f571934fd80ca1413453772ac7%2F8744f9fb-d696-4204-9795-5215ad930c39%2Fmain.m3u8%3Fhdnts%3Dst%3D1746610244~exp%3D1746613844~acl%3D%21%2A%2F611d79b11b77e2f571934fd80ca1413453772ac7%2F8744f9fb-d696-4204-9795-5215ad930c39%2F%2A%21yuppTVCom_61_-1_5446c7d23048499b_AU_101.119.102.10%2Fpayload%2FyuppTVCom_61_-1_5446c7d23048499b_AU_101.119.102.10%2F%2A~hmac%3D910cda5125d118c635f063d895701b07094a7f360d69b4392b4d3e769ba153ba" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=Pakistan+News" />
-      <h3>PAKISTAN NEWS</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fjk3lz82elw79-hls-live.5centscdn.com%2Fnewgeonews%2F07811dc6c422334ce36a09ff5cd6fe71.sdp%2Fplaylist.m3u8" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=PK+YT+News" />
-      <h3>PK NEWS (YouTube)</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fwww.youtube.com%2Fembed%2FRqUZ2Fv9l8w%3Fsi%3DJossLSYsuorpY1y_" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=PK+YT+News+2" />
-      <h3>PK NEWS 2 (YT)</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fwww.youtube.com%2Fembed%2F00HnCKJcpsU%3Fsi%3D8jaWfqb5IdNf3cqF" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=India+News+HD" />
-      <h3>INDIA NEWS HD</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fpl-indiatvnews.akamaized.net%2Fout%2Fv1%2Fdb79179b608641ceaa5a4d0dd0dca8da%2Findex.m3u8" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=India+Speed+News" />
-      <h3>INDIA SPEED NEWS</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fpoclive-indiatvnews.akamaized.net%2Fhlslive%2FAdmin%2Fpx0219297%2Flive%2Fjanya%2Fmaster.m3u8" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=Zee+Cinema" />
-      <h3>ZEE CINEMA (Android)</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fdreyfus.securitytactics.com%2Fzeecinema.html" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=CBEEBIES" />
-      <h3>BBC CBEEBIES</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fdreyfus.securitytactics.com%2Fceebies.html" target="_blank">Watch</a>
-    </div>
-
-    <div class="card">
-      <img src="https://via.placeholder.com/220x120?text=Aapki+Adalat" />
-      <h3>AAP KE AADALAT</h3>
-      <a href="https://sunny-sawine-a9011f.netlify.app/.netlify/functions/redirect?url=https%3A%2F%2Fcdn-uw2-prod.tsv2.amagi.tv%2Flinear%2Famg01550-indiatv-indiatv-aapkiadalat-mi-xiaomi%2Fplaylist.m3u8" target="_blank">Watch</a>
-    </div>
-
-  </div>
+  <h1>Live Stream</h1>
+  <video id="live-stream" class="video-js vjs-default-skin" controls autoplay width="640" height="360">
+    <source src="/.netlify/functions/proxy" type="application/x-mpegURL" />
+  </video>
 </body>
 </html>
