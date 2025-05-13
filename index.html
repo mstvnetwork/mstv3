@@ -1,68 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MSTV NETWORK</title>
-  <link href="https://vjs.zencdn.net/8.5.2/video-js.css" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live TV App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    #video-player {
+      width: 100%;
+      height: 360px;
+      background-color: #000;
+    }
+
+    .category-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      background-color: #111;
+      padding: 10px 0;
+    }
+
+    .category-buttons button {
+      background-color: #333;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+    }
+
+    .category-buttons button:hover,
+    .category-buttons .active {
+      background-color: #555;
+    }
+
+    #channel-logos {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .channel-logo {
+      width: 100px;
+      margin: 10px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .channel-logo img {
+      width: 100%;
+      height: 60px;
+      object-fit: contain;
+      border-radius: 5px;
+      background: #222;
+    }
+
+    .channel-logo p {
+      font-size: 14px;
+      margin-top: 5px;
+      color: #ddd;
+    }
+
+    .channel-category {
+      display: none;
+      width: 100%;
+    }
+
+    .channel-category.active {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  </style>
 </head>
 <body>
 
-  <!-- Title -->
-  <header>
-    <h1 class="title">MSTV NETWORK</h1>
-    <marquee behavior="scroll" direction="left" class="scroll-text">
-      Welcome to MSTV NETWORK - Streaming the Best of News, Music, Sports and More!
-    </marquee>
-  </header>
+  <video id="video-player" controls autoplay></video>
 
-  <!-- Channel Category Buttons -->
-  <nav class="channel-buttons">
-    <button onclick="navigateTo('news')">News Channels</button>
-    <button onclick="navigateTo('music')">Music Channels</button>
-    <button onclick="navigateTo('entertainment')">Entertainment Plus Channels</button>
-    <button onclick="navigateTo('sports')">Sport Channels</button>
-    <button onclick="navigateTo('spiritual')">Spiritual Channels</button>
-  </nav>
-
-  <!-- Video Player Section -->
-  <section class="video-section">
-    <div class="player-header">
-      <img src="assets/logos/mstv-logo.png" alt="MSTV Logo" class="logo">
-    </div>
-    <video
-      id="mstv-player"
-      class="video-js vjs-default-skin"
-      controls
-      preload="auto"
-      width="640"
-      height="360"
-    >
-      <source src="assets/videos/sample.mp4" type="video/mp4" />
-      Your browser does not support the video tag.
-    </video>
-  </section>
-
-  <!-- Social Section -->
-  <div class="social-follow">
-    <a href="https://facebook.com/mstvnetwork" target="_blank">
-      <img src="assets/icons/facebook.png" alt="Facebook" class="icon">
-      Follow us on
-    </a>
+  <div class="category-buttons">
+    <button onclick="showCategory('entertainment-plus')" class="active">Entertainment Plus</button>
+    <!-- Add more category buttons as needed -->
   </div>
 
-  <!-- Footer Links -->
-  <footer>
-    <a href="pages/about.html">About Us</a> |
-    <a href="pages/disclaimer.html">Disclaimer</a> |
-    <a href="pages/privacy.html">Privacy Policy</a> |
-    <a href="pages/terms.html">Terms of Service</a> |
-    <a href="pages/contact.html">Contact Us</a>
-  </footer>
+  <div id="channel-logos">
+    <div id="entertainment-plus" class="channel-category active"></div>
+    <!-- Add more category containers if needed -->
+  </div>
 
-  <!-- Scripts -->
-  <script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
-  <script src="js/main.js"></script>
+  <script>
+    function playChannel(url) {
+      const player = document.getElementById('video-player');
+      player.src = url;
+      player.play();
+    }
+
+    function showCategory(category) {
+      document.querySelectorAll('.channel-category').forEach(div => {
+        div.classList.remove('active');
+      });
+      document.querySelectorAll('.category-buttons button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      document.getElementById(category).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    async function loadChannels() {
+      try {
+        const response = await fetch('channels.json');
+        const data = await response.json();
+
+        Object.keys(data).forEach(category => {
+          let container = document.getElementById(category);
+          if (!container) {
+            container = document.createElement('div');
+            container.id = category;
+            container.className = 'channel-category';
+            document.getElementById('channel-logos').appendChild(container);
+          }
+
+          data[category].forEach(channel => {
+            const div = document.createElement('div');
+            div.className = 'channel-logo';
+            div.onclick = () => playChannel(channel.url);
+
+            const img = document.createElement('img');
+            img.src = channel.logo;
+            img.alt = channel.name;
+
+            const p = document.createElement('p');
+            p.textContent = channel.name;
+
+            div.appendChild(img);
+            div.appendChild(p);
+            container.appendChild(div);
+          });
+        });
+      } catch (err) {
+        console.error('Error loading channels.json:', err);
+      }
+    }
+
+    loadChannels();
+  </script>
+
 </body>
 </html>
