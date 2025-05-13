@@ -2,100 +2,165 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Live TV App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MSTV NETWORK</title>
   <style>
+    /* Global Styles */
     body {
-      font-family: Arial, sans-serif;
-      background-color: #000;
-      color: #fff;
       margin: 0;
-      padding: 0;
+      font-family: 'Arial', sans-serif;
+      color: #fff;
+      background: linear-gradient(135deg, #ff007f, #ff6600, #ffcc00, #66ff66, #0099ff, #6600cc);
+      background-size: 400% 400%;
+      animation: gradientAnimation 10s ease infinite;
+      overflow-x: hidden;
+      height: 100vh;
     }
 
-    #video-player {
-      width: 100%;
-      height: 360px;
-      background-color: #000;
+    /* 3D Background */
+    @keyframes gradientAnimation {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
+    /* Title Styles */
+    h1 {
+      text-align: center;
+      font-size: 4rem;
+      margin-top: 20px;
+      text-transform: uppercase;
+      letter-spacing: 5px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    /* Flashing Text */
+    .flashing-text {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-top: 10px;
+      animation: flash 1.5s infinite alternate;
+    }
+
+    @keyframes flash {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* Category Buttons */
     .category-buttons {
       display: flex;
-      flex-wrap: wrap;
       justify-content: center;
-      background-color: #111;
-      padding: 10px 0;
+      margin-top: 20px;
+      gap: 15px;
     }
 
     .category-buttons button {
-      background-color: #333;
-      color: white;
-      border: none;
       padding: 10px 20px;
-      margin: 5px;
+      font-size: 1rem;
+      background-color: rgba(0, 0, 0, 0.7);
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
+      transition: background-color 0.3s;
     }
 
-    .category-buttons button:hover,
-    .category-buttons .active {
-      background-color: #555;
+    .category-buttons button:hover {
+      background-color: rgba(0, 0, 0, 0.9);
     }
 
-    #channel-logos {
-      display: flex;
+    /* Channel Logos */
+    .channel-category {
+      display: none;
       flex-wrap: wrap;
       justify-content: center;
-      padding: 10px;
+      margin-top: 20px;
     }
 
     .channel-logo {
-      width: 100px;
       margin: 10px;
-      cursor: pointer;
       text-align: center;
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .channel-logo:hover {
+      transform: scale(1.1);
     }
 
     .channel-logo img {
-      width: 100%;
-      height: 60px;
-      object-fit: contain;
-      border-radius: 5px;
-      background: #222;
+      width: 100px;
+      height: 100px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     }
 
-    .channel-logo p {
-      font-size: 14px;
-      margin-top: 5px;
-      color: #ddd;
-    }
-
-    .channel-category {
-      display: none;
-      width: 100%;
-    }
-
-    .channel-category.active {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+    /* Media Player */
+    #video-player {
+      width: 80%;
+      max-width: 800px;
+      margin: 30px auto;
+      display: block;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.5);
     }
   </style>
 </head>
 <body>
 
-  <video id="video-player" controls autoplay></video>
+  <h1>MSTV NETWORK</h1>
+  <div class="flashing-text">Click on buttons to select channels</div>
 
   <div class="category-buttons">
-    <button onclick="showCategory('entertainment-plus')" class="active">Entertainment Plus</button>
-    <!-- Add more category buttons as needed -->
+    <button onclick="showCategory('news')">News</button>
+    <button onclick="showCategory('music')">Music</button>
+    <button onclick="showCategory('entertainment-plus')">Entertainment Plus</button>
+    <button onclick="showCategory('sports')">Sports</button>
+    <button onclick="showCategory('religious')">Religious</button>
+  </div>
+
+  <div id="video-player-container">
+    <video id="video-player" controls autoplay></video>
   </div>
 
   <div id="channel-logos">
-    <div id="entertainment-plus" class="channel-category active"></div>
-    <!-- Add more category containers if needed -->
+    <div id="news" class="channel-category"></div>
+    <div id="music" class="channel-category"></div>
+    <div id="entertainment-plus" class="channel-category"></div>
+    <div id="sports" class="channel-category"></div>
+    <div id="religious" class="channel-category"></div>
   </div>
 
   <script>
+    let channelList = [];
+
+    async function loadChannels() {
+      const response = await fetch('channels.json');
+      channelList = await response.json();
+      renderChannels();
+    }
+
+    function renderChannels() {
+      const categories = {
+        news: document.getElementById('news'),
+        music: document.getElementById('music'),
+        'entertainment-plus': document.getElementById('entertainment-plus'),
+        sports: document.getElementById('sports'),
+        religious: document.getElementById('religious')
+      };
+
+      channelList.forEach(channel => {
+        const div = document.createElement('div');
+        div.className = 'channel-logo';
+        div.onclick = () => playChannel(channel.url);
+        div.innerHTML = `
+          <img src="${channel.logo}" alt="${channel.name}">
+          <p>${channel.name}</p>
+        `;
+        categories[channel.category].appendChild(div);
+      });
+    }
+
     function playChannel(url) {
       const player = document.getElementById('video-player');
       player.src = url;
@@ -104,50 +169,9 @@
 
     function showCategory(category) {
       document.querySelectorAll('.channel-category').forEach(div => {
-        div.classList.remove('active');
+        div.style.display = 'none';
       });
-      document.querySelectorAll('.category-buttons button').forEach(btn => {
-        btn.classList.remove('active');
-      });
-
-      document.getElementById(category).classList.add('active');
-      event.target.classList.add('active');
-    }
-
-    async function loadChannels() {
-      try {
-        const response = await fetch('channels.json');
-        const data = await response.json();
-
-        Object.keys(data).forEach(category => {
-          let container = document.getElementById(category);
-          if (!container) {
-            container = document.createElement('div');
-            container.id = category;
-            container.className = 'channel-category';
-            document.getElementById('channel-logos').appendChild(container);
-          }
-
-          data[category].forEach(channel => {
-            const div = document.createElement('div');
-            div.className = 'channel-logo';
-            div.onclick = () => playChannel(channel.url);
-
-            const img = document.createElement('img');
-            img.src = channel.logo;
-            img.alt = channel.name;
-
-            const p = document.createElement('p');
-            p.textContent = channel.name;
-
-            div.appendChild(img);
-            div.appendChild(p);
-            container.appendChild(div);
-          });
-        });
-      } catch (err) {
-        console.error('Error loading channels.json:', err);
-      }
+      document.getElementById(category).style.display = 'flex';
     }
 
     loadChannels();
