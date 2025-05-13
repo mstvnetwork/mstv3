@@ -1,64 +1,44 @@
-{
-  "entertainment-plus": [
-    {
-      "name": "B4U New",
-      "url": "https://amg00877-b4unew-amg00877c2-xiaomi-in-5489.playouts.now.amagi.tv/playlist.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv2/refs/heads/main/images/images.jpeg"
-    },
-    {
-      "name": "Channel 2",
-      "url": "https://d2p372oxiwmcn1.cloudfront.net/hls/main.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/images.png"
-    },
-    {
-      "name": "Bollywood HD",
-      "url": "https://d35j504z0x2vu2.cloudfront.net/v1/master/bollywood_hd.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(3).jpeg"
-    },
-    {
-      "name": "MEL6",
-      "url": "https://npc.cdn.7livecloud.io/hls/live/MEL6/master.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(4).jpeg"
-    },
-    {
-      "name": "PiShow 11",
-      "url": "https://cdn-1.pishow.tv/live/11/master.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/images%20(1).jpeg"
-    },
-    {
-      "name": "PiShow 1461",
-      "url": "https://cdn-2.pishow.tv/live/1461/master.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(5).jpeg"
-    },
-    {
-      "name": "PiShow 1460",
-      "url": "https://cdn-2.pishow.tv/live/1460/master.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(6).jpeg"
-    },
-    {
-      "name": "Bollywood HD Alt",
-      "url": "https://d35j504z0x2vu2.cloudfront.net/v1/master/bollywood_hd_alt.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(3).jpeg"
-    },
-    {
-      "name": "Dangal TV",
-      "url": "https://live-dangal.akamaized.net/liveabr/playlist.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/images%20(2).jpeg"
-    },
-    {
-      "name": "Dangal 2",
-      "url": "https://live-dangal2.akamaized.net/liveabr/playlist.m3u8",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(7).jpeg"
-    },
-    {
-      "name": "Ottera",
-      "url": "https://ov.ottera.tv/live/master.m3u8?channel=mcom_ta_us",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(8).jpeg"
-    },
-    {
-      "name": "Xumo",
-      "url": "https://dbrb49pjoymg4.cloudfront.net/10001/99991756/hls/master.m3u8?includeAssetTags=true&ads.xumo_channelId=99991756",
-      "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/600x337.webp"
-    }
-  ]
-}
+[
+  {
+    "name": "B4U New",
+    "url": "https://amg00877-b4unew-amg00877c2-xiaomi-in-5489.playouts.now.amagi.tv/playlist.m3u8",
+    "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv2/refs/heads/main/images/images.jpeg",
+    "category": "entertainment-plus"
+  },
+  {
+    "name": "Channel 2",
+    "url": "https://d2p372oxiwmcn1.cloudfront.net/hls/main.m3u8",
+    "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/images.png",
+    "category": "entertainment-plus"
+  },
+  {
+    "name": "Bollywood HD",
+    "url": "https://d35j504z0x2vu2.cloudfront.net/v1/master/bollywood_hd.m3u8",
+    "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(3).jpeg",
+    "category": "entertainment-plus"
+  },
+  {
+    "name": "MEL6",
+    "url": "https://npc.cdn.7livecloud.io/hls/live/MEL6/master.m3u8",
+    "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(4).jpeg",
+    "category": "entertainment-plus"
+  },
+  {
+    "name": "PiShow 11",
+    "url": "https://cdn-1.pishow.tv/live/11/master.m3u8",
+    "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/images%20(1).jpeg",
+    "category": "entertainment-plus"
+  },
+  {
+    "name": "PiShow 1461",
+    "url": "https://cdn-2.pishow.tv/live/1461/master.m3u8",
+    "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/download%20(5).jpeg",
+    "category": "entertainment-plus"
+  },
+  {
+    "name": "Xumo",
+    "url": "https://dbrb49pjoymg4.cloudfront.net/10001/99991756/hls/master.m3u8?includeAssetTags=true&ads.xumo_channelId=99991756",
+    "logo": "https://raw.githubusercontent.com/mstvnetwork/mstv/refs/heads/main/images/600x337.webp",
+    "category": "entertainment-plus"
+  }
+]
