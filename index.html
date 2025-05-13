@@ -2,102 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MSTV Network</title>
-  <style>
-    /* Existing styles... */
-    body, html {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      background: #222;
-      color: white;
-      text-align: center;
-    }
-
-    .channel-categories {
-      margin: 20px 0;
-    }
-
-    .channel-categories button {
-      background: orange;
-      border: none;
-      padding: 10px 20px;
-      margin: 5px;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-
-    .player-container {
-      width: 100%;
-      max-width: 800px;
-      margin: 30px auto;
-    }
-
-    #media-player {
-      display: none;
-      position: relative;
-    }
-
-    #video-player {
-      width: 100%;
-      height: 450px;
-      border: none;
-      border-radius: 8px;
-    }
-
-    .live-stamp {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: red;
-      color: white;
-      padding: 4px 10px;
-      font-weight: bold;
-      border-radius: 5px;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MSTV NETWORK</title>
+  <link href="https://vjs.zencdn.net/8.5.2/video-js.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <h1>MSTV Network</h1>
-  <p>Click a category to choose a channel</p>
 
-  <div class="channel-categories">
-<button onclick="window.open('channelselector.html?category=music', '_blank')">Music</button>
-<button onclick="window.open('channelselector.html?category=bollywood', '_blank')">Bollywood</button>
-<button onclick="window.open('channelselector.html?category=sports', '_blank')">Live Sports</button>
-<button onclick="window.open('channelselector.html?category=news', '_blank')">News</button>
-<button onclick="window.open('channelselector.html?category=movies', '_blank')">Movies</button>
+  <!-- Title -->
+  <header>
+    <h1 class="title">MSTV NETWORK</h1>
+    <marquee behavior="scroll" direction="left" class="scroll-text">
+      Welcome to MSTV NETWORK - Streaming the Best of News, Music, Sports and More!
+    </marquee>
+  </header>
 
-  </div>
+  <!-- Channel Category Buttons -->
+  <nav class="channel-buttons">
+    <button onclick="navigateTo('news')">News Channels</button>
+    <button onclick="navigateTo('music')">Music Channels</button>
+    <button onclick="navigateTo('entertainment')">Entertainment Plus Channels</button>
+    <button onclick="navigateTo('sports')">Sport Channels</button>
+    <button onclick="navigateTo('spiritual')">Spiritual Channels</button>
+  </nav>
 
-  <div class="player-container">
-    <div id="media-player">
-      <div class="live-stamp">LIVE</div>
-      <iframe id="video-player" allowfullscreen></iframe>
+  <!-- Video Player Section -->
+  <section class="video-section">
+    <div class="player-header">
+      <img src="assets/logos/mstv-logo.png" alt="MSTV Logo" class="logo">
     </div>
+    <video
+      id="mstv-player"
+      class="video-js vjs-default-skin"
+      controls
+      preload="auto"
+      width="640"
+      height="360"
+    >
+      <source src="assets/videos/sample.mp4" type="video/mp4" />
+      Your browser does not support the video tag.
+    </video>
+  </section>
+
+  <!-- Social Section -->
+  <div class="social-follow">
+    <a href="https://facebook.com/mstvnetwork" target="_blank">
+      <img src="assets/icons/facebook.png" alt="Facebook" class="icon">
+      Follow us on
+    </a>
   </div>
 
-  <script>
-    // Open new window on category click
-    document.querySelectorAll('.channel-categories button').forEach(button => {
-      button.addEventListener('click', () => {
-        const category = button.textContent.trim().toLowerCase().replace(/\s+/g, '');
-        window.open(`channelselector.html?category=${category}`, '_blank', 'width=800,height=600');
-      });
-    });
+  <!-- Footer Links -->
+  <footer>
+    <a href="pages/about.html">About Us</a> |
+    <a href="pages/disclaimer.html">Disclaimer</a> |
+    <a href="pages/privacy.html">Privacy Policy</a> |
+    <a href="pages/terms.html">Terms of Service</a> |
+    <a href="pages/contact.html">Contact Us</a>
+  </footer>
 
-    // Listen for message from popup
-    window.addEventListener('message', (event) => {
-      if (event.origin !== window.location.origin) return;
-      const videoUrl = event.data;
-      const iframe = document.getElementById('video-player');
-      const mediaPlayer = document.getElementById('media-player');
-      iframe.src = videoUrl;
-      mediaPlayer.style.display = 'block';
-    });
-  </script>
+  <!-- Scripts -->
+  <script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
