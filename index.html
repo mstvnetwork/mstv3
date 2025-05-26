@@ -48,7 +48,6 @@
       left: 0;
       width: 100%;
       height: 100%;
-      border: none;
     }
     .live-stamp {
       position: absolute;
@@ -161,248 +160,175 @@
       text-align: center;
       margin-top: 20px;
     }
-    /* Twitch Chat container */
-    #twitch-chat-container {
-      width: 90%;
-      max-width: 1000px;
-      height: 400px;
-      margin: 10px auto 40px auto;
-      display: none;
-      border: 3px solid #00ffe7;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #000;
-      animation: borderPulse 3s ease-in-out infinite;
-    }
-    #twitch-chat {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    #toggle-chat-btn {
-      display: none;
-      margin: 0 auto 30px auto;
-      padding: 10px 20px;
-      background-color: #00ffe7;
-      color: #1c0b4e;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 1em;
-      font-weight: bold;
-      transition: background-color 0.3s;
-    }
-    #toggle-chat-btn:hover {
-      background-color: #ff4fd8;
-      color: white;
-    }
   </style>
 </head>
 <body>
 
-  <h1 class="title-3d">MSTV INDIA</h1>
+<div class="title-3d">MSTV INDIA</div>
 
-  <div class="player-container" id="player-container">
-    <div class="live-stamp">MSTV NETWORK</div>
-    <div class="loading-indicator" id="loading">Loading stream...</div>
-    <img src="/logo.png" class="logo-overlay" alt="MSTV Logo" />
-    <iframe 
-      id="media-player" 
-      allow="autoplay; encrypted-media; fullscreen" 
-      sandbox="allow-same-origin allow-scripts allow-presentation" 
-      allowfullscreen
-    ></iframe>
-    <video id="video-player" autoplay muted playsinline></video>
-    <img id="placeholder-image" src="Design-Studio-2025-01-22 (1).png" alt="Stream Placeholder" />
+<div class="player-container" id="player-container">
+  <div class="live-stamp">MSTV NETWORK</div>
+  <div class="loading-indicator" id="loading">Loading stream...</div>
+  <img src="/logo.png" class="logo-overlay" alt="MSTV Logo" />
+  <iframe id="media-player" allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
+  <video id="video-player" autoplay muted playsinline></video>
+  <img id="placeholder-image" src="Design-Studio-2025-01-22 (1).png" alt="Stream Placeholder" />
+</div>
+
+<div class="channel-selection">
+  <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+    <input list="channel-suggestions" id="channel-search" placeholder="Search channels..."
+           oninput="updateSuggestions(this.value)"
+           style="padding: 10px; border-radius: 10px; border: 2px solid #0ff; background: #111; color: #0ff; width: 60%;">
+    <datalist id="channel-suggestions"></datalist>
+    <button onclick="searchChannel()" style="padding: 10px; border-radius: 10px; background-color: #0ff; color: #000;">🔍</button>
   </div>
 
-  <button id="toggle-chat-btn">Show Twitch Chat</button>
-  <div id="twitch-chat-container">
-    <iframe
-      id="twitch-chat"
-      src=""
-      sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-      allowfullscreen
-      title="Twitch Chat"
-    ></iframe>
+  <div id="category-buttons" style="margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+    <button class="category-btn" data-category="news">News</button>
+    <button class="category-btn" data-category="music">Music</button>
+    <button class="category-btn" data-category="entertainment">Entertainment</button>
+    <button class="category-btn" data-category="sports">Sports</button>
+    <button class="category-btn" data-category="religious">Religious</button>
+    <button class="category-btn" data-category="international">International</button>
   </div>
+</div>
 
-  <div class="channel-selection">
-    <div style="display: flex; justify-content: center; gap: 10px;">
-      <input type="text" id="channel-search" placeholder="Search channels..." style="padding: 10px; border-radius: 10px; border: 2px solid #0ff; background: #111; color: #0ff; width: 60%;">
-      <button onclick="searchChannel()" style="padding: 10px; border-radius: 10px; background-color: #0ff; color: #000;">🔍</button>
+<div id="channel-logo-list"></div>
+
+<footer>
+  <div class="footer-section">
+    <div class="footer-column">
+      <h2>About MSTV</h2>
+      <p>MSTV Network is a non-profit platform offering free access to live TV channels...</p>
     </div>
-
-    <div id="category-buttons" style="margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
-      <button class="category-btn" data-category="news">News</button>
-      <button class="category-btn" data-category="music">Music</button>
-      <button class="category-btn" data-category="entertainment">Entertainment</button>
-      <button class="category-btn" data-category="sports">Sports</button>
-      <button class="category-btn" data-category="religious">Religious</button>
-      <button class="category-btn" data-category="international">International</button>
+    <div class="footer-column">
+      <h2>Contact</h2>
+      <p>Email: contact@mstvindia.com</p>
+      <p>Phone: +91-8456345667</p>
     </div>
   </div>
+  <div class="facebook-follow">
+    <a href="https://www.facebook.com/MSTVNetwork" target="_blank">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Facebook Icon" />
+      Follow us on Facebook
+    </a>
+  </div>
+  <div class="copyright">&copy; 2025 MSTV INDIA. All rights reserved.</div>
+</footer>
 
-  <div id="channel-logo-list"></div>
+<script>
+  const videoPlayer = document.getElementById('video-player');
+  const iframePlayer = document.getElementById('media-player');
+  const placeholder = document.getElementById('placeholder-image');
+  const loading = document.getElementById('loading');
+  const logoList = document.getElementById('channel-logo-list');
 
-  <footer>
-    <div class="footer-section">
-      <div class="footer-column">
-        <h2>About MSTV</h2>
-        <p>MSTV Network is a non-profit platform offering free access to live TV channels...</p>
-      </div>
-      <div class="footer-column">
-        <h2>Contact</h2>
-        <p>Email: contact@mstvindia.com</p>
-        <p>Phone: +91-8456345667</p>
-      </div>
-    </div>
-    <div class="facebook-follow">
-      <a href="https://www.facebook.com/MSTVNetwork" target="_blank">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Facebook Icon" />
-        Follow us on Facebook
-      </a>
-    </div>
-    <div class="copyright">&copy; 2025 MSTV INDIA. All rights reserved.</div>
-  </footer>
+  const channels = {
+    news: [
+      { name: "NDTV", logo: "ndtv.png", url: "https://example.com/ndtv" },
+      { name: "ABP News", logo: "abp.png", url: "https://example.com/abp" },
+      { name: "YouTube News", logo: "youtube.png", url: "https://www.youtube.com/embed/jBroLf5iS_U?autoplay=1" },
+      { name: "Zee Cinema", logo: "zeecinema.png", url: "https://dreyfus.securitytactics.com/zeecinema.html" }
+    ],
+    music: [
+      { name: "MTV", logo: "mtv.png", url: "https://example.com/mtv" },
+      { name: "9XM", logo: "9xm.png", url: "https://example.com/9xm" }
+    ],
+    sports: [
+      { name: "Live Cricket", logo: "cricket.png", url: "https://dreyfus.securitytactics.com/cricket.html" }
+    ],
+    entertainment: [
+      { name: "Ghaint Punjab", logo: "ghaintpunjab.png", url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01412-xiaomiasia-ghaintpunjab-xiaomi/playlist.m3u8" }
+    ],
+    religious: [
+      { name: "Spiritual Live", logo: "spiritual.png", url: "https://www.youtube.com/embed/fB6Z4q01uFU?autoplay=1" }
+    ],
+    international: [
+      { name: "Aap Ki Adalat Global", logo: "aapkiadalat.png", url: "https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg01550-indiatv-indiatv-aapkiadalat-mi-xiaomi/playlist.m3u8" }
+    ]
+  };
 
-  <script>
-    const videoPlayer = document.getElementById('video-player');
-    const iframePlayer = document.getElementById('media-player');
-    const placeholder = document.getElementById('placeholder-image');
-    const loading = document.getElementById('loading');
-    const logoList = document.getElementById('channel-logo-list');
-    const toggleChatBtn = document.getElementById('toggle-chat-btn');
-    const twitchChatContainer = document.getElementById('twitch-chat-container');
-    const twitchChatIframe = document.getElementById('twitch-chat');
+  function showLoading(show) {
+    loading.style.display = show ? 'block' : 'none';
+  }
 
-    const parentDomain = window.location.hostname; // will be used for twitch parent param
+  function playChannel(url) {
+    showLoading(true);
+    videoPlayer.pause();
+    videoPlayer.removeAttribute('src');
+    videoPlayer.load();
+    iframePlayer.src = '';
+    placeholder.style.display = 'none';
 
-    // Channels data
-    const channels = {
-      news: [
-        { name: "NDTV", logo: "ndtv.png", url: "https://example.com/ndtv" },
-        { name: "ABP News", logo: "abp.png", url: "https://example.com/abp" },
-        { name: "YouTube News", logo: "youtube.png", url: "https://www.youtube.com/embed/jBroLf5iS_U?autoplay=1&playsinline=1" },
-        { name: "Zee Cinema", logo: "zeecinema.png", url: "https://dreyfus.securitytactics.com/zeecinema.html" },
-        { name: "AIODigital (Twitch)", logo: "twitch.png", url: `https://player.twitch.tv/?channel=aiodigital&parent=${parentDomain}&autoplay=true&muted=true` }
-      ],
-      music: [
-        { name: "MTV", logo: "mtv.png", url: "https://example.com/mtv" },
-        { name: "9XM", logo: "9xm.png", url: "https://example.com/9xm" }
-      ],
-      // Add other categories as needed
-    };
+    const isIframe = url.includes('.html') || url.includes('youtube.com') || url.includes('embed') || url.includes('twitch.tv');
 
-    let currentCategory = 'news';
-    let currentChannel = null;
-    let twitchChatVisible = false;
-
-    function createChannelLogos(category) {
-      logoList.innerHTML = '';
-      if (!channels[category]) return;
-      channels[category].forEach(channel => {
-        const img = document.createElement('img');
-        img.src = channel.logo;
-        img.alt = channel.name;
-        img.title = channel.name;
-        img.className = 'channel-logo';
-        img.onclick = () => loadChannel(channel);
-        logoList.appendChild(img);
-      });
-      logoList.style.display = 'block';
-    }
-
-    function loadChannel(channel) {
-      currentChannel = channel;
-      loading.style.display = 'block';
-      twitchChatVisible = false;
-      toggleChatBtn.style.display = 'none';
-      twitchChatContainer.style.display = 'none';
-
-      // Reset players
-      iframePlayer.style.display = 'none';
+    if (isIframe) {
+      iframePlayer.style.display = 'block';
+      iframePlayer.src = url;
+      iframePlayer.onload = () => showLoading(false);
       videoPlayer.style.display = 'none';
-      placeholder.style.display = 'none';
-
-      if (channel.url.includes('twitch.tv')) {
-        // Twitch stream
-        // Show iframe and set src with autoplay and muted params
-        iframePlayer.src = channel.url;
-        iframePlayer.style.display = 'block';
-        // Show toggle chat button
-        toggleChatBtn.style.display = 'inline-block';
-      } else if (channel.url.includes('youtube.com') || channel.url.includes('youtu.be')) {
-        // YouTube embedded video
-        iframePlayer.src = channel.url;
-        iframePlayer.style.display = 'block';
-      } else if (channel.url.endsWith('.mp4') || channel.url.endsWith('.webm') || channel.url.endsWith('.ogg')) {
-        // Direct video links
-        videoPlayer.src = channel.url;
-        videoPlayer.style.display = 'block';
-        videoPlayer.muted = false;
-        videoPlayer.play();
-      } else {
-        // Fallback: load in iframe (for other sites)
-        iframePlayer.src = channel.url;
-        iframePlayer.style.display = 'block';
-      }
+    } else {
+      videoPlayer.style.display = 'block';
+      videoPlayer.src = url;
+      videoPlayer.muted = false;
+      videoPlayer.autoplay = true;
+      videoPlayer.play().then(() => showLoading(false)).catch(() => showLoading(false));
+      iframePlayer.style.display = 'none';
     }
 
-    // Loading indicator control for iframe
-    iframePlayer.onload = () => {
-      loading.style.display = 'none';
-    };
+    logoList.style.display = 'none';
+  }
 
-    // Toggle Twitch Chat
-    toggleChatBtn.onclick = () => {
-      if (!currentChannel || !currentChannel.url.includes('twitch.tv')) return;
+  function loadChannel(channel) {
+    if (channel && channel.url) {
+      playChannel(channel.url);
+    }
+  }
 
-      twitchChatVisible = !twitchChatVisible;
-      if (twitchChatVisible) {
-        // Extract Twitch channel name from URL param
-        const urlParams = new URLSearchParams(currentChannel.url.split('?')[1]);
-        const twitchChannel = urlParams.get('channel');
-        if (!twitchChannel) return;
-
-        // Set Twitch chat iframe src with parent param
-        twitchChatIframe.src = `https://www.twitch.tv/embed/${twitchChannel}/chat?parent=${parentDomain}`;
-        twitchChatContainer.style.display = 'block';
-        toggleChatBtn.textContent = 'Hide Twitch Chat';
-      } else {
-        twitchChatIframe.src = '';
-        twitchChatContainer.style.display = 'none';
-        toggleChatBtn.textContent = 'Show Twitch Chat';
-      }
-    };
-
-    // Category buttons events
-    document.querySelectorAll('.category-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentCategory = btn.getAttribute('data-category');
-        createChannelLogos(currentCategory);
-      });
+  document.querySelectorAll('.category-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const category = btn.dataset.category;
+      const logos = channels[category] || [];
+      logoList.innerHTML = logos.map(ch =>
+        `<img class="channel-logo" src="${ch.logo}" alt="${ch.name}" title="${ch.name}" onclick="playChannel('${ch.url}')">`
+      ).join('');
+      logoList.style.display = 'block';
     });
+  });
 
-    // Search function
-    function searchChannel() {
-      const input = document.getElementById('channel-search').value.toLowerCase();
-      let found = false;
-      if (channels[currentCategory]) {
-        for (const ch of channels[currentCategory]) {
-          if (ch.name.toLowerCase().includes(input)) {
-            loadChannel(ch);
-            found = true;
-            break;
-          }
-        }
+  function getAllChannels() {
+    const all = [];
+    for (const cat in channels) {
+      for (const ch of channels[cat]) {
+        all.push({ name: ch.name, url: ch.url });
       }
-      if (!found) alert('Channel not found!');
     }
+    return all;
+  }
 
-    // Initialize with news category logos
-    createChannelLogos(currentCategory);
-  </script>
+  function updateSuggestions(inputValue) {
+    const dataList = document.getElementById('channel-suggestions');
+    const allChannels = getAllChannels();
+    const matches = allChannels.filter(ch => ch.name.toLowerCase().startsWith(inputValue.toLowerCase()));
+    dataList.innerHTML = matches.map(ch => `<option value="${ch.name}">`).join('');
+  }
+
+  function searchChannel() {
+    const input = document.getElementById('channel-search').value.toLowerCase();
+    const allChannels = getAllChannels();
+    const match = allChannels.find(ch => ch.name.toLowerCase() === input);
+    if (match) {
+      loadChannel(match);
+    } else {
+      alert("Channel not found!");
+    }
+  }
+
+  videoPlayer.addEventListener('contextmenu', e => e.preventDefault());
+  videoPlayer.style.display = 'none';
+  iframePlayer.style.display = 'none';
+</script>
 
 </body>
 </html>
