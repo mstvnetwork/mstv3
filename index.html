@@ -1,38 +1,373 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>FOX Cricket HD Stream</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MSTV INDIA</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(145deg, #0d0221, #1c0b4e);
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    .title-3d {
+      font-size: 3em;
+      text-align: center;
+      margin-top: 30px;
+      color: #00ffe7;
+      text-shadow: 0 0 10px #00ffe7, 0 0 20px #0ff;
+      animation: glow 2s infinite alternate;
+    }
+
+    @keyframes glow {
+      0% { text-shadow: 0 0 10px #00ffe7, 0 0 20px #0ff; }
+      100% { text-shadow: 0 0 20px #00ffe7, 0 0 30px #0ff; }
+    }
+
+    .scrolling-text-container {
+      overflow: hidden;
+      white-space: nowrap;
+      width: 100%;
+      background: #111;
+      color: #0ff;
+      padding: 10px 0;
+      font-size: 1.2em;
+    }
+
+    .scrolling-text {
+      display: inline-block;
+      animation: scroll-left 20s linear infinite;
+    }
+
+    @keyframes scroll-left {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    .player-container {
+      position: relative;
+      width: 90%;
+      max-width: 1000px;
+      aspect-ratio: 16 / 9;
+      margin: 20px auto;
+      border: 4px solid;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #000;
+      animation: borderPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes borderPulse {
+      0% { border-color: #ff4fd8; box-shadow: 0 0 10px #ff4fd8; }
+      50% { border-color: #00ffe7; box-shadow: 0 0 25px #00ffe7; }
+      100% { border-color: #ff4fd8; box-shadow: 0 0 10px #ff4fd8; }
+    }
+
+    .iframe-wrapper {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+
+    .iframe-wrapper iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .iframe-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      right: 0; bottom: 0;
+      background: transparent;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    video, #placeholder-image {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+
+    .live-stamp {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      background: #ff003c;
+      color: white;
+      padding: 8px 12px;
+      font-weight: bold;
+      font-size: 0.9em;
+      border-radius: 5px;
+      z-index: 10;
+      box-shadow: 0 0 10px #ff003c;
+    }
+
+    .loading-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.5em;
+      background: rgba(0, 0, 0, 0.85);
+      color: #ffcc00;
+      padding: 15px 30px;
+      border-radius: 12px;
+      display: none;
+      z-index: 15;
+      animation: glowLoader 1.5s infinite alternate;
+    }
+
+    @keyframes glowLoader {
+      0% { box-shadow: 0 0 5px #ffcc00; }
+      100% { box-shadow: 0 0 15px #ffcc00; }
+    }
+
+    .logo-overlay {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 60px;
+      opacity: 0.85;
+      z-index: 12;
+    }
+
+    .channel-selection {
+      text-align: center;
+      margin: 30px auto;
+      width: 90%;
+      max-width: 800px;
+    }
+
+    .category-btn {
+      background-color: #1c0b4e;
+      border: 2px solid #00ffe7;
+      color: #00ffe7;
+      padding: 10px 15px;
+      border-radius: 20px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .category-btn:hover {
+      background-color: #00ffe7;
+      color: #1c0b4e;
+    }
+
+    #channel-logo-list {
+      display: none;
+      background: rgba(0,0,0,0.75);
+      margin: 20px auto;
+      max-width: 90%;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .channel-logo {
+      display: inline-block;
+      width: 100px;
+      margin: 5px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .channel-logo:hover {
+      transform: scale(1.1);
+    }
+
+    footer {
+      background: #111;
+      padding: 40px 20px;
+      color: #aaa;
+    }
+
+    .footer-section {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+    }
+
+    .footer-column {
+      flex: 1 1 200px;
+      margin: 10px;
+    }
+
+    .footer-column h2 {
+      color: #ff004f;
+    }
+
+    .footer-column a {
+      color: #ffcc00;
+    }
+
+    .facebook-follow {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .facebook-follow img {
+      width: 30px;
+      margin-right: 10px;
+    }
+
+    .copyright {
+      text-align: center;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
 
-  <h2>FOX Cricket HD Live Stream</h2>
-  <video id="video" controls width="800" height="450" autoplay></video>
+<h1 class="title-3d">MSTV INDIA</h1>
 
-  <!-- Load hls.js -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<div class="scrolling-text-container">
+  <div class="scrolling-text">
+    Welcome to MSTV INDIA — Enjoy live news, music, entertainment & international TV channels, streaming from all platforms!
+  </div>
+</div>
 
-  <script>
-    const video = document.getElementById('video');
-    const videoSrc = 'https://m2.merichunidya.com:999/hls/fox501.m3u8?md5=F5_QYMo9iD9iqrBDYRlJvg&expires=1747479319';
+<div class="player-container" id="player-container">
+  <div class="live-stamp">MSTV NETWORK</div>
+  <div class="loading-indicator" id="loading">Loading stream...</div>
+  <img src="/logo.png" class="logo-overlay" alt="MSTV Logo" />
+  <div class="iframe-wrapper" id="iframe-wrapper">
+    <iframe id="media-player" allow="autoplay; encrypted-media; fullscreen" sandbox="allow-same-origin allow-scripts allow-presentation allow-popups" allowfullscreen></iframe>
+    <div class="iframe-overlay"></div>
+  </div>
+  <video id="video-player" autoplay muted playsinline controls></video>
+  <img id="placeholder-image" src="Design-Studio-2025-01-22 (1).png" alt="Stream Placeholder" />
+</div>
 
-    if (Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(videoSrc);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, function () {
-        video.play();
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // For Safari
-      video.src = videoSrc;
-      video.addEventListener('loadedmetadata', function () {
-        video.play();
-      });
+<div class="channel-selection">
+  <div style="display: flex; justify-content: center; gap: 10px;">
+    <input type="text" id="channel-search" placeholder="Search channels..." style="padding: 10px; border-radius: 10px; border: 2px solid #0ff; background: #111; color: #0ff; width: 60%;">
+    <button onclick="searchChannel()" style="padding: 10px; border-radius: 10px; background-color: #0ff; color: #000;">🔍</button>
+  </div>
+
+  <div id="category-buttons" style="margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+    <button class="category-btn" data-category="news">News</button>
+    <button class="category-btn" data-category="music">Music</button>
+    <button class="category-btn" data-category="entertainment">Entertainment</button>
+    <button class="category-btn" data-category="sports">Sports</button>
+    <button class="category-btn" data-category="religious">Religious</button>
+    <button class="category-btn" data-category="international">International</button>
+  </div>
+</div>
+
+<div id="channel-logo-list"></div>
+
+<footer>
+  <div class="footer-section">
+    <div class="footer-column">
+      <h2>About MSTV</h2>
+      <p>MSTV Network is a non-profit platform offering free access to live TV channels...</p>
+    </div>
+    <div class="footer-column">
+      <h2>Contact</h2>
+      <p>Email: contact@mstvindia.com</p>
+      <p>Phone: +91-8456345667</p>
+    </div>
+  </div>
+  <div class="facebook-follow">
+    <a href="https://www.facebook.com/MSTVNetwork" target="_blank">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="Facebook Icon" />
+      Follow us on Facebook
+    </a>
+  </div>
+  <div class="copyright">&copy; 2025 MSTV INDIA. All rights reserved.</div>
+</footer>
+
+<script>
+  const videoPlayer = document.getElementById('video-player');
+  const iframePlayer = document.getElementById('media-player');
+  const placeholder = document.getElementById('placeholder-image');
+  const loading = document.getElementById('loading');
+  const logoList = document.getElementById('channel-logo-list');
+
+  const channels = {
+    news: [
+      { name: "NDTV", logo: "ndtv.png", url: "https://example.com/ndtv" },
+      { name: "ABP News", logo: "abp.png", url: "https://example.com/abp" },
+      { name: "YouTube News", logo: "youtube.png", url: "https://www.youtube.com/embed/jBroLf5iS_U?autoplay=1&playsinline=1" },
+      { name: "Zee Cinema", logo: "zeecinema.png", url: "https://dreyfus.securitytactics.com/zeecinema.html" },
+      { name: "Twitch Demo", logo: "twitch.png", url: "https://player.twitch.tv/?channel=twitch&parent=yourdomain.com" }
+    ],
+    music: [
+      { name: "MTV", logo: "mtv.png", url: "https://example.com/mtv" },
+      { name: "9XM", logo: "9xm.png", url: "https://example.com/9xm" }
+    ]
+  };
+
+  function showLoading(show) {
+    loading.style.display = show ? 'block' : 'none';
+  }
+
+  function playChannel(url) {
+    showLoading(true);
+    videoPlayer.pause();
+    videoPlayer.removeAttribute('src');
+    videoPlayer.load();
+    iframePlayer.src = '';
+    placeholder.style.display = 'none';
+
+    const isIframe = url.includes('.html') || url.includes('youtube.com') || url.includes('embed') || url.includes('twitch.tv');
+
+    if (isIframe) {
+      iframePlayer.style.display = 'block';
+      iframePlayer.src = url;
+      iframePlayer.onload = () => showLoading(false);
+      videoPlayer.style.display = 'none';
     } else {
-      alert('Your browser does not support HLS streaming.');
+      videoPlayer.style.display = 'block';
+      videoPlayer.src = url;
+      videoPlayer.muted = false;
+      videoPlayer.autoplay = true;
+      videoPlayer.play().then(() => showLoading(false)).catch(() => showLoading(false));
+      iframePlayer.style.display = 'none';
     }
-  </script>
+
+    logoList.style.display = 'none';
+  }
+
+  document.querySelectorAll('.category-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const category = btn.dataset.category;
+      const logos = channels[category] || [];
+      logoList.innerHTML = logos.map(ch =>
+        `<img class="channel-logo" src="${ch.logo}" alt="${ch.name}" title="${ch.name}" onclick="playChannel('${ch.url}')">`
+      ).join('');
+      logoList.style.display = 'block';
+    });
+  });
+
+  function searchChannel() {
+    const query = document.getElementById('channel-search').value.toLowerCase();
+    let found = false;
+    for (let cat in channels) {
+      for (let ch of channels[cat]) {
+        if (ch.name.toLowerCase().includes(query)) {
+          playChannel(ch.url);
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    if (!found) alert("Channel not found.");
+  }
+
+  videoPlayer.addEventListener('contextmenu', e => e.preventDefault());
+  videoPlayer.style.display = 'none';
+  iframePlayer.style.display = 'none';
+</script>
 
 </body>
 </html>
