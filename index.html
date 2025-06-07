@@ -79,6 +79,29 @@
             z-index: 9;       /* Below the custom logo, above the player */
             display: none;    /* Hidden by default */
         }
+
+        /* Scrolling banner styling */
+        .scrolling-banner {
+            overflow: hidden; /* Hides content outside this div */
+            background-color: red;
+            color: white;
+            padding: 10px 0; /* Vertical padding */
+            margin: 20px auto; /* Margin from player and center it */
+            width: 640px; /* Match player width */
+            white-space: nowrap; /* Ensures text stays on one line */
+            font-size: 1.2em; /* Adjust font size as needed */
+        }
+
+        .scrolling-banner-content {
+            display: inline-block; /* Allows animation on the text itself */
+            padding-left: 100%; /* Start off-screen to the right */
+            animation: scrollText 20s linear infinite; /* Animation name, duration, timing, loop */
+        }
+
+        @keyframes scrollText {
+            0% { transform: translateX(0%); } /* Starts from right edge of container */
+            100% { transform: translateX(-100%); } /* Scrolls to left edge of container */
+        }
     </style>
 </head>
 <body>
@@ -90,6 +113,14 @@
     </div>
 
     <button id="unmuteButton" onclick="unmuteVideo()">Unmute</button>
+
+    <div class="scrolling-banner">
+        <div class="scrolling-banner-content">
+            Welcome to My Channel! Enjoy uninterrupted music and videos. Stay tuned for new updates!
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            Thank you for watching! More great content coming soon!
+        </div>
+    </div>
 
     <script>
         // --- STEP 1: REPLACE THIS URL WITH YOUR ACTUAL RENDER SERVER URL ---
@@ -170,6 +201,7 @@
 
                 console.log(`Placeholder should appear in approximately: ${timeRemainingUntilPlaceholder.toFixed(2)}s`);
 
+                // Ensure video is long enough and we haven't passed the trigger point
                 if (duration > SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER && timeRemainingUntilPlaceholder > 0) {
                     placeholderTimerId = setTimeout(() => {
                         console.log("TIMEOUT FIRED! Showing placeholder.");
