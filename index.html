@@ -14,9 +14,7 @@
 </head>
 <body>
     <h1>My Custom YouTube Channel</h1>
-    <div id="videoTitle"></div> <div id="player"></div> <button onclick="playPrevious()">Previous</button>
-    <button onclick="playNext()">Next</button>
-    <button onclick="playRandom()">Play Random</button>
+    <div id="videoTitle"></div> <div id="player"></div> <button id="unmuteButton" onclick="unmuteVideo()">Unmute</button>
 
     <script>
         // --- STEP 1: REPLACE THIS URL WITH YOUR ACTUAL RENDER SERVER URL ---
@@ -28,14 +26,12 @@
         let currentVideoIndex = -1; // Keeps track of which video is currently playing
 
         // 1. Load the YouTube IFrame Player API code.
-        // This is YouTube's official script for embedding their player.
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api"; // Official YouTube API URL
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         // 2. This function is called by the YouTube API once it's loaded.
-        //    It creates the YouTube player with specified playerVars.
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '390',
@@ -58,37 +54,32 @@
             });
         }
 
-        // 3. This function runs when the player is ready to receive commands.
+        // 3. This function runs when the player is ready.
         async function onPlayerReady(event) {
             console.log("YouTube Player is ready!");
-            await fetchAndPopulateVideos(); // Get your video list from your Render server
+            await fetchAndPopulateVideos();
 
-            // If playlist exists, start playing the first video
             if (playlist.length > 0) {
-                currentVideoIndex = 0; // Set index to the first video
-                loadAndPlayVideo(playlist[currentVideoIndex].id); // Load and play it
+                currentVideoIndex = 0; // Start with the first video
+                loadAndPlayVideo(playlist[currentVideoIndex].id);
             }
         }
 
         // 4. This function handles when a video ends (to play the next one automatically).
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.ENDED) {
-                playNext(); // This line automatically calls playNext()
+                playNext(); // Automatically play next video
             }
         }
 
         // 5. Fetches the playlist from your Render server
         async function fetchAndPopulateVideos() {
             try {
-                // This fetches data from your Render server's /playlist endpoint
                 const response = await fetch(`${renderServerUrl}/playlist`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                playlist = await response.json(); // Store the fetched playlist
-
-                // You could also populate a dropdown here if you wanted a list to select from
-                // For now, we just fetch it for sequential/random play.
+                playlist = await response.json();
             } catch (error) {
                 console.error("Could not fetch playlist:", error);
                 alert("Error loading playlist. Check your Render server URL and ensure it's running.");
@@ -99,7 +90,7 @@
         function loadAndPlayVideo(videoId) {
             if (player && videoId) {
                 player.loadVideoById(videoId);
-                updateVideoTitle(); // Update the title displayed on the page
+                updateVideoTitle();
             }
         }
 
@@ -112,25 +103,20 @@
             }
         }
 
-        // 8. Functions for player controls (Next, Previous, Random)
+        // 8. Function to automatically play the next video in sequence
         function playNext() {
             if (playlist.length === 0) return;
             currentVideoIndex = (currentVideoIndex + 1) % playlist.length; // Loop back to start
             loadAndPlayVideo(playlist[currentVideoIndex].id);
         }
 
-        function playPrevious() {
-            if (playlist.length === 0) return;
-            // Handle negative index by adding playlist.length before modulo
-            currentVideoIndex = (currentVideoIndex - 1 + playlist.length) % playlist.length;
-            loadAndPlayVideo(playlist[currentVideoIndex].id);
-        }
-
-        function playRandom() {
-            if (playlist.length === 0) return;
-            const randomIndex = Math.floor(Math.random() * playlist.length);
-            currentVideoIndex = randomIndex;
-            loadAndPlayVideo(playlist[currentVideoIndex].id);
+        // 9. New function to unmute the video
+        function unmuteVideo() {
+            if (player && player.isMuted()) {
+                player.unMute();
+                // Optional: Hide the unmute button after it's clicked if you only want it to appear once
+                // document.getElementById('unmuteButton').style.display = 'none';
+            }
         }
     </script>
 </body>
