@@ -19,7 +19,7 @@
     <button onclick="playRandom()">Play Random</button>
 
     <script>
-        // --- STEP 4: REPLACE THIS URL WITH YOUR ACTUAL RENDER SERVER URL ---
+        // --- STEP 1: REPLACE THIS URL WITH YOUR ACTUAL RENDER SERVER URL ---
         const renderServerUrl = "https://my-youtube-channel-server.onrender.com"; // <-- IMPORTANT: Change this line!
         // -----------------------------------------------------------------
 
@@ -35,12 +35,22 @@
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         // 2. This function is called by the YouTube API once it's loaded.
-        //    It creates the YouTube player.
+        //    It creates the YouTube player with specified playerVars.
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '390',
                 width: '640',
                 videoId: '', // Player starts empty, we'll load videos via JavaScript
+                playerVars: {
+                    'autoplay': 1,      // Attempt to autoplay
+                    'controls': 0,      // Hide player controls
+                    'mute': 1,          // Mute the video (highly recommended for autoplay to work)
+                    'disablekb': 1,     // Disable keyboard controls (like spacebar to play/pause)
+                    'fs': 0,            // Hide fullscreen button
+                    'iv_load_policy': 3,// Hide annotations and cards
+                    'modestbranding': 1, // Remove YouTube logo (some branding may remain)
+                    'rel': 0            // Don't show related videos at the end
+                },
                 events: {
                     'onReady': onPlayerReady,           // When the player is ready
                     'onStateChange': onPlayerStateChange // When video starts, ends, pauses etc.
@@ -63,7 +73,7 @@
         // 4. This function handles when a video ends (to play the next one automatically).
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.ENDED) {
-                playNext(); // Automatically play next video when current one ends
+                playNext(); // This line automatically calls playNext()
             }
         }
 
