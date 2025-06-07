@@ -33,6 +33,7 @@
             left: 0;
             width: 100%; 
             height: 100%; 
+            pointer-events: none; /* <--- NEW: Makes the iframe content unresponsive to clicks */
         }
 
         /* Video title styling */
@@ -98,10 +99,10 @@
             right: 10px;
             width: 30px; /* Adjust icon size */
             height: 30px;
-            cursor: pointer;
+            cursor: pointer; /* Cursor indicates it's clickable */
             z-index: 12; /* Ensure it's on top of everything else */
             opacity: 0.8;
-            transition: opacity 0.2s; /* Smooth hover effect */
+            transition: opacity 0.2s; 
         }
         #muteToggleButton:hover {
             opacity: 1;
@@ -224,7 +225,7 @@
                     console.log(`Already past the ${SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER} second mark. Placeholder won't be set for this video.`);
                 }
             }
-            updateMuteIcon(); // Update mute icon in case of any external state change (e.g., user manually mutes via YouTube UI if controls were briefly enabled)
+            updateMuteIcon(); 
         }
 
         // 5. Fetches the playlist from your Render server
@@ -250,7 +251,6 @@
         function loadAndPlayVideo(videoId) {
             console.log("Loading video ID:", videoId);
             if (player && videoId) {
-                // Clear any existing timer and hide placeholder immediately when a new video loads
                 clearTimeout(placeholderTimerId);
                 endingPlaceholder.style.display = 'none';
 
@@ -295,7 +295,7 @@
                 player.mute();
                 console.log("Video muted via icon.");
             }
-            updateMuteIcon(); // Update icon state after toggle
+            updateMuteIcon(); 
         }
 
         // Function to update the speaker icon based on player's mute state
