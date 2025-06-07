@@ -17,7 +17,7 @@
         
         /* Player container styling */
         .player-container {
-            position: relative; /* Crucial for positioning the logo overlay */
+            position: relative; /* Crucial for positioning child elements like logos/placeholders */
             width: 640px;      /* Set width */
             height: 390px;     /* Set height */
             margin: 20px auto; /* Center the player */
@@ -59,20 +59,34 @@
 
         /* Custom logo overlay styling */
         .custom-logo-overlay {
-            position: absolute; /* Positioned relative to .player-container */
-            bottom: 10px;       /* Adjust as needed: distance from bottom */
-            right: 10px;        /* Adjust as needed: distance from right */
-            width: 80px;        /* Adjust as needed: size of your logo */
-            height: auto;       /* Maintain aspect ratio */
-            z-index: 10;        /* Ensure it's above the YouTube player */
-            opacity: 0.9;       /* Slightly transparent */
+            position: absolute; 
+            bottom: 10px;       
+            right: 10px;        
+            width: 80px;        
+            height: auto;       
+            z-index: 10;        /* Ensure it's above the player and placeholder */
+            opacity: 0.9;       
+        }
+
+        /* Placeholder image styling */
+        #endingPlaceholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensures image covers the player area */
+            z-index: 9;       /* Below the custom logo, above the player */
+            display: none;    /* Hidden by default */
         }
     </style>
 </head>
 <body>
     <h1>My Custom YouTube Channel</h1>
     <div id="videoTitle"></div> <div class="player-container">
-        <div id="player"></div> <img src="/logo.png" alt="My Channel Logo" class="custom-logo-overlay" />
+        <div id="player"></div> <img id="endingPlaceholder" src="/your-placeholder-image.png" alt="Coming Up Next" />
+        
+        <img src="/logo.png" alt="My Channel Logo" class="custom-logo-overlay" />
     </div>
 
     <button id="unmuteButton" onclick="unmuteVideo()">Unmute</button>
@@ -85,6 +99,10 @@
         let player; // This will hold the YouTube player object
         let playlist = []; // This will store the playlist fetched from your Render server
         let currentVideoIndex = -1; // Keeps track of which video is currently playing
+        let placeholderTimerId = null; // To manage the timeout for the placeholder image
+
+        // Get reference to the placeholder image
+        const endingPlaceholder = document.getElementById('endingPlaceholder');
 
         // 1. Load the YouTube IFrame Player API code.
         var tag = document.createElement('script');
@@ -126,10 +144,24 @@
             }
         }
 
-        // 4. This function handles when a video ends (to play the next one automatically).
+        // 4. This function handles when a video ends or changes state.
         function onPlayerStateChange(event) {
+            // Clear any previous timer and hide placeholder whenever player state changes
+            clearTimeout(placeholderTimerId);
+            endingPlaceholder.style.display = 'none';
+
             if (event.data == YT.PlayerState.ENDED) {
-                playNext(); // Automatically play next video
+                playNext(); // Automatically play next video when current one ends
+            } else if (event.data == YT.PlayerState.PLAYING) {
+                // Set timer only when the video starts playing
+                const duration = player.getDuration();
+                const timeToShowPlaceholder = duration - 60; // 60 seconds before end
+
+                if (timeToShowPlaceholder > 0) { // Only set timer if video is longer than 60 seconds
+                    placeholderTimerId = setTimeout(() => {
+                        endingPlaceholder.style.display = 'block'; // Show the placeholder
+                    }, timeToShowPlaceholder * 1000); // Convert seconds to milliseconds
+                }
             }
         }
 
@@ -150,6 +182,10 @@
         // 6. Loads and plays a specific YouTube video ID
         function loadAndPlayVideo(videoId) {
             if (player && videoId) {
+                // Clear any existing timer and hide placeholder immediately when a new video loads
+                clearTimeout(placeholderTimerId);
+                endingPlaceholder.style.display = 'none';
+
                 player.loadVideoById(videoId);
                 updateVideoTitle();
             }
