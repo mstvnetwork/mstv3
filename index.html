@@ -33,7 +33,7 @@
             left: 0;
             width: 100%; 
             height: 100%; 
-            pointer-events: none; /* <--- NEW: Makes the iframe content unresponsive to clicks */
+            pointer-events: none; /* Makes the iframe content unresponsive to clicks */
         }
 
         /* Video title styling */
@@ -112,7 +112,7 @@
 <body>
     <h1>My Custom YouTube Channel</h1>
     <div id="videoTitle"></div> <div class="player-container">
-        <div id="player"></div> <img id="endingPlaceholder" src="https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/images%20(1).jpeg" alt="Coming Up Next" />
+        <div id="player"></div> <img id="endingPlaceholder" src="https://placehold.co/640x390/e0e0e0/ffffff/png?text=Coming+Up+Next" alt="Coming Up Next" />
         
         <img src="/logo.png" alt="My Channel Logo" class="custom-logo-overlay" />
 
@@ -133,7 +133,7 @@
         // -----------------------------------------------------------------
 
         // --- ICON URLs for Mute/Unmute ---
-        // IMPORTANT: Ensure these image files exist at these URLs or replace them with your own paths.
+        // IMPORTANT: Ensure these image files exist at these URLs or replace them with your own paths if you get 404s.
         const MUTED_ICON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/muted.png";   // Example: a speaker with a cross or line
         const UNMUTED_ICON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/unmuted.png"; // Example: a normal speaker
         // ---------------------------------
