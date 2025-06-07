@@ -17,7 +17,7 @@
         
         /* Player container styling */
         .player-container {
-            position: relative; /* Crucial for positioning child elements like logos/placeholders/banner */
+            position: relative; /* Crucial for positioning child elements like logos/placeholders/banner/mute icon */
             width: 640px;      /* Set width */
             height: 390px;     /* Set height */
             margin: 20px auto; /* Center the player */
@@ -35,21 +35,6 @@
             height: 100%; 
         }
 
-        /* Unmute button styling */
-        button { 
-            padding: 10px 20px; 
-            margin: 5px; 
-            cursor: pointer; 
-            background-color: #007bff; 
-            color: white; 
-            border: none; 
-            border-radius: 5px; 
-            font-size: 1em; 
-        }
-        button:hover { 
-            background-color: #0056b3; 
-        }
-
         /* Video title styling */
         #videoTitle { 
             font-size: 1.5em; 
@@ -57,10 +42,10 @@
             color: #555; 
         }
 
-        /* Custom logo overlay styling */
+        /* Custom logo overlay styling - NOW TOP RIGHT */
         .custom-logo-overlay {
             position: absolute; 
-            bottom: 10px;       
+            top: 10px;          /* Moved from bottom to top */
             right: 10px;        
             width: 80px;        
             height: auto;       
@@ -86,24 +71,40 @@
             bottom: 0;          /* At the very bottom */
             left: 0;            /* From the left edge */
             width: 100%;        /* Span the full width of the player */
-            overflow: hidden; /* Hides content outside this div */
+            overflow: hidden; 
             background-color: red;
             color: white;
-            padding: 8px 0; /* Vertical padding, slightly reduced to make space for border if needed */
-            white-space: nowrap; /* Ensures text stays on one line */
-            font-size: 1.1em; /* Adjust font size as needed */
+            padding: 8px 0; 
+            white-space: nowrap; 
+            font-size: 1.1em; 
             z-index: 11; /* Ensure it's above custom logo and placeholder */
         }
 
         .scrolling-banner-content {
-            display: inline-block; /* Allows animation on the text itself */
-            padding-left: 100%; /* Start off-screen to the right */
-            animation: scrollText 20s linear infinite; /* Animation name, duration, timing, loop */
+            display: inline-block; 
+            padding-left: 100%; 
+            animation: scrollText 20s linear infinite; 
         }
 
         @keyframes scrollText {
-            0% { transform: translateX(0%); } /* Starts from right edge of container */
-            100% { transform: translateX(-100%); } /* Scrolls to left edge of container */
+            0% { transform: translateX(0%); } 
+            100% { transform: translateX(-100%); } 
+        }
+
+        /* Mute/Unmute Speaker Icon Styling */
+        #muteToggleButton {
+            position: absolute;
+            bottom: 45px; /* Adjust this to be above the scrolling banner. If banner height changes, adjust. */
+            right: 10px;
+            width: 30px; /* Adjust icon size */
+            height: 30px;
+            cursor: pointer;
+            z-index: 12; /* Ensure it's on top of everything else */
+            opacity: 0.8;
+            transition: opacity 0.2s; /* Smooth hover effect */
+        }
+        #muteToggleButton:hover {
+            opacity: 1;
         }
     </style>
 </head>
@@ -114,6 +115,8 @@
         
         <img src="/logo.png" alt="My Channel Logo" class="custom-logo-overlay" />
 
+        <img id="muteToggleButton" src="" alt="Mute/Unmute" onclick="toggleMute()" />
+
         <div class="scrolling-banner">
             <div class="scrolling-banner-content">
                 Welcome to My Channel! Enjoy uninterrupted music and videos. Stay tuned for new updates!
@@ -123,25 +126,31 @@
         </div>
     </div>
 
-    <button id="unmuteButton" onclick="unmuteVideo()">Unmute</button>
-
     <script>
         // --- STEP 1: REPLACE THIS URL WITH YOUR ACTUAL RENDER SERVER URL ---
         const renderServerUrl = "https://my-youtube-channel-server.onrender.com"; // <-- IMPORTANT: Change this line!
         // -----------------------------------------------------------------
 
-        let player; // This will hold the YouTube player object
-        let playlist = []; // This will store the playlist fetched from your Render server
-        let currentVideoIndex = -1; // Keeps track of which video is currently playing
-        let placeholderTimerId = null; // To manage the timeout for the placeholder image
-        const SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER = 60; // How many seconds before the end to show the image
+        // --- ICON URLs for Mute/Unmute ---
+        // IMPORTANT: Ensure these image files exist at these URLs or replace them with your own paths.
+        const MUTED_ICON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/muted.png";   // Example: a speaker with a cross or line
+        const UNMUTED_ICON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/unmuted.png"; // Example: a normal speaker
+        // ---------------------------------
 
-        // Get reference to the placeholder image
+
+        let player; 
+        let playlist = []; 
+        let currentVideoIndex = -1; 
+        let placeholderTimerId = null; 
+        const SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER = 60; 
+
         const endingPlaceholder = document.getElementById('endingPlaceholder');
+        const muteToggleButton = document.getElementById('muteToggleButton'); // Get reference to the mute icon
+
 
         // 1. Load the YouTube IFrame Player API code.
         var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api"; // Official YouTube API URL
+        tag.src = "https://www.youtube.com/iframe_api"; 
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
@@ -151,20 +160,20 @@
             player = new YT.Player('player', {
                 height: '390',
                 width: '640',
-                videoId: '', // Player starts empty, we'll load videos via JavaScript
+                videoId: '', 
                 playerVars: {
-                    'autoplay': 1,      // Attempt to autoplay
-                    'controls': 0,      // Hide player controls
-                    'mute': 1,          // Mute the video (highly recommended for autoplay to work)
-                    'disablekb': 1,     // Disable keyboard controls (like spacebar to play/pause)
-                    'fs': 0,            // Hide fullscreen button
-                    'iv_load_policy': 3,// Hide annotations and cards
-                    'modestbranding': 1, // Remove YouTube logo (some branding may remain)
-                    'rel': 0            // Don't show related videos at the end
+                    'autoplay': 1,      
+                    'controls': 0,      
+                    'mute': 1,          // Player starts muted by default
+                    'disablekb': 1,     
+                    'fs': 0,            
+                    'iv_load_policy': 3,
+                    'modestbranding': 1, 
+                    'rel': 0            
                 },
                 events: {
-                    'onReady': onPlayerReady,           // When the player is ready
-                    'onStateChange': onPlayerStateChange // When video starts, ends, pauses etc.
+                    'onReady': onPlayerReady,           
+                    'onStateChange': onPlayerStateChange 
                 }
             });
         }
@@ -175,11 +184,12 @@
             await fetchAndPopulateVideos();
 
             if (playlist.length > 0) {
-                currentVideoIndex = 0; // Start with the first video
+                currentVideoIndex = 0; 
                 loadAndPlayVideo(playlist[currentVideoIndex].id);
             } else {
                 console.warn("Playlist is empty. Cannot start playing videos.");
             }
+            updateMuteIcon(); // Set initial mute icon based on player's state
         }
 
         // 4. This function handles when a video ends or changes state.
@@ -191,31 +201,30 @@
 
             if (event.data == YT.PlayerState.ENDED) {
                 console.log("Video ended. Playing next...");
-                playNext(); // Automatically play next video when current one ends
+                playNext(); 
             } else if (event.data == YT.PlayerState.PLAYING) {
                 // Set timer only when the video starts playing
-                const duration = player.getDuration(); // Total video duration in seconds
-                const currentTime = player.getCurrentTime(); // Current playback time in seconds
+                const duration = player.getDuration(); 
+                const currentTime = player.getCurrentTime(); 
 
                 console.log(`Video playing. Duration: ${duration}s, Current Time: ${currentTime}s`);
 
-                // Calculate time left from current position until SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER before end
                 const timeRemainingUntilPlaceholder = (duration - SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER) - currentTime;
 
                 console.log(`Placeholder should appear in approximately: ${timeRemainingUntilPlaceholder.toFixed(2)}s`);
 
-                // Ensure video is long enough and we haven't passed the trigger point
                 if (duration > SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER && timeRemainingUntilPlaceholder > 0) {
                     placeholderTimerId = setTimeout(() => {
                         console.log("TIMEOUT FIRED! Showing placeholder.");
-                        endingPlaceholder.style.display = 'block'; // Show the placeholder
-                    }, timeRemainingUntilPlaceholder * 1000); // Convert seconds to milliseconds
+                        endingPlaceholder.style.display = 'block'; 
+                    }, timeRemainingUntilPlaceholder * 1000); 
                 } else if (duration > 0 && duration <= SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER) {
                     console.log(`Video is shorter than ${SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER} seconds. Placeholder will not show.`);
                 } else if (timeRemainingUntilPlaceholder <= 0 && duration > SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER) {
                     console.log(`Already past the ${SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER} second mark. Placeholder won't be set for this video.`);
                 }
             }
+            updateMuteIcon(); // Update mute icon in case of any external state change (e.g., user manually mutes via YouTube UI if controls were briefly enabled)
         }
 
         // 5. Fetches the playlist from your Render server
@@ -267,22 +276,40 @@
                 console.warn("Playlist is empty. Cannot play next video.");
                 return;
             }
-            currentVideoIndex = (currentVideoIndex + 1) % playlist.length; // Loop back to start
+            currentVideoIndex = (currentVideoIndex + 1) % playlist.length; 
             console.log("Playing next video. New index:", currentVideoIndex);
             loadAndPlayVideo(playlist[currentVideoIndex].id);
         }
 
-        // 9. New function to unmute the video
-        function unmuteVideo() {
-            if (player && player.isMuted()) {
+        // 9. Function to toggle mute/unmute
+        function toggleMute() {
+            if (!player) {
+                console.warn("Player not ready to toggle mute.");
+                return;
+            }
+
+            if (player.isMuted()) {
                 player.unMute();
-                console.log("Video unmuted.");
-                // Optional: You can hide the unmute button after it's clicked if you prefer
-                // document.getElementById('unmuteButton').style.display = 'none';
-            } else if (player) {
-                console.log("Video is already unmuted.");
+                console.log("Video unmuted via icon.");
             } else {
-                console.warn("Player not ready to unmute.");
+                player.mute();
+                console.log("Video muted via icon.");
+            }
+            updateMuteIcon(); // Update icon state after toggle
+        }
+
+        // Function to update the speaker icon based on player's mute state
+        function updateMuteIcon() {
+            if (player && muteToggleButton) {
+                if (player.isMuted()) {
+                    muteToggleButton.src = MUTED_ICON_URL;
+                    muteToggleButton.alt = "Unmute video";
+                } else {
+                    muteToggleButton.src = UNMUTED_ICON_URL;
+                    muteToggleButton.alt = "Mute video";
+                }
+            } else {
+                console.warn("Player or mute toggle button not ready to update icon.");
             }
         }
     </script>
