@@ -43,10 +43,10 @@
             color: #555; 
         }
 
-        /* Custom logo overlay styling - NOW TOP RIGHT */
+        /* Custom logo overlay styling - TOP RIGHT */
         .custom-logo-overlay {
             position: absolute; 
-            top: 10px;          /* Moved from bottom to top */
+            top: 10px;          
             right: 10px;        
             width: 80px;        
             height: auto;       
@@ -92,17 +92,21 @@
             100% { transform: translateX(-100%); } 
         }
 
-        /* Mute/Unmute Speaker Icon Styling */
+        /* Mute/Unmute Speaker Icon Styling - NOW TOP LEFT */
         #muteToggleButton {
             position: absolute;
-            bottom: 45px; /* Adjust this to be above the scrolling banner. If banner height changes, adjust. */
-            right: 10px;
-            width: 30px; /* Adjust icon size */
+            top: 10px;          /* Moved to top edge */
+            left: 10px;         /* Moved to left edge */
+            width: 30px; 
             height: 30px;
-            cursor: pointer; /* Cursor indicates it's clickable */
-            z-index: 12; /* Ensure it's on top of everything else */
+            cursor: pointer; 
+            z-index: 12; /* Remains on top */
             opacity: 0.8;
             transition: opacity 0.2s; 
+            /* Optional: Add a background or border if the white icons are hard to see on your video */
+            /* background-color: rgba(0, 0, 0, 0.5); */
+            /* border-radius: 50%; */
+            /* padding: 2px; */
         }
         #muteToggleButton:hover {
             opacity: 1;
@@ -112,9 +116,9 @@
 <body>
     <h1>My Custom YouTube Channel</h1>
     <div id="videoTitle"></div> <div class="player-container">
-        <div id="player"></div> <img id="endingPlaceholder" src="https://placehold.co/640x390/e0e0e0/ffffff/png?text=Coming+Up+Next" alt="Coming Up Next" />
+        <div id="player"></div> <img id="endingPlaceholder" src="/images/images (1).jpeg" alt="Coming Up Next" />
         
-        <img src="/logo.png" alt="My Channel Logo" class="custom-logo-overlay" />
+        <img src="/images/logo.png" alt="My Channel Logo" class="custom-logo-overlay" />
 
         <img id="muteToggleButton" src="" alt="Mute/Unmute" onclick="toggleMute()" />
 
@@ -133,9 +137,12 @@
         // -----------------------------------------------------------------
 
         // --- ICON URLs for Mute/Unmute ---
-        // IMPORTANT: Ensure these image files exist at these URLs or replace them with your own paths if you get 404s.
-        const MUTED_ICON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/muted.png";   // Example: a speaker with a cross or line
-        const UNMUTED_ICON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/unmuted.png"; // Example: a normal speaker
+        // IMPORTANT: For testing, these are publicly hosted icons.
+        // Once you've confirmed the icon appears and functions,
+        // **revert these to your own /images/muted.png and /images/unmuted.png**
+        // after ensuring those files are correctly deployed on Render.
+        const MUTED_ICON_URL = "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/volume_off/materialicons/24dp/2x/baseline_volume_off_white_24dp.png";   
+        const UNMUTED_ICON_URL = "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/volume_up/materialicons/24dp/2x/baseline_volume_up_white_24dp.png"; 
         // ---------------------------------
 
 
@@ -146,7 +153,7 @@
         const SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER = 60; 
 
         const endingPlaceholder = document.getElementById('endingPlaceholder');
-        const muteToggleButton = document.getElementById('muteToggleButton'); // Get reference to the mute icon
+        const muteToggleButton = document.getElementById('muteToggleButton'); 
 
 
         // 1. Load the YouTube IFrame Player API code.
