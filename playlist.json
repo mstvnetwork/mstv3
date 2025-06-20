@@ -1,14 +1,8 @@
 [
   {
-    "title": "Segment A: HLS Live",
+    "title": "MSTV 24/7 Live Stream",
     "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-    "start": "2025-06-20T06:35:00+10:00",
-    "end": "2025-06-20T06:50:00+10:00"
-  },
-  {
-    "title": "Segment B: YouTube Lofi",
-    "url": "https://www.youtube.com/watch?v=5qap5aO4i9A",
-    "start": "2025-06-20T06:50:00+10:00",
-    "end": "2025-06-20T07:00:00+10:00"
+    "start": "2025-06-20T00:00:00+10:00",
+    "end": "2025-06-20T23:59:59+10:00"
   }
 ]
