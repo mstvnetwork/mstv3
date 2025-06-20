@@ -13,65 +13,79 @@ function fetchPlaylist() {
     .then(res => res.json())
     .then(data => {
       currentPlaylist = data;
-      updateNow();
-      setInterval(checkForProgramChange, 15000); // check every 15s
+
+      const melNow = luxon.DateTime.now().setZone('Australia/Melbourne');
+
+      console.log("Melbourne now (Luxon):", melNow.toISO());
+      console.log("Local time:", new Date().toLocaleString());
+      console.log("UTC time:", new Date().toISOString());
+
+      // Show Melbourne time on page (if #melNow element exists)
+      const melNowBox = document.getElementById('melNow');
+      if (melNowBox) melNowBox.textContent = melNow.toFormat('yyyy-LL-dd HH:mm:ss');
+
+      let matchedIndex = -1;
+
+      data.forEach((item, i) => {
+        const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
+        const end = luxon.DateTime.fromISO(item.end).setZone('Australia/Melbourne');
+        console.log(`${i}: Checking "${item.title}" from ${start.toISO()} to ${end.toISO()}`);
+
+        if (melNow >= start && melNow <= end) {
+          console.log(`✅ MATCH FOUND: ${item.title}`);
+          matchedIndex = i;
+        }
+      });
+
+      buildTVGuide(data);
+
+      if (matchedIndex !== -1) {
+        currentVideoIndex = matchedIndex;
+        playVideo(data[matchedIndex]);
+      } else {
+        currentVideoIndex = -1;
+        nowPlaying.innerText = "Now Playing: Off Air";
+        stopPlayers();
+      }
+
+      // Check every 15 seconds for changes
+      setInterval(checkForProgramChange, 15000);
+    })
+    .catch(err => {
+      console.error("Error fetching playlist:", err);
+      nowPlaying.innerText = "Error loading playlist";
     });
 }
 
-function updateNow() {
-  const melNow = luxon.DateTime.now().setZone('Australia/Melbourne');
-
-  // Debug: Show current Melbourne time
-  const melNowBox = document.getElementById('melNow');
-  if (melNowBox) {
-    melNowBox.textContent = melNow.toFormat('HH:mm:ss');
-  }
-
-  const currentItem = currentPlaylist.find((item, i) => {
-    const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
-    const end = luxon.DateTime.fromISO(item.end).setZone('Australia/Melbourne');
-    if (melNow >= start && melNow <= end) {
-      currentVideoIndex = i;
-      return true;
-    }
-    return false;
-  });
-
-  buildTVGuide(currentPlaylist);
-
-  if (currentItem) {
-    playVideo(currentItem);
-  } else {
-    nowPlaying.innerText = "Now Playing: Off Air";
-    stopPlayers();
-  }
-}
-
 function checkForProgramChange() {
-  const melNow = luxon.DateTime.now().setZone('Australia/Melbourne');
+  if (currentPlaylist.length === 0) return;
 
-  const newIndex = currentPlaylist.findIndex((item) => {
+  const melNow = luxon.DateTime.now().setZone('Australia/Melbourne');
+  let newIndex = -1;
+
+  currentPlaylist.forEach((item, i) => {
     const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
     const end = luxon.DateTime.fromISO(item.end).setZone('Australia/Melbourne');
-    return melNow >= start && melNow <= end;
+
+    if (melNow >= start && melNow <= end) {
+      newIndex = i;
+    }
   });
 
   if (newIndex !== currentVideoIndex) {
-    currentVideoIndex = newIndex;
     if (newIndex === -1) {
       nowPlaying.innerText = "Now Playing: Off Air";
       stopPlayers();
     } else {
+      currentVideoIndex = newIndex;
       playVideo(currentPlaylist[newIndex]);
-      buildTVGuide(currentPlaylist);
     }
+    buildTVGuide(currentPlaylist);
   } else {
-    // still same item, just refresh clock and guide highlight
+    // Still same program, update guide highlight and Melbourne time display
     buildTVGuide(currentPlaylist);
     const melNowBox = document.getElementById('melNow');
-    if (melNowBox) {
-      melNowBox.textContent = melNow.toFormat('HH:mm:ss');
-    }
+    if (melNowBox) melNowBox.textContent = melNow.toFormat('yyyy-LL-dd HH:mm:ss');
   }
 }
 
@@ -80,9 +94,9 @@ function buildTVGuide(data) {
   const melNow = luxon.DateTime.now().setZone('Australia/Melbourne');
 
   data.forEach((item, i) => {
-    const li = document.createElement('li');
     const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
     const time = start.toFormat('HH:mm');
+    const li = document.createElement('li');
     li.textContent = `${time} - ${item.title}`;
     if (i === currentVideoIndex) {
       li.classList.add('active');
@@ -106,10 +120,15 @@ function playVideo(item) {
 }
 
 function stopPlayers() {
+  if (!hlsPlayer) return;
   hlsPlayer.pause();
   hlsPlayer.style.display = 'none';
   ytContainer.innerHTML = '';
   ytContainer.style.display = 'none';
+  if (ytPlayer) {
+    ytPlayer.destroy();
+    ytPlayer = null;
+  }
 }
 
 function playHLS(url, seekTo) {
@@ -119,14 +138,14 @@ function playHLS(url, seekTo) {
   if (hlsPlayer.canPlayType('application/vnd.apple.mpegurl')) {
     hlsPlayer.src = url;
     hlsPlayer.currentTime = seekTo;
-    hlsPlayer.play();
+    hlsPlayer.play().catch(err => console.warn("HLS play error:", err));
   } else if (Hls.isSupported()) {
     const hls = new Hls();
     hls.loadSource(url);
     hls.attachMedia(hlsPlayer);
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
       hlsPlayer.currentTime = seekTo;
-      hlsPlayer.play();
+      hlsPlayer.play().catch(err => console.warn("HLS play error:", err));
     });
   } else {
     nowPlaying.innerText = "HLS not supported on this device.";
@@ -137,7 +156,20 @@ function playYouTube(url, seekTo) {
   stopPlayers();
   ytContainer.style.display = 'block';
 
-  const videoId = new URL(url).searchParams.get('v');
+  // Extract YouTube video ID from URL
+  let videoId = null;
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.searchParams.has('v')) {
+      videoId = urlObj.searchParams.get('v');
+    } else {
+      // Handle short YouTube URLs like youtu.be/ID
+      videoId = urlObj.pathname.slice(1);
+    }
+  } catch {
+    videoId = url;
+  }
+
   ytPlayer = new YT.Player('ytPlayer', {
     height: '100%',
     width: '100%',
@@ -157,5 +189,5 @@ function playYouTube(url, seekTo) {
   });
 }
 
-// Load once at start
+// Start
 fetchPlaylist();
