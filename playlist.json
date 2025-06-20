@@ -1,0 +1,14 @@
+[
+  {
+    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    "duration": 348  // duration in seconds (5:48)
+  },
+  {
+    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    "duration": 361  // 6:01
+  },
+  {
+    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+    "duration": 324  // 5:24
+  }
+]
