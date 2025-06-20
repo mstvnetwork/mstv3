@@ -1,80 +1,110 @@
-const { DateTime } = luxon;
-const timezone = 'Asia/Kolkata';
-const container = document.getElementById('video-container');
-const status = document.getElementById('now-playing');
+const playlistUrl = 'playlist.json';
+const hlsPlayer = document.getElementById('hlsPlayer');
+const ytContainer = document.getElementById('ytPlayer');
+const nowPlaying = document.getElementById('nowPlaying');
+const tvGuideList = document.getElementById('tvGuideList');
 
-async function loadPlaylist() {
-  try {
-    const res = await fetch('playlist.json');
-    const schedule = await res.json();
-    const now = DateTime.now().setZone(timezone);
+let currentVideoIndex = -1;
+let ytPlayer;
 
-    console.log("Current IST Time:", now.toFormat("yyyy-MM-dd HH:mm:ss"));
+function fetchPlaylist() {
+  fetch(playlistUrl)
+    .then(res => res.json())
+    .then(data => {
+      const melTime = luxon.DateTime.now().setZone('Australia/Melbourne');
+      const currentItem = data.find((item, i) => {
+        const start = luxon.DateTime.fromISO(item.start);
+        const end = luxon.DateTime.fromISO(item.end);
+        if (melTime >= start && melTime <= end) {
+          currentVideoIndex = i;
+          return true;
+        }
+        return false;
+      });
 
-    const current = schedule.find(item => {
-      const start = DateTime.fromISO(item.start).setZone(timezone);
-      const end = DateTime.fromISO(item.end).setZone(timezone);
+      buildTVGuide(data);
 
-      console.log(`Checking: ${item.title} | ${start.toFormat("HH:mm")} - ${end.toFormat("HH:mm")}`);
-      return now >= start && now <= end;
+      if (currentItem) {
+        playVideo(currentItem);
+      } else {
+        nowPlaying.innerText = "Now Playing: Off Air";
+      }
     });
+}
 
-    if (!current) {
-      container.innerHTML = `<p>No program currently scheduled<br>Time now: ${now.toFormat("HH:mm:ss")} IST</p>`;
-      status.textContent = "";
-      return;
-    }
+function buildTVGuide(data) {
+  tvGuideList.innerHTML = '';
+  const melTime = luxon.DateTime.now().setZone('Australia/Melbourne');
 
-    status.textContent = `Now Playing: ${current.title}`;
-    playStream(current);
+  data.forEach((item, i) => {
+    const li = document.createElement('li');
+    li.textContent = `${formatTime(item.start)} - ${item.title}`;
+    if (i === currentVideoIndex) li.classList.add('active');
+    tvGuideList.appendChild(li);
+  });
 
-  } catch (err) {
-    console.error("Error loading playlist:", err);
-    container.innerHTML = "<p>Error loading playlist. Check console for details.</p>";
+  function formatTime(iso) {
+    return luxon.DateTime.fromISO(iso).toFormat('HH:mm');
   }
 }
 
-function playStream(item) {
-  const isYouTube = item.url.includes("youtube.com") || item.url.includes("youtu.be");
-  container.innerHTML = '';
+function playVideo(item) {
+  nowPlaying.innerText = `Now Playing: ${item.title}`;
+  const start = luxon.DateTime.fromISO(item.start);
+  const melNow = luxon.DateTime.now().setZone('Australia/Melbourne');
+  const seekTo = Math.floor(melNow.diff(start, 'seconds').seconds);
 
-  if (isYouTube) {
-    const embedURL = item.url.includes("watch?v=")
-      ? item.url.replace("watch?v=", "embed/") + "?autoplay=1&mute=1"
-      : item.url + "?autoplay=1&mute=1";
-
-    container.innerHTML = `
-      <iframe width="100%" height="360" 
-        src="${embedURL}" 
-        frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
-      </iframe>`;
+  if (item.url.includes('youtube.com') || item.url.includes('youtu.be')) {
+    playYouTube(item.url, seekTo);
   } else {
-    const video = document.createElement('video');
-    video.controls = true;
-    video.autoplay = true;
-    video.muted = true;             // Required for autoplay to work in browsers
-    video.width = 640;
-    video.height = 360;
-
-    if (Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(item.url);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(err => console.warn("Autoplay blocked:", err));
-      });
-
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = item.url;
-      video.addEventListener('loadedmetadata', () => {
-        video.play().catch(err => console.warn("Autoplay blocked:", err));
-      });
-    }
-
-    container.appendChild(video);
+    playHLS(item.url, seekTo);
   }
 }
 
-loadPlaylist();
-setInterval(loadPlaylist, 60000); // Refresh every 60 sec
+function playHLS(url, seekTo) {
+  ytContainer.style.display = 'none';
+  hlsPlayer.style.display = 'block';
+
+  if (hlsPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+    hlsPlayer.src = url;
+    hlsPlayer.currentTime = seekTo;
+    hlsPlayer.play();
+  } else if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(url);
+    hls.attachMedia(hlsPlayer);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      hlsPlayer.currentTime = seekTo;
+      hlsPlayer.play();
+    });
+  } else {
+    nowPlaying.innerText = "HLS not supported on this device.";
+  }
+}
+
+function playYouTube(url, seekTo) {
+  hlsPlayer.pause();
+  hlsPlayer.style.display = 'none';
+  ytContainer.style.display = 'block';
+  const videoId = new URL(url).searchParams.get('v');
+
+  window.onYouTubeIframeAPIReady = () => {
+    ytPlayer = new YT.Player('ytPlayer', {
+      videoId: videoId,
+      playerVars: {
+        autoplay: 1,
+        mute: 1,
+        start: seekTo,
+        controls: 1,
+        modestbranding: 1,
+        rel: 0,
+        playsinline: 1
+      },
+      events: {
+        onReady: e => e.target.playVideo()
+      }
+    });
+  };
+}
+
+fetchPlaylist();
