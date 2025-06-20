@@ -1,26 +1,26 @@
 [
   {
-    "title": "Rick Astley - Never Gonna Give You Up",
-    "url": "https://example.com/video/rickastley.mp4",
+    "type": "youtube",
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     "duration": 213,
-    "type": "mp4"
+    "title": "Rick Astley - Never Gonna Give You Up"
   },
   {
-    "title": "User Provided Live Stream",
-    "url": "https://www.youtube.com/embed/1b8bBvoIFHY?si=F3ZttN3OXcfyStQ2",
+    "type": "youtube-live",
+    "url": "https://www.youtube.com/watch?v=5qap5aO4i9A",
     "duration": 1800,
-    "type": "youtube"
+    "title": "Lofi Hip Hop Live Stream"
   },
   {
-    "title": "Big Buck Bunny (MP4)",
-    "url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4",
+    "type": "mp4",
+    "url": "https://www.w3schools.com/html/mov_bbb.mp4",
     "duration": 60,
-    "type": "mp4"
+    "title": "Big Buck Bunny (MP4)"
   },
   {
-    "title": "Test HLS Stream",
+    "type": "hls",
     "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     "duration": 120,
-    "type": "hls"
+    "title": "Test HLS Stream"
   }
 ]
