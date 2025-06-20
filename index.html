@@ -1,324 +1,87 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My Custom YouTube Channel</title>
-    <style>
-        /* Basic styling for your page and player container */
-        body { 
-            font-family: sans-serif; 
-            text-align: center; 
-            margin-top: 50px; 
-            background-color: #f0f0f0; 
-            color: #333; 
-        }
-        h1 { 
-            color: #333; 
-        }
-        
-        /* Player container styling */
-        .player-container {
-            position: relative; /* Crucial for positioning child elements like logos/placeholders/banner/mute icon */
-            width: 640px;      /* Set width */
-            height: 390px;     /* Set height */
-            margin: 20px auto; /* Center the player */
-            background-color: #000; 
-            border: 1px solid #ccc; 
-            overflow: hidden; /* Important to clip anything outside the container */
-        }
-
-        /* YouTube player (iframe) styling */
-        #player { 
-            position: absolute; /* Takes full size of player-container */
-            top: 0;
-            left: 0;
-            width: 100%; 
-            height: 100%; 
-            pointer-events: none; /* Makes the iframe content unresponsive to clicks */
-        }
-
-        /* Video title styling */
-        #videoTitle { 
-            font-size: 1.5em; 
-            margin-bottom: 15px; 
-            color: #555; 
-        }
-
-        /* Custom logo overlay styling - TOP RIGHT */
-        .custom-logo-overlay {
-            position: absolute; 
-            top: 10px;          
-            right: 10px;        
-            width: 80px;        
-            height: auto;       
-            z-index: 10;        /* Ensure it's above the player and placeholder */
-            opacity: 0.9;       
-        }
-
-        /* Placeholder image styling */
-        #endingPlaceholder {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Ensures image covers the player area */
-            z-index: 9;       /* Below the custom logo, above the player */
-            display: none;    /* Hidden by default */
-        }
-
-        /* Scrolling banner styling */
-        .scrolling-banner {
-            position: absolute; /* Positioned relative to .player-container */
-            bottom: 0;          /* At the very bottom */
-            left: 0;            /* From the left edge */
-            width: 100%;        /* Span the full width of the player */
-            overflow: hidden; 
-            background-color: red;
-            color: white;
-            padding: 8px 0; 
-            white-space: nowrap; 
-            font-size: 1.1em; 
-            z-index: 11; /* Ensure it's above custom logo and placeholder */
-        }
-
-        .scrolling-banner-content {
-            display: inline-block; 
-            padding-left: 100%; 
-            animation: scrollText 20s linear infinite; 
-        }
-
-        @keyframes scrollText {
-            0% { transform: translateX(0%); } 
-            100% { transform: translateX(-100%); } 
-        }
-
-        /* Mute/Unmute Speaker Icon Styling - NOW TOP LEFT */
-        #muteToggleButton {
-            position: absolute;
-            top: 10px;          /* Moved to top edge */
-            left: 10px;         /* Moved to left edge */
-            width: 30px; 
-            height: 30px;
-            cursor: pointer; 
-            z-index: 12; /* Remains on top */
-            opacity: 0.8;
-            transition: opacity 0.2s; 
-            /* Optional: Add a background or border if the white icons are hard to see on your video */
-            /* background-color: rgba(0, 0, 0, 0.5); */
-            /* border-radius: 50%; */
-            /* padding: 2px; */
-        }
-        #muteToggleButton:hover {
-            opacity: 1;
-        }
-    </style>
+  <title>Live Playlist Broadcast</title>
+  <meta charset="UTF-8">
 </head>
 <body>
-    <h1>My Custom YouTube Channel</h1>
-    <div id="videoTitle"></div> <div class="player-container">
-        <div id="player"></div> <img id="endingPlaceholder" src="/images/images (1).jpeg" alt="Coming Up Next" />
-        
-        <img src="/images/logo.png" alt="My Channel Logo" class="custom-logo-overlay" />
+  <h1>Live Playlist Broadcast</h1>
+  <audio id="player" controls autoplay></audio>
+  <p id="status">Loading...</p>
 
-        <img id="muteToggleButton" src="" alt="Mute/Unmute" onclick="toggleMute()" />
+  <script>
+    const playlistUrl = 'playlist.json'; // Local file in Netlify deploy
+    const player = document.getElementById('player');
+    const status = document.getElementById('status');
 
-        <div class="scrolling-banner">
-            <div class="scrolling-banner-content">
-                Welcome to My Channel! Enjoy uninterrupted music and videos. Stay tuned for new updates!
-                                  
-                Thank you for watching! More great content coming soon!
-            </div>
-        </div>
-    </div>
+    // Set your scheduled broadcast time (e.g., 8:00 AM today)
+    const scheduledHour = 8;
+    const scheduledMinute = 0;
 
-    <script>
-        // --- STEP 1: REPLACE THIS URL WITH YOUR ACTUAL RENDER SERVER URL ---
-        const renderServerUrl = "https://my-youtube-channel-server.onrender.com"; // <-- IMPORTANT: Change this line!
-        // -----------------------------------------------------------------
+    function getBroadcastStartTime() {
+      const now = new Date();
+      const start = new Date();
+      start.setHours(scheduledHour, scheduledMinute, 0, 0);
+      if (now < start) return null;
+      return start;
+    }
 
-        // --- ICON URLs for Mute/Unmute ---
-        // IMPORTANT: For testing, these are publicly hosted icons.
-        // Once you've confirmed the icon appears and functions,
-        // **revert these to your own /images/muted.png and /images/unmuted.png**
-        // after ensuring those files are correctly deployed on Render.
-        const MUTED_ICON_URL = "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/volume_off/materialicons/24dp/2x/baseline_volume_off_white_24dp.png";   
-        const UNMUTED_ICON_URL = "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/volume_up/materialicons/24dp/2x/baseline_volume_up_white_24dp.png"; 
-        // ---------------------------------
+    async function fetchPlaylist() {
+      const res = await fetch(playlistUrl);
+      return await res.json();
+    }
 
-
-        let player; 
-        let playlist = []; 
-        let currentVideoIndex = -1; 
-        let placeholderTimerId = null; 
-        const SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER = 60; 
-
-        const endingPlaceholder = document.getElementById('endingPlaceholder');
-        const muteToggleButton = document.getElementById('muteToggleButton'); 
-
-
-        // 1. Load the YouTube IFrame Player API code.
-        var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api"; 
-        var firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-        // 2. This function is called by the YouTube API once it's loaded.
-        function onYouTubeIframeAPIReady() {
-            console.log("YouTube IFrame API is ready.");
-            player = new YT.Player('player', {
-                height: '390',
-                width: '640',
-                videoId: '', 
-                playerVars: {
-                    'autoplay': 1,      
-                    'controls': 0,      
-                    'mute': 1,          // Player starts muted by default
-                    'disablekb': 1,     
-                    'fs': 0,            
-                    'iv_load_policy': 3,
-                    'modestbranding': 1, 
-                    'rel': 0            
-                },
-                events: {
-                    'onReady': onPlayerReady,           
-                    'onStateChange': onPlayerStateChange 
-                }
-            });
+    function getCurrentTrackAndOffset(playlist, elapsedSeconds) {
+      let accumulated = 0;
+      for (let i = 0; i < playlist.length; i++) {
+        const track = playlist[i];
+        if (accumulated + track.duration > elapsedSeconds) {
+          return {
+            trackIndex: i,
+            offset: elapsedSeconds - accumulated
+          };
         }
+        accumulated += track.duration;
+      }
+      return null;
+    }
 
-        // 3. This function runs when the player is ready.
-        async function onPlayerReady(event) {
-            console.log("YouTube Player is ready!");
-            await fetchAndPopulateVideos();
+    async function startBroadcast() {
+      const startTime = getBroadcastStartTime();
+      if (!startTime) {
+        status.textContent = 'Broadcast has not started yet.';
+        return;
+      }
 
-            if (playlist.length > 0) {
-                currentVideoIndex = 0; 
-                loadAndPlayVideo(playlist[currentVideoIndex].id);
-            } else {
-                console.warn("Playlist is empty. Cannot start playing videos.");
-            }
-            updateMuteIcon(); // Set initial mute icon based on player's state
+      const now = new Date();
+      const elapsed = Math.floor((now - startTime) / 1000);
+      const playlist = await fetchPlaylist();
+
+      const current = getCurrentTrackAndOffset(playlist, elapsed);
+      if (!current) {
+        status.textContent = 'Broadcast has ended.';
+        return;
+      }
+
+      const currentTrack = playlist[current.trackIndex];
+      player.src = currentTrack.url;
+
+      player.addEventListener('loadedmetadata', () => {
+        if (player.duration > current.offset) {
+          player.currentTime = current.offset;
         }
+        player.play();
+        status.textContent = `Now playing track #${current.trackIndex + 1} at ${formatTime(current.offset)}`;
+      });
+    }
 
-        // 4. This function handles when a video ends or changes state.
-        function onPlayerStateChange(event) {
-            console.log("Player State Changed:", event.data);
-            // Clear any previous timer and hide placeholder whenever player state changes
-            clearTimeout(placeholderTimerId);
-            endingPlaceholder.style.display = 'none';
+    function formatTime(sec) {
+      const mins = Math.floor(sec / 60);
+      const secs = sec % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
 
-            if (event.data == YT.PlayerState.ENDED) {
-                console.log("Video ended. Playing next...");
-                playNext(); 
-            } else if (event.data == YT.PlayerState.PLAYING) {
-                // Set timer only when the video starts playing
-                const duration = player.getDuration(); 
-                const currentTime = player.getCurrentTime(); 
-
-                console.log(`Video playing. Duration: ${duration}s, Current Time: ${currentTime}s`);
-
-                const timeRemainingUntilPlaceholder = (duration - SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER) - currentTime;
-
-                console.log(`Placeholder should appear in approximately: ${timeRemainingUntilPlaceholder.toFixed(2)}s`);
-
-                if (duration > SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER && timeRemainingUntilPlaceholder > 0) {
-                    placeholderTimerId = setTimeout(() => {
-                        console.log("TIMEOUT FIRED! Showing placeholder.");
-                        endingPlaceholder.style.display = 'block'; 
-                    }, timeRemainingUntilPlaceholder * 1000); 
-                } else if (duration > 0 && duration <= SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER) {
-                    console.log(`Video is shorter than ${SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER} seconds. Placeholder will not show.`);
-                } else if (timeRemainingUntilPlaceholder <= 0 && duration > SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER) {
-                    console.log(`Already past the ${SECONDS_BEFORE_END_TO_SHOW_PLACEHOLDER} second mark. Placeholder won't be set for this video.`);
-                }
-            }
-            updateMuteIcon(); 
-        }
-
-        // 5. Fetches the playlist from your Render server
-        async function fetchAndPopulateVideos() {
-            console.log("Fetching playlist from:", renderServerUrl + "/playlist");
-            try {
-                const response = await fetch(`${renderServerUrl}/playlist`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                playlist = await response.json();
-                console.log("Playlist fetched:", playlist);
-                if (playlist.length === 0) {
-                    console.warn("Playlist is empty. Please ensure your Render server is returning videos.");
-                }
-            } catch (error) {
-                console.error("Could not fetch playlist:", error);
-                alert("Error loading playlist. Check your Render server URL and ensure it's running.");
-            }
-        }
-
-        // 6. Loads and plays a specific YouTube video ID
-        function loadAndPlayVideo(videoId) {
-            console.log("Loading video ID:", videoId);
-            if (player && videoId) {
-                clearTimeout(placeholderTimerId);
-                endingPlaceholder.style.display = 'none';
-
-                player.loadVideoById(videoId);
-                updateVideoTitle();
-            } else {
-                console.error("Player not ready or videoId is missing.");
-            }
-        }
-
-        // 7. Updates the title displayed above the player
-        function updateVideoTitle() {
-            if (currentVideoIndex >= 0 && currentVideoIndex < playlist.length) {
-                document.getElementById('videoTitle').textContent = playlist[currentVideoIndex].title;
-            } else {
-                document.getElementById('videoTitle').textContent = "No video loaded";
-            }
-        }
-
-        // 8. Function to automatically play the next video in sequence
-        function playNext() {
-            if (playlist.length === 0) {
-                console.warn("Playlist is empty. Cannot play next video.");
-                return;
-            }
-            currentVideoIndex = (currentVideoIndex + 1) % playlist.length; 
-            console.log("Playing next video. New index:", currentVideoIndex);
-            loadAndPlayVideo(playlist[currentVideoIndex].id);
-        }
-
-        // 9. Function to toggle mute/unmute
-        function toggleMute() {
-            if (!player) {
-                console.warn("Player not ready to toggle mute.");
-                return;
-            }
-
-            if (player.isMuted()) {
-                player.unMute();
-                console.log("Video unmuted via icon.");
-            } else {
-                player.mute();
-                console.log("Video muted via icon.");
-            }
-            updateMuteIcon(); 
-        }
-
-        // Function to update the speaker icon based on player's mute state
-        function updateMuteIcon() {
-            if (player && muteToggleButton) {
-                if (player.isMuted()) {
-                    muteToggleButton.src = MUTED_ICON_URL;
-                    muteToggleButton.alt = "Unmute video";
-                } else {
-                    muteToggleButton.src = UNMUTED_ICON_URL;
-                    muteToggleButton.alt = "Mute video";
-                }
-            } else {
-                console.warn("Player or mute toggle button not ready to update icon.");
-            }
-        }
-    </script>
+    startBroadcast();
+  </script>
 </body>
 </html>
