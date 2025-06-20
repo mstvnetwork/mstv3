@@ -55,8 +55,30 @@ function playStream(item) {
       const hls = new Hls();
       hls.loadSource(item.url);
       hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        const now = DateTime.now().setZone(timezone);
+        const start = DateTime.fromISO(item.start).setZone(timezone);
+        const elapsedSeconds = now.diff(start, 'seconds').seconds;
+
+        if (elapsedSeconds > 0 && elapsedSeconds < video.duration) {
+          video.currentTime = elapsedSeconds;
+        }
+        video.play();
+      });
+
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = item.url;
+      video.addEventListener('loadedmetadata', () => {
+        const now = DateTime.now().setZone(timezone);
+        const start = DateTime.fromISO(item.start).setZone(timezone);
+        const elapsedSeconds = now.diff(start, 'seconds').seconds;
+
+        if (elapsedSeconds > 0 && elapsedSeconds < video.duration) {
+          video.currentTime = elapsedSeconds;
+        }
+        video.play();
+      });
     }
 
     container.appendChild(video);
