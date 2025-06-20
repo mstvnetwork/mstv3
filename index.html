@@ -1,420 +1,678 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-  <title>MSTV Live</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #000;
-      color: #fff;
-      text-align: center;
-      -webkit-font-smoothing: antialiased;
-    }
-    .title {
-      font-size: 2.5rem;
-      font-weight: 900;
-      color: gold;
-      margin: 1rem 0 0;
-      text-shadow: 0 0 15px gold;
-    }
-    .golden-scroll {
-      color: orange;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      user-select: none;
-    }
-    .now-playing {
-      font-size: 1.2rem;
-      margin: 0.5rem 0 1rem;
-      font-weight: 600;
-      text-shadow: 0 0 3px #000;
-    }
-    .player-container {
-      width: 90%;
-      max-width: 720px;
-      margin: 0 auto 1rem;
-      aspect-ratio: 16 / 9;
-      position: relative;
-      background: #111;
-      border: 3px solid gold;
-      border-radius: 16px;
-      overflow: hidden;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none; /* disables all touch interactions */
-    }
-    video, #ytPlayer {
-      width: 100%;
-      height: 100%;
-      pointer-events: none; /* disables clicks & seek on video */
-      touch-action: none; /* disables touch on video */
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    #ytPlayer {
-      display: none;
-    }
-    .off-air {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #000c;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: bold;
-      z-index: 10;
-      user-select: none;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+    <title>MSTV Live</title>
+    <!-- Google Fonts for 'Inter' (used in TV guide for modern look), 'Segoe UI' (body), 'Consolas' (guide times) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* User's preferred font */
+            background: #000;
+            color: #fff;
+            text-align: center;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Ensure footer stays at the bottom */
+        }
+        .title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: gold;
+            margin: 1rem 0 0;
+            text-shadow: 0 0 15px gold;
+        }
+        .golden-scroll {
+            color: orange;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            user-select: none;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .now-playing {
+            font-size: 1.2rem;
+            margin: 0.5rem 0 1rem;
+            font-weight: 600;
+            text-shadow: 0 0 3px #000;
+        }
+        .player-container {
+            width: 90%;
+            max-width: 720px;
+            margin: 0 auto 1rem;
+            aspect-ratio: 16 / 9;
+            position: relative;
+            background: #111;
+            border: 3px solid gold;
+            border-radius: 16px;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        video, #ytPlayer {
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #ytPlayer {
+            display: none;
+        }
+        .off-air {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000c;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            z-index: 10;
+            user-select: none;
+        }
 
-    /* Speaker button styles */
-    #speakerBtn {
-      position: absolute;
-      bottom: 12px;
-      right: 12px;
-      background: rgba(255, 215, 0, 0.8);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 20;
-      user-select: none;
-      box-shadow: 0 0 8px gold;
-      transition: background-color 0.3s ease;
-    }
-    #speakerBtn:hover {
-      background: rgba(255, 215, 0, 1);
-    }
-    #speakerIcon {
-      width: 24px;
-      height: 24px;
-      fill: #000;
-    }
+        /* Speaker button styles */
+        #speakerBtn {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(255, 215, 0, 0.8);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 20;
+            user-select: none;
+            box-shadow: 0 0 8px gold;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        #speakerBtn:hover {
+            background: rgba(255, 215, 0, 1);
+            transform: scale(1.05);
+        }
+        #speakerIcon {
+            width: 24px;
+            height: 24px;
+            fill: #000;
+        }
 
-    /* TV Guide styles */
-    .tv-guide {
-      width: 90%;
-      max-width: 720px;
-      margin: 0 auto 2rem;
-      background: linear-gradient(90deg, #222, #111);
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-      padding: 16px 24px;
-      user-select: none;
-    }
-    .tv-guide h2 {
-      margin: 0 0 12px;
-      font-weight: 800;
-      color: gold;
-      text-shadow: 0 0 8px orange;
-      font-size: 1.5rem;
-      letter-spacing: 1.5px;
-    }
-    #tvGuideList {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: 300px;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: gold transparent;
-      font-family: 'Consolas', monospace;
-    }
-    #tvGuideList::-webkit-scrollbar {
-      width: 6px;
-    }
-    #tvGuideList::-webkit-scrollbar-thumb {
-      background-color: gold;
-      border-radius: 3px;
-    }
-    #tvGuideList li {
-      padding: 10px 16px;
-      margin-bottom: 6px;
-      border-radius: 8px;
-      background: #222;
-      font-weight: 600;
-      font-size: 1.1rem;
-      color: #eee;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: background-color 0.25s ease;
-    }
-    #tvGuideList li.active {
-      background: gold;
-      color: #000;
-      font-weight: 800;
-      box-shadow: 0 0 15px gold;
-      pointer-events: none;
-    }
-    #tvGuideList li span.time {
-      font-family: 'Consolas', monospace;
-      font-weight: 700;
-      letter-spacing: 1.2px;
-      margin-right: 12px;
-      min-width: 55px;
-      text-align: left;
-    }
-    #tvGuideList li span.title {
-      flex-grow: 1;
-      text-align: left;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+        /* TV Guide Container (from first response, adapted for dark theme) */
+        .tv-guide-container {
+            width: 90%;
+            max-width: 720px;
+            margin: 0 auto 2rem;
+            background-color: #1a1a1a; /* Dark background */
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.7); /* Stronger gold glow */
+            border-radius: 12px;
+            padding: 24px;
+            user-select: none;
+            border: 2px solid gold; /* Subtle gold border */
+        }
+        .tv-guide-container h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: gold;
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px dashed #444; /* Dotted separator */
+            padding-bottom: 10px;
+            letter-spacing: 1.5px;
+            font-family: 'Inter', sans-serif; /* Keep Inter for this header */
+        }
 
-    footer {
-      margin: 2rem 0 3rem;
-      font-size: 0.8rem;
-      color: #aaa;
-      user-select: none;
-    }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="https://www.youtube.com/iframe_api"></script>
+        /* TV Guide List (Grid layout) */
+        #tvGuideList { /* This is now a div, not a ul */
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
+            gap: 20px; /* Space between cards */
+            max-height: 400px; /* Limit height and make it scrollable */
+            overflow-y: auto;
+            padding-right: 5px; /* Space for scrollbar */
+        }
+        /* Custom scrollbar for TV guide */
+        #tvGuideList::-webkit-scrollbar {
+            width: 8px;
+        }
+        #tvGuideList::-webkit-scrollbar-track {
+            background: #2a2a2a; /* Darker track */
+            border-radius: 10px;
+        }
+        #tvGuideList::-webkit-scrollbar-thumb {
+            background: #888; /* Gray thumb as in first response */
+            border-radius: 10px;
+        }
+        #tvGuideList::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Individual Program Card */
+        .program-card { /* This is the div for each program */
+            background-color: #2a2a2a; /* Dark background for cards */
+            padding: 16px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); /* Soft shadow */
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            cursor: pointer; /* Indicate clickability */
+            border: 1px solid #333; /* Subtle border */
+            text-align: left; /* Align text within card */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Space out content vertically */
+            font-family: 'Inter', sans-serif; /* Inter for card content */
+        }
+        .program-card:hover:not(.active) {
+            background: #3a3a3a; /* Slightly lighter on hover */
+            transform: translateY(-3px); /* Lift effect */
+            box-shadow: 0 6px 16px rgba(255, 215, 0, 0.2); /* Soft gold shadow on hover */
+        }
+        .program-card.active {
+            background: gold; /* Gold background for active item */
+            color: #000; /* Black text on active item */
+            font-weight: 700;
+            box-shadow: 0 0 20px gold, inset 0 0 10px orange; /* Stronger glow */
+            pointer-events: none; /* Active item not clickable */
+            transform: scale(1.01); /* Slightly larger */
+            border-color: orange;
+        }
+
+        .program-card .program-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .program-card .program-time {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #ccc; /* Lighter color for time */
+            background-color: #444; /* Darker badge background */
+            padding: 4px 8px;
+            border-radius: 6px;
+            margin-right: 10px;
+            min-width: 85px; /* Ensure consistent width */
+            text-align: center;
+            font-family: 'Consolas', monospace; /* Keep Consolas for time */
+        }
+        .program-card.active .program-time {
+            color: #333; /* Darker text for active time */
+            background-color: rgba(255, 255, 255, 0.6); /* Slightly transparent white for active time badge */
+        }
+        .program-card .program-status {
+            font-size: 0.8em;
+            font-weight: 700;
+            color: #fff;
+            background-color: #6a0dad; /* Purple for 'Next Up' */
+            padding: 4px 8px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+        .program-card.active .program-status {
+             background-color: #1e8449; /* Green for 'Now Playing' */
+        }
+        .program-card .program-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+        .program-card.active .program-title {
+            color: #000;
+        }
+        .program-card .program-url {
+            font-size: 0.8em;
+            color: #aaa;
+            opacity: 0.8;
+            font-family: 'Consolas', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .program-card.active .program-url {
+            color: #333;
+        }
+
+
+        footer {
+            margin-top: auto;
+            padding: 2rem 0;
+            font-size: 0.85rem;
+            color: #aaa;
+            user-select: none;
+            background-color: #0d0d0d;
+            border-top: 1px solid #333;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
-  <h1 class="title">MSTV NETWORK</h1>
-  <marquee class="golden-scroll" behavior="scroll" direction="left" scrollamount="7" scrolldelay="80">
-    🔥 Welcome to MSTV | Live Streaming | Entertainment | News | Music 🔥
-  </marquee>
+    <h1 class="title">MSTV NETWORK</h1>
+    <marquee class="golden-scroll" behavior="scroll" direction="left" scrollamount="7" scrolldelay="80">
+        🔥 Welcome to MSTV | Live Streaming | Entertainment | News | Music 🔥
+    </marquee>
 
-  <div class="now-playing" id="nowPlaying">Now Playing: Loading...</div>
-  <div style="font-size: 0.9rem; color: #ccc; margin-bottom: 0.5rem;">
-    Melbourne Time: <span id="melNow">loading...</span>
-  </div>
-
-  <div class="player-container" id="playerContainer">
-    <video id="hlsPlayer" controls muted autoplay playsinline style="display:none;" controlsList="nodownload nofullscreen noremoteplayback"></video>
-    <div id="ytPlayer"></div>
-    <div class="off-air" id="offAir">🔌 Off Air</div>
-
-    <!-- Speaker toggle button -->
-    <div id="speakerBtn" title="Toggle mute">
-      <svg id="speakerIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 9v6h4l5 5V4L9 9H5z"/>
-        <path id="muteCross" d="M16 8l4 4m0-4l-4 4" stroke="#000" stroke-width="2" stroke-linecap="round" style="display:none"/>
-      </svg>
+    <div class="now-playing" id="nowPlaying">Now Playing: Loading...</div>
+    <div style="font-size: 0.9rem; color: #ccc; margin-bottom: 0.5rem;">
+        Melbourne Time: <span id="melNow">loading...</span>
     </div>
-  </div>
 
-  <section class="tv-guide">
-    <h2>📺 TV Guide</h2>
-    <ul id="tvGuideList" tabindex="0" aria-label="TV Guide List"></ul>
-  </section>
+    <div class="player-container" id="playerContainer">
+        <video id="hlsPlayer" muted playsinline style="display:none;" controlsList="nodownload nofullscreen noremoteplayback"></video>
+        <div id="ytPlayer"></div>
+        <div class="off-air" id="offAir">🔌 Off Air</div>
 
-  <footer>
-    © 2025 MSTV Network. All rights reserved.
-  </footer>
+        <!-- Speaker toggle button -->
+        <div id="speakerBtn" title="Toggle mute">
+            <svg id="speakerIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5 9v6h4l5 5V4L9 9H5z"/>
+                <path id="muteCross" d="M16 8l4 4m0-4l-4 4" stroke="#000" stroke-width="2" stroke-linecap="round" style="display:none"/>
+            </svg>
+        </div>
+    </div>
 
-  <script>
-    const hlsPlayer = document.getElementById('hlsPlayer');
-    const ytContainer = document.getElementById('ytPlayer');
-    const offAir = document.getElementById('offAir');
-    const nowPlaying = document.getElementById('nowPlaying');
-    const tvGuideList = document.getElementById('tvGuideList');
-    const speakerBtn = document.getElementById('speakerBtn');
-    const muteCross = document.getElementById('muteCross');
-    let currentIndex = -1;
-    let ytPlayer;
+    <!-- TV Guide Section (Reverted to a structure more like the first response) -->
+    <div class="tv-guide-container">
+        <h2>📺 Today's Broadcast Schedule</h2>
+        <div id="tvGuideList">
+            <!-- TV Guide items will be dynamically inserted here by JavaScript -->
+        </div>
+    </div>
 
-    const sources = [
-      { title: "Morning News", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
-      { title: "Cafe Jazz Live (YouTube)", url: "https://www.youtube.com/watch?v=Dx5qFachd3A" },
-      { title: "Nature Documentary", url: "https://test-streams.mux.dev/test_001/stream.m3u8" },
-      { title: "Live DJ Set (YouTube)", url: "https://www.youtube.com/watch?v=jfKfPfyJRdk" },
-      { title: "World Report", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
-      { title: "Music Hour (YT)", url: "https://www.youtube.com/watch?v=DWcJFNfaw9c" }
-    ];
+    <footer>
+        © 2025 MSTV Network. All rights reserved.
+    </footer>
 
-    function generateSchedule() {
-      const schedule = [];
-      const now = luxon.DateTime.now().setZone('Australia/Melbourne').startOf('day');
-      for (let i = 0; i < 24; i++) {
-        const start = now.plus({ hours: i });
-        const end = start.plus({ hours: 1 });
-        const item = sources[i % sources.length];
-        schedule.push({
-          title: item.title,
-          url: item.url,
-          start: start.toISO(),
-          end: end.toISO()
-        });
-      }
-      return schedule;
-    }
+    <script>
+        const hlsPlayer = document.getElementById('hlsPlayer');
+        const ytContainer = document.getElementById('ytPlayer');
+        const offAir = document.getElementById('offAir');
+        const nowPlaying = document.getElementById('nowPlaying');
+        const tvGuideList = document.getElementById('tvGuideList');
+        const speakerBtn = document.getElementById('speakerBtn');
+        const muteCross = document.getElementById('muteCross');
+        let currentIndex = 0; // Start at the first video
+        let ytPlayer = null; // Initialize ytPlayer as null
+        let isMuted = true; // Initial mute state, will be loaded from localStorage
 
-    const playlist = generateSchedule();
+        // Define your master sequential playlist here.
+        // This will now play one after another automatically.
+        const sources = [
+            { title: "Morning News", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
+            { title: "Cafe Jazz Live (YouTube)", url: "https://www.youtube.com/watch?v=Dx5qFachd3A" },
+            { title: "Nature Documentary", url: "https://test-streams.mux.dev/test_001/stream.m3u8" },
+            { title: "Live DJ Set (YouTube)", url: "https://www.youtube.com/watch?v=jfKfPfyJRdk" },
+            { title: "World Report", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
+            { title: "Music Hour (YouTube)", url: "https://www.youtube.com/watch?v=DWcJFNfaw9c" }
+        ];
 
-    function updateNowPlaying() {
-      const now = luxon.DateTime.now().setZone('Australia/Melbourne');
-      document.getElementById('melNow').textContent = now.toFormat('HH:mm:ss');
-
-      let foundIndex = -1;
-      playlist.forEach((item, i) => {
-        const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
-        const end = luxon.DateTime.fromISO(item.end).setZone('Australia/Melbourne');
-        if (now >= start && now < end) {
-          foundIndex = i;
-        }
-      });
-
-      if (foundIndex !== currentIndex) {
-        currentIndex = foundIndex;
-        if (foundIndex === -1) {
-          showOffAir();
-        } else {
-          playSegment(playlist[foundIndex]);
-        }
-        buildGuide();
-      }
-    }
-
-    function buildGuide() {
-      tvGuideList.innerHTML = "";
-      playlist.forEach((item, i) => {
-        const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
-        const time = start.toFormat('HH:mm');
-        const li = document.createElement('li');
-        li.innerHTML = `<span class="time">${time}</span><span class="title">${item.title}</span>`;
-        if (i === currentIndex) li.classList.add("active");
-        tvGuideList.appendChild(li);
-      });
-    }
-
-    function showOffAir() {
-      nowPlaying.textContent = "Now Playing: Off Air";
-      offAir.style.display = "flex";
-      hlsPlayer.style.display = "none";
-      ytContainer.style.display = "none";
-      if (ytPlayer) {
-        ytPlayer.destroy();
-        ytPlayer = null;
-      }
-    }
-
-    function playSegment(item) {
-      nowPlaying.textContent = `Now Playing: ${item.title}`;
-      offAir.style.display = "none";
-      const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
-      const now = luxon.DateTime.now().setZone('Australia/Melbourne');
-      const seekTo = Math.floor(now.diff(start, 'seconds').seconds);
-
-      if (item.url.includes("youtube.com")) {
-        playYouTube(item.url, seekTo);
-      } else {
-        playHLS(item.url, seekTo);
-      }
-    }
-
-    function playHLS(url, seekTo) {
-      if (ytPlayer) {
-        ytPlayer.destroy();
-        ytPlayer = null;
-        ytContainer.innerHTML = "";
-      }
-      ytContainer.style.display = "none";
-      hlsPlayer.style.display = "block";
-
-      if (hlsPlayer.canPlayType("application/vnd.apple.mpegurl")) {
-        hlsPlayer.src = url;
-        hlsPlayer.currentTime = seekTo;
-        hlsPlayer.muted = isMuted;
-        hlsPlayer.play();
-      } else if (Hls.isSupported()) {
-        if (window.hls) {
-          window.hls.destroy();
-        }
-        window.hls = new Hls();
-        window.hls.loadSource(url);
-        window.hls.attachMedia(hlsPlayer);
-        window.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          hlsPlayer.currentTime = seekTo;
-          hlsPlayer.muted = isMuted;
-          hlsPlayer.play();
-        });
-      }
-    }
-
-    let isMuted = true;
-
-    function playYouTube(url, seekTo) {
-      hlsPlayer.pause();
-      hlsPlayer.style.display = "none";
-      ytContainer.style.display = "block";
-
-      const videoId = new URL(url).searchParams.get("v") || url.split("/").pop();
-
-      if (ytPlayer) {
-        ytPlayer.loadVideoById({videoId, startSeconds: seekTo});
-        ytPlayer.mute();
-        if (!isMuted) {
-          ytPlayer.unMute();
-        }
-        return;
-      }
-
-      ytPlayer = new YT.Player("ytPlayer", {
-        height: "100%",
-        width: "100%",
-        videoId,
-        playerVars: {
-          autoplay: 1,
-          mute: 1,
-          start: seekTo,
-          controls: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          disablekb: 1,
-          rel: 0,
-          showinfo: 0
-        },
-        events: {
-          onReady: e => {
-            if (!isMuted) {
-              e.target.unMute();
+        /**
+         * Saves the current playback state (video index, time, and mute status) to localStorage.
+         */
+        function savePlayerState() {
+            try {
+                const state = {
+                    index: currentIndex,
+                    time: getCurrentPlaybackTime(),
+                    muted: isMuted
+                };
+                localStorage.setItem('mstvPlayerState', JSON.stringify(state));
+                // console.log('Player state saved:', state); // Uncomment for debugging
+            } catch (e) {
+                console.error('Error saving player state to localStorage:', e);
             }
-            e.target.playVideo();
-          }
         }
-      });
-    }
 
-    speakerBtn.addEventListener('click', () => {
-      isMuted = !isMuted;
-      updateMuteState();
-    });
+        /**
+         * Loads the playback state from localStorage and applies it.
+         * If no state is found, it initializes playback from the beginning of the playlist.
+         */
+        function loadPlayerState() {
+            try {
+                const savedState = localStorage.getItem('mstvPlayerState');
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    currentIndex = state.index;
+                    // Ensure index is within bounds of the playlist
+                    if (currentIndex < 0 || currentIndex >= sources.length) {
+                        currentIndex = 0; // Reset to first video if invalid
+                    }
+                    isMuted = state.muted;
+                    // console.log('Player state loaded:', state); // Uncomment for debugging
+                } else {
+                    console.log('No saved state found, starting from beginning.');
+                    currentIndex = 0;
+                    isMuted = true; // Default to muted if no state
+                }
+                // Initial update of mute state for the button icon
+                updateMuteState();
+                // Play the video with the loaded state
+                playSegment(sources[currentIndex], savedState ? JSON.parse(savedState).time : 0);
+            } catch (e) {
+                console.error('Error loading player state from localStorage:', e);
+                // Fallback to default if there's an error
+                currentIndex = 0;
+                isMuted = true;
+                updateMuteState();
+                playSegment(sources[currentIndex], 0);
+            }
+        }
 
-    function updateMuteState() {
-      if (isMuted) {
-        speakerBtn.title = "Unmute";
-        muteCross.style.display = "inline";
-        hlsPlayer.muted = true;
-        if (ytPlayer) ytPlayer.mute();
-      } else {
-        speakerBtn.title = "Mute";
-        muteCross.style.display = "none";
-        hlsPlayer.muted = false;
-        if (ytPlayer) ytPlayer.unMute();
-      }
-    }
+        /**
+         * Gets the current playback time based on the active player (HLS or YouTube).
+         * @returns {number} The current playback time in seconds.
+         */
+        function getCurrentPlaybackTime() {
+            if (hlsPlayer.style.display === 'block') {
+                return hlsPlayer.currentTime;
+            } else if (ytPlayer && ytContainer.style.display === 'block' && typeof ytPlayer.getCurrentTime === 'function') {
+                return ytPlayer.getCurrentTime();
+            }
+            return 0;
+        }
 
-    setInterval(updateNowPlaying, 15000);
-    window.onload = () => {
-      updateNowPlaying();
-      updateMuteState();
-    };
-  </script>
+        /**
+         * Plays the next video in the sequential playlist.
+         * Wraps around to the beginning if the end of the playlist is reached.
+         */
+        function playNextVideo() {
+            currentIndex = (currentIndex + 1) % sources.length;
+            console.log('Playing next video:', sources[currentIndex].title, 'Index:', currentIndex);
+            playSegment(sources[currentIndex], 0); // Start next video from beginning
+            savePlayerState(); // Save state after changing video
+            buildGuide(); // Update TV guide to highlight new active video
+        }
+
+        /**
+         * Updates the Melbourne time display.
+         */
+        function updateMelbourneTime() {
+            const now = luxon.DateTime.now().setZone('Australia/Melbourne');
+            document.getElementById('melNow').textContent = now.toFormat('HH:mm:ss');
+        }
+
+        /**
+         * Builds and updates the TV Guide list based on the sequential playlist.
+         * Highlights the currently playing item using the new card-like structure.
+         */
+        function buildGuide() {
+            tvGuideList.innerHTML = "";
+            sources.forEach((item, i) => {
+                const programCard = document.createElement('div');
+                programCard.classList.add('program-card');
+
+                let statusText = '';
+                let programTimeText = '';
+
+                if (i === currentIndex) {
+                    programCard.classList.add("active");
+                    statusText = 'NOW PLAYING';
+                    programTimeText = 'LIVE'; // Or current time if preferred, but "LIVE" is more fitting for current
+                } else if (i === (currentIndex + 1) % sources.length) {
+                    statusText = 'NEXT UP';
+                    programTimeText = ''; // No specific time for 'Next Up'
+                } else {
+                    statusText = `#${i + 1}`; // For other items, show sequential number
+                    programTimeText = '';
+                }
+
+                programCard.innerHTML = `
+                    <div class="program-header">
+                        ${programTimeText ? `<span class="program-time">${programTimeText}</span>` : ''}
+                        <span class="program-status">${statusText}</span>
+                    </div>
+                    <div class="program-title">${item.title}</div>
+                    <div class="program-url">${item.url.length > 50 ? item.url.substring(0, 47) + '...' : item.url}</div>
+                `;
+
+                // Add click listener to jump to this video (optional, but useful for user)
+                programCard.addEventListener('click', () => {
+                    if (i !== currentIndex) { // Only jump if it's not the current video
+                        currentIndex = i;
+                        playSegment(sources[currentIndex], 0); // Play selected video from start
+                        savePlayerState();
+                        buildGuide(); // Update guide
+                    }
+                });
+                tvGuideList.appendChild(programCard);
+            });
+            // Scroll to the active item for better user experience
+            const activeItem = tvGuideList.querySelector('.program-card.active');
+            if (activeItem) {
+                // Use a slight delay to ensure layout is stable for scrolling
+                setTimeout(() => {
+                    activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+        }
+
+        /**
+         * Shows the "Off Air" message and hides players.
+         */
+        function showOffAir() {
+            nowPlaying.textContent = "Now Playing: Off Air";
+            offAir.style.display = "flex";
+            hlsPlayer.style.display = "none";
+            ytContainer.style.display = "none";
+            if (ytPlayer) {
+                ytPlayer.stopVideo(); // Stop YouTube video
+            }
+            hlsPlayer.pause(); // Pause HLS video
+            hlsPlayer.src = ''; // Clear HLS source
+        }
+
+        /**
+         * Plays a specific video segment (HLS or YouTube).
+         * @param {object} item - The video item containing title and url.
+         * @param {number} seekTo - The time in seconds to seek to.
+         */
+        function playSegment(item, seekTo = 0) {
+            nowPlaying.textContent = `Now Playing: ${item.title}`;
+            offAir.style.display = "none"; // Hide off-air message
+            console.log(`Attempting to play: ${item.title} from ${seekTo}s`);
+
+            if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
+                playYouTube(item.url, seekTo);
+            } else {
+                playHLS(item.url, seekTo);
+            }
+            buildGuide(); // Always update guide when a new segment plays
+        }
+
+        /**
+         * Plays an HLS video stream.
+         * @param {string} url - The HLS stream URL.
+         * @param {number} seekTo - The time in seconds to seek to.
+         */
+        function playHLS(url, seekTo) {
+            // Hide YouTube player
+            if (ytPlayer) {
+                ytPlayer.stopVideo();
+            }
+            ytContainer.style.display = "none";
+            hlsPlayer.style.display = "block";
+
+            // If HLS.js instance exists, destroy it before loading new source
+            if (window.hls) {
+                window.hls.destroy();
+            }
+
+            if (hlsPlayer.canPlayType("application/vnd.apple.mpegurl")) {
+                hlsPlayer.src = url;
+                hlsPlayer.currentTime = seekTo;
+                hlsPlayer.muted = isMuted; // Apply global mute state
+                hlsPlayer.play().catch(e => console.error("HLS Autoplay prevented:", e));
+            } else if (Hls.isSupported()) {
+                window.hls = new Hls();
+                window.hls.loadSource(url);
+                window.hls.attachMedia(hlsPlayer);
+                window.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    hlsPlayer.currentTime = seekTo;
+                    hlsPlayer.muted = isMuted; // Apply global mute state
+                    hlsPlayer.play().catch(e => console.error("HLS Autoplay prevented by HLS.js:", e));
+                });
+                window.hls.on(Hls.Events.ERROR, (event, data) => {
+                    console.error("HLS.js error:", data);
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.error("Fatal network error, attempting to recover...");
+                                window.hls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.error("Fatal media error, attempting to recover...");
+                                window.hls.recoverMediaError();
+                                break;
+                            default:
+                                playNextVideo(); // Play next video on unrecoverable error
+                                break;
+                        }
+                    }
+                });
+            } else {
+                console.error("HLS is not supported in this browser.");
+                showOffAir(); // If HLS isn't supported, show off-air
+            }
+        }
+
+        /**
+         * Plays a YouTube video.
+         * @param {string} url - The YouTube video URL.
+         * @param {number} seekTo - The time in seconds to seek to.
+         */
+        function playYouTube(url, seekTo) {
+            hlsPlayer.pause();
+            hlsPlayer.style.display = "none";
+            ytContainer.style.display = "block";
+
+            const videoId = new URL(url).searchParams.get("v") || url.split("/").pop(); // Handles both watch?v= and youtu.be/ links
+
+            if (ytPlayer) {
+                // If player already exists, load new video and seek
+                ytPlayer.loadVideoById({videoId: videoId, startSeconds: seekTo});
+                if (isMuted) {
+                    ytPlayer.mute();
+                } else {
+                    ytPlayer.unMute();
+                }
+                ytPlayer.playVideo();
+            } else {
+                // Create new player if it doesn't exist
+                ytPlayer = new YT.Player("ytPlayer", {
+                    height: "100%",
+                    width: "100%",
+                    videoId: videoId,
+                    playerVars: {
+                        autoplay: 1,
+                        mute: 1, // Start muted to comply with autoplay policies
+                        start: seekTo,
+                        controls: 0,
+                        modestbranding: 1,
+                        playsinline: 1,
+                        disablekb: 1,
+                        rel: 0,
+                        showinfo: 0
+                    },
+                    events: {
+                        onReady: (e) => {
+                            if (!isMuted) {
+                                e.target.unMute(); // Unmute if global state is unmuted
+                            }
+                            e.target.playVideo();
+                            console.log("YouTube player ready.");
+                        },
+                        onStateChange: (e) => {
+                            if (e.data === YT.PlayerState.ENDED) {
+                                console.log("YouTube video ended.");
+                                playNextVideo(); // Play next video when current one ends
+                            } else if (e.data === YT.PlayerState.PLAYING) {
+                                // Start saving state periodically while playing YouTube
+                                if (!window._ytSaveInterval) {
+                                    window._ytSaveInterval = setInterval(savePlayerState, 5000); // Save every 5 seconds
+                                }
+                            } else {
+                                // Clear interval when not playing
+                                if (window._ytSaveInterval) {
+                                    clearInterval(window._ytSaveInterval);
+                                    window._ytSaveInterval = null;
+                                }
+                            }
+                        },
+                        onError: (e) => {
+                            console.error("YouTube Player Error:", e.data);
+                            // On error, try to play the next video in sequence
+                            playNextVideo();
+                        }
+                    }
+                });
+            }
+        }
+
+        /**
+         * Toggles the mute state and updates the UI and players.
+         */
+        speakerBtn.addEventListener('click', () => {
+            isMuted = !isMuted;
+            updateMuteState();
+            savePlayerState(); // Save mute state immediately
+        });
+
+        /**
+         * Updates the speaker icon and player mute status based on `isMuted`.
+         */
+        function updateMuteState() {
+            if (isMuted) {
+                speakerBtn.title = "Unmute";
+                muteCross.style.display = "inline";
+                hlsPlayer.muted = true;
+                if (ytPlayer && typeof ytPlayer.mute === 'function') ytPlayer.mute();
+            } else {
+                speakerBtn.title = "Mute";
+                muteCross.style.display = "none";
+                hlsPlayer.muted = false;
+                if (ytPlayer && typeof ytPlayer.unMute === 'function') ytPlayer.unMute();
+            }
+        }
+
+        // Event listeners for HLS player to save state periodically and on pause
+        hlsPlayer.addEventListener('timeupdate', () => {
+            // Save state periodically (e.g., every 5 seconds of playback)
+            // Use Math.floor and a custom property to prevent saving on every single timeupdate event
+            if (Math.floor(hlsPlayer.currentTime) % 5 === 0 && Math.floor(hlsPlayer.currentTime) !== hlsPlayer._lastSavedTime) {
+                savePlayerState();
+                hlsPlayer._lastSavedTime = Math.floor(hlsPlayer.currentTime);
+            }
+        });
+        hlsPlayer.addEventListener('pause', savePlayerState);
+        hlsPlayer.addEventListener('ended', playNextVideo); // HLS video ends, play next
+
+        // Save state before the page is unloaded (e.g., refresh, close tab, navigate away)
+        window.addEventListener('beforeunload', savePlayerState);
+
+        // Initial setup on window load
+        window.onload = () => {
+            loadPlayerState(); // Load saved state and start playback
+            updateMelbourneTime(); // Initial update of Melbourne time
+            buildGuide(); // Build initial TV guide
+        };
+
+        // Update Melbourne time every second
+        setInterval(updateMelbourneTime, 1000);
+    </script>
 </body>
 </html>
