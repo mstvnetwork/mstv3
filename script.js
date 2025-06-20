@@ -39,15 +39,20 @@ function playStream(item) {
   container.innerHTML = '';
 
   if (isYouTube) {
+    const embedURL = item.url.includes("watch?v=")
+      ? item.url.replace("watch?v=", "embed/") + "?autoplay=1&mute=1"
+      : item.url + "?autoplay=1&mute=1";
+
     container.innerHTML = `
       <iframe width="100%" height="360" 
-        src="${item.url.replace("watch?v=", "embed/")}?autoplay=1" 
+        src="${embedURL}" 
         frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
       </iframe>`;
   } else {
     const video = document.createElement('video');
     video.controls = true;
     video.autoplay = true;
+    video.muted = true;             // Required for autoplay to work in browsers
     video.width = 640;
     video.height = 360;
 
@@ -57,27 +62,13 @@ function playStream(item) {
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        const now = DateTime.now().setZone(timezone);
-        const start = DateTime.fromISO(item.start).setZone(timezone);
-        const elapsedSeconds = now.diff(start, 'seconds').seconds;
-
-        if (elapsedSeconds > 0 && elapsedSeconds < video.duration) {
-          video.currentTime = elapsedSeconds;
-        }
-        video.play();
+        video.play().catch(err => console.warn("Autoplay blocked:", err));
       });
 
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = item.url;
       video.addEventListener('loadedmetadata', () => {
-        const now = DateTime.now().setZone(timezone);
-        const start = DateTime.fromISO(item.start).setZone(timezone);
-        const elapsedSeconds = now.diff(start, 'seconds').seconds;
-
-        if (elapsedSeconds > 0 && elapsedSeconds < video.duration) {
-          video.currentTime = elapsedSeconds;
-        }
-        video.play();
+        video.play().catch(err => console.warn("Autoplay blocked:", err));
       });
     }
 
@@ -86,4 +77,4 @@ function playStream(item) {
 }
 
 loadPlaylist();
-setInterval(loadPlaylist, 60000);
+setInterval(loadPlaylist, 60000); // Refresh every 60 sec
