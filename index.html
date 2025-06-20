@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Live Daily Playlist with Dark/Light Themes</title>
+  <title>Live Daily Playlist with Dark/Light Themes and YouTube Mix</title>
   <meta charset="UTF-8" />
   <style>
     :root {
@@ -207,6 +207,10 @@
     const elapsedTimeEl = document.getElementById('elapsed-time');
     const themeToggleBtn = document.getElementById('theme-toggle');
 
+    let playlistData = [];
+    let currentVideoElement = null;
+    let hls = null;
+
     // Load initial theme from localStorage or default to dark
     function loadTheme() {
       const saved = localStorage.getItem('mstv-theme');
@@ -246,6 +250,10 @@
 
     async function fetchPlaylist() {
       const res = await fetch(playlistUrl);
+      if (!res.ok) {
+        status.textContent = 'Failed to load playlist.';
+        return [];
+      }
       return await res.json();
     }
 
@@ -260,37 +268,41 @@
           return {
             index: i,
             item,
-            offset: elapsed - accumulated,
-            totalDuration,
+            startOffset: elapsed - accumulated,
+            timeLeft: accumulated + item.duration - elapsed,
+            elapsed,
+            totalDuration
           };
         }
         accumulated += item.duration;
       }
-      // fallback to last
+
+      // fallback last item
       return {
         index: playlist.length - 1,
         item: playlist[playlist.length - 1],
-        offset: 0,
-        totalDuration,
+        startOffset: 0,
+        timeLeft: 0,
+        elapsed,
+        totalDuration
       };
     }
 
-    function formatTime(seconds) {
-      const m = Math.floor(seconds / 60);
-      const s = seconds % 60;
-      return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-    }
-
-    let hls = null;
-    let currentPlayerType = null; // 'html5' | 'hls' | 'iframe'
-
-    function cleanupPlayer() {
+    function clearPlayer() {
       if (hls) {
         hls.destroy();
         hls = null;
       }
-      playerDiv.innerHTML = '';
-      elapsedTimeEl.textContent = '00:00';
+      if (currentVideoElement) {
+        currentVideoElement.pause();
+        currentVideoElement.remove();
+        currentVideoElement = null;
+      }
+      // Clear iframes for YouTube
+      const iframe = playerDiv.querySelector('iframe');
+      if (iframe) {
+        iframe.remove();
+      }
     }
 
     function createHtml5Video(src, startOffset) {
@@ -302,12 +314,14 @@
       video.preload = 'auto';
       video.src = src;
 
-      // Set start position when metadata loaded
-      video.addEventListener('loadedmetadata', () => {
+      // Seek once on metadata loaded
+      function seekToOffset() {
         if (video.duration > startOffset) {
           video.currentTime = startOffset;
         }
-      });
+        video.removeEventListener('loadedmetadata', seekToOffset);
+      }
+      video.addEventListener('loadedmetadata', seekToOffset);
 
       playerDiv.appendChild(video);
       return video;
@@ -325,6 +339,14 @@
       hls.loadSource(src);
       hls.attachMedia(video);
 
+      function seekToOffset() {
+        if (video.duration > startOffset) {
+          video.currentTime = startOffset;
+        }
+        video.removeEventListener('loadedmetadata', seekToOffset);
+      }
+      video.addEventListener('loadedmetadata', seekToOffset);
+
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (video.duration > startOffset) {
           video.currentTime = startOffset;
@@ -333,78 +355,67 @@
       return video;
     }
 
-    function createIframePlayer(src) {
+    function createYouTubeEmbed(url) {
+      // Extract video ID & optional parameters for start time
+      // For this demo, just embed as is
       const iframe = document.createElement('iframe');
-      iframe.setAttribute('allowfullscreen', 'true');
-      iframe.setAttribute('allow', 'autoplay; encrypted-media; fullscreen');
       iframe.width = '100%';
       iframe.height = '405';
       iframe.frameBorder = '0';
-      iframe.src = src;
+      iframe.allow =
+        'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+      iframe.allowFullscreen = true;
+      iframe.src = url;
       playerDiv.appendChild(iframe);
       return iframe;
     }
 
-    // Determine player type by url extension or embed url
-    function getPlayerType(url) {
-      if (url.includes('youtube.com/embed') || url.includes('youtube-nocookie.com/embed')) {
-        return 'iframe';
-      }
-      if (url.endsWith('.m3u8')) {
-        return 'hls';
-      }
-      if (url.match(/\.(mp4|webm|ogg)(\?.*)?$/)) {
-        return 'html5';
-      }
-      // Default fallback to iframe for unknown (e.g. live streams)
-      return 'iframe';
-    }
-
-    let currentVideoElement = null;
-    let playlistData = null;
-
     function playCurrentItem(current) {
-      cleanupPlayer();
-      const url = current.item.url;
-      const offset = current.offset;
+      clearPlayer();
+      const { item, startOffset } = current;
 
-      const type = getPlayerType(url);
-      currentPlayerType = type;
+      status.textContent = 'Playing: ' + item.title;
 
-      status.textContent = `Playing: ${current.item.title}`;
-
-      if (type === 'html5') {
-        currentVideoElement = createHtml5Video(url, offset);
-      } else if (type === 'hls') {
-        currentVideoElement = createHlsPlayer(url, offset);
-      } else if (type === 'iframe') {
-        currentVideoElement = createIframePlayer(url);
-      }
-    }
-
-    function updateCountdownAndElapsed(current) {
-      const timeLeft = Math.max(0, Math.floor(current.item.duration - current.offset));
-      countdown.textContent = `Next switch in: ${formatTime(timeLeft)}`;
-
-      // Show elapsed time (like a running clock) only for html5/hls videos
-      if ((currentPlayerType === 'html5' || currentPlayerType === 'hls') && currentVideoElement) {
-        if (!currentVideoElement.paused && !currentVideoElement.ended) {
-          elapsedTimeEl.textContent = formatTime(Math.floor(currentVideoElement.currentTime));
+      if (item.type === 'youtube') {
+        // Use embed URL, add ?start= offset if possible (YouTube embed param 'start' in seconds)
+        // The example URL might already have params, append carefully
+        let embedUrl = item.url;
+        if (!embedUrl.includes('start=') && startOffset > 0) {
+          embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'start=' + Math.floor(startOffset);
         }
+        currentVideoElement = createYouTubeEmbed(embedUrl);
+      } else if (item.type === 'hls') {
+        currentVideoElement = createHlsPlayer(item.url, startOffset);
       } else {
-        // For iframe/live streams, just show offset time counting up
-        elapsedTimeEl.textContent = formatTime(Math.floor(current.offset));
+        // default mp4 or other direct video source
+        currentVideoElement = createHtml5Video(item.url, startOffset);
       }
+
+      // Tag the element with current index for reload check
+      currentVideoElement.dataset.index = current.index.toString();
     }
 
     function renderPlaylist(playlist, currentIndex) {
       playlistEl.innerHTML = '';
-      playlist.forEach((item, i) => {
+      playlist.forEach((item, idx) => {
         const li = document.createElement('li');
-        li.textContent = `${item.title} (${formatTime(item.duration)})`;
-        if (i === currentIndex) li.classList.add('current');
+        li.textContent = `${item.title} (${formatDuration(item.duration)})`;
+        if (idx === currentIndex) {
+          li.classList.add('current');
+        }
         playlistEl.appendChild(li);
       });
+    }
+
+    function formatDuration(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+
+    function updateCountdownAndElapsed(current) {
+      countdown.textContent = `Next switch in ${formatDuration(current.timeLeft)}`;
+      elapsedTimeEl.textContent = formatDuration(current.startOffset);
     }
 
     async function mainLoop() {
@@ -416,10 +427,14 @@
 
         const current = findCurrentTrack(playlistData, elapsed);
 
-        // If player not playing current or first load, load new item
-        if (!currentVideoElement || currentVideoElement.dataset?.index != current.index) {
+        const currentIndexStr = current.index.toString();
+        const existingIndex = currentVideoElement?.dataset?.index || null;
+
+        if (!currentVideoElement || existingIndex !== currentIndexStr) {
           playCurrentItem(current);
-          currentVideoElement && (currentVideoElement.dataset = { index: current.index });
+          if (currentVideoElement) {
+            currentVideoElement.dataset.index = currentIndexStr;
+          }
         }
 
         updateCountdownAndElapsed(current);
@@ -430,7 +445,10 @@
       setInterval(update, 1000);
     }
 
-    mainLoop();
+    mainLoop().catch(e => {
+      status.textContent = 'Error loading playlist or playing media.';
+      console.error(e);
+    });
   </script>
 </body>
 </html>
