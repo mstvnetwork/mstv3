@@ -168,7 +168,18 @@ function loadPlayer(item, offset) {
   playerDiv.innerHTML = ''; // Clear previous
   status.textContent = `Now playing: ${item.title || item.type} | Offset: ${offset}s`;
 
-  if (item.type === 'youtube') {
+  if (item.type === 'youtube' || item.type === 'youtube-live') {
+  const id = extractYouTubeId(item.url);
+  const startParam = item.type === 'youtube' ? `&start=${offset}` : '';
+  const embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&controls=1&rel=0${startParam}`;
+  const iframe = document.createElement('iframe');
+  iframe.src = embedUrl;
+  iframe.frameBorder = '0';
+  iframe.allow = 'autoplay; encrypted-media';
+  iframe.allowFullscreen = true;
+  playerDiv.appendChild(iframe);
+}
+
     const id = extractYouTubeId(item.url);
     const startParam = `&start=${offset}`;
     const embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&controls=1&rel=0${startParam}`;
