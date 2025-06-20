@@ -1,26 +1,20 @@
 [
   {
-    "type": "youtube",
-    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    "duration": 213,
-    "title": "Rick Astley - Never Gonna Give You Up"
+    "title": "Morning News",
+    "url": "https://example.com/news.m3u8",
+    "start": "2025-06-21T06:00:00+05:30",
+    "end": "2025-06-21T07:00:00+05:30"
   },
   {
-    "type": "youtube-live",
-    "url": "https://www.youtube.com/watch?v=5qap5aO4i9A",
-    "duration": 1800,
-    "title": "Lofi Hip Hop Live Stream"
+    "title": "YouTube Live Show",
+    "url": "https://www.youtube.com/watch?v=abcdefg1234",
+    "start": "2025-06-21T07:00:00+05:30",
+    "end": "2025-06-21T08:00:00+05:30"
   },
   {
-    "type": "mp4",
-    "url": "https://www.w3schools.com/html/mov_bbb.mp4",
-    "duration": 60,
-    "title": "Big Buck Bunny (MP4)"
-  },
-  {
-    "type": "hls",
-    "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-    "duration": 120,
-    "title": "Test HLS Stream"
+    "title": "Tech Talk",
+    "url": "https://example.com/tech.m3u8",
+    "start": "2025-06-21T08:00:00+05:30",
+    "end": "2025-06-21T09:00:00+05:30"
   }
 ]
