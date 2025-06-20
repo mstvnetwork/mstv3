@@ -52,13 +52,15 @@
             overflow: hidden;
             user-select: none;
             -webkit-user-select: none;
-            /* Removed touch-action: none; to allow YouTube API control */
+            /* Make media player container unresponsive to touch */
+            touch-action: none; /* Prevents default touch actions like pan, zoom */
         }
         video, #ytPlayer {
             width: 100%;
             height: 100%;
-            /* REMOVED: pointer-events: none; */
-            /* REMOVED: touch-action: none; */
+            /* Make video elements unresponsive to touch on their surface */
+            pointer-events: none; /* Prevents all mouse/touch events on the element itself */
+            touch-action: none; /* Prevents default touch actions like pan, zoom */
             user-select: none; /* Keep user-select to prevent text selection */
             -webkit-user-select: none;
         }
@@ -99,6 +101,9 @@
             user-select: none;
             box-shadow: 0 0 8px gold;
             transition: background-color 0.3s ease, transform 0.2s ease;
+            /* Ensure the speaker button itself is clickable */
+            pointer-events: auto;
+            touch-action: auto;
         }
         #speakerBtn:hover {
             background: rgba(255, 215, 0, 1);
@@ -172,7 +177,6 @@
             flex-direction: column;
             justify-content: space-between; /* Space out content vertically */
             font-family: 'Inter', sans-serif; /* Inter for card content */
-            /* Removed cursor: pointer; and hover transforms as it's not clickable */
         }
         .program-card.active {
             background: gold; /* Gold background for active item */
@@ -270,7 +274,8 @@
     </div>
 
     <div class="player-container" id="playerContainer">
-        <video id="hlsPlayer" muted playsinline style="display:none;" controlsList="nodownload nofullscreen noremoteplayback"></video>
+        <!-- Added autoplay to HLS video. Muted attribute is initially set to false via JS -->
+        <video id="hlsPlayer" playsinline autoplay controlsList="nodownload nofullscreen noremoteplayback"></video>
         <div id="ytPlayer"></div>
         <div class="off-air" id="offAir">🔌 Off Air</div>
 
@@ -308,7 +313,8 @@
         // Global state variables
         let currentIndex = 0; // Current video index in the playlist
         let ytPlayer = null; // YouTube player instance
-        let isMuted = true; // Global mute state, synchronized with speaker icon and players
+        // Changed default mute state to false to attempt unmuted autoplay
+        let isMuted = false; // Global mute state, synchronized with speaker icon and players
 
         // Define your master sequential playlist here.
         // These videos will play one after another automatically.
@@ -354,12 +360,12 @@
                     if (currentIndex < 0 || currentIndex >= sources.length) {
                         currentIndex = 0;
                     }
-                    isMuted = state.muted;
+                    isMuted = state.muted; // Load saved mute state
                     console.log('Player state loaded:', state); // Debugging log
                 } else {
-                    console.log('No saved state found, starting from beginning.');
+                    console.log('No saved state found, starting from beginning, attempting unmuted.');
                     currentIndex = 0;
-                    isMuted = true; // Default to muted if no state
+                    isMuted = false; // Default to unmuted if no state
                 }
                 // Initial update of mute state for the button icon and players.
                 updateMuteState();
@@ -369,7 +375,7 @@
                 console.error('Error loading player state from localStorage:', e);
                 // Fallback to default if there's an error
                 currentIndex = 0;
-                isMuted = true;
+                isMuted = false; // Fallback to unmuted
                 updateMuteState();
                 playSegment(sources[currentIndex], 0);
             }
@@ -501,8 +507,7 @@
             if (ytPlayer) {
                 ytPlayer.stopVideo();
                 // Ensure the YouTube player iframe is truly cleared/hidden to prevent audio bleeding.
-                // This will effectively destroy the old player, requiring re-creation if needed later.
-                ytContainer.innerHTML = '';
+                ytContainer.innerHTML = ''; // Clear the inner HTML to remove the iframe
                 ytPlayer = null; // Clear the reference to the old player instance
             }
             ytContainer.style.display = "none";
@@ -518,7 +523,14 @@
                 hlsPlayer.src = url;
                 hlsPlayer.currentTime = seekTo;
                 hlsPlayer.muted = isMuted; // Apply global mute state
-                hlsPlayer.play().catch(e => console.error("HLS Autoplay prevented:", e));
+                hlsPlayer.play().then(() => {
+                    console.log("HLS Autoplay successful.");
+                }).catch(e => {
+                    console.error("HLS Autoplay prevented:", e);
+                    // If autoplay fails, ensure it's still muted (browser might enforce) and log
+                    hlsPlayer.muted = true;
+                    updateMuteState(); // Update UI to reflect actual muted state
+                });
             } else if (Hls.isSupported()) {
                 window.hls = new Hls();
                 window.hls.loadSource(url);
@@ -526,7 +538,13 @@
                 window.hls.on(Hls.Events.MANIFEST_PARSED, () => {
                     hlsPlayer.currentTime = seekTo;
                     hlsPlayer.muted = isMuted; // Apply global mute state
-                    hlsPlayer.play().catch(e => console.error("HLS Autoplay prevented by HLS.js:", e));
+                    hlsPlayer.play().then(() => {
+                        console.log("HLS Autoplay by HLS.js successful.");
+                    }).catch(e => {
+                        console.error("HLS Autoplay prevented by HLS.js:", e);
+                        hlsPlayer.muted = true;
+                        updateMuteState(); // Update UI
+                    });
                 });
                 window.hls.on(Hls.Events.ERROR, (event, data) => {
                     console.error("HLS.js error:", data);
@@ -563,7 +581,7 @@
             hlsPlayer.style.display = "none";
             ytContainer.style.display = "block";
 
-            // Extract videoId from various YouTube URL formats (watch?v=, youtu.be/, &list= for mixes)
+            // Extract videoId from various YouTube URL formats
             let videoId = '';
             const urlObj = new URL(url);
             if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
@@ -581,7 +599,7 @@
 
             // Function to apply mute state and ensure playback for YouTube player
             const applyMuteAndPlayYTPlayer = (playerInstance) => {
-                if (!playerInstance || typeof playerInstance.mute !== 'function') {
+                if (!playerInstance || typeof playerInstance.unMute !== 'function') {
                     console.warn("applyMuteAndPlayYTPlayer: Player instance not ready or methods missing.");
                     return;
                 }
@@ -589,7 +607,7 @@
                 if (!isMuted) {
                     playerInstance.unMute();
                     playerInstance.setVolume(100); // Set to max volume just to be sure.
-                    console.log("YouTube Player: Explicitly unmuted, setting volume to 100.");
+                    console.log("YouTube Player: Attempting to unMute and set volume to 100.");
                 } else {
                     playerInstance.mute();
                     console.log("YouTube Player: Explicitly muted.");
@@ -602,7 +620,7 @@
                     if (playerInstance && typeof playerInstance.isMuted === 'function') {
                         console.log(`YouTube Player Current Mute Status: ${playerInstance.isMuted()}`);
                         console.log(`YouTube Player Current Volume: ${playerInstance.getVolume()}`);
-                        // If still muted but shouldn't be, and volume is 0, try again.
+                        // If still muted but shouldn't be (and volume is 0), try again.
                         if (!isMuted && playerInstance.isMuted() && playerInstance.getVolume() === 0) {
                             console.warn("YouTube Player: Still muted despite unMute call. Retrying in 500ms.");
                             setTimeout(() => {
@@ -635,7 +653,9 @@
                     videoId: videoId,
                     playerVars: {
                         autoplay: 1,
-                        mute: 1, // Start muted to comply with browser autoplay policies (essential)
+                        // Set mute to 0 to attempt unmuted autoplay as requested.
+                        // Browsers might still force muted autoplay initially without user gesture.
+                        mute: 0,
                         start: seekTo,
                         controls: 0,
                         modestbranding: 1,
@@ -718,45 +738,38 @@
                     ytPlayer.setVolume(100); // Set YouTube player volume to max
 
                     // Ensure playback if YouTube player is paused/stopped.
-                    // This is crucial after unmuting, as browsers might pause if user interaction unmuted.
                     if (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
-                        ytPlayer.playVideo();
-                        console.log("Speaker button: Called YouTube playVideo() on unmute to ensure playback.");
+                        ytPlayer.playVideo(); // Attempt to play video
                     }
-                    // Verify mute state after a short delay
-                    setTimeout(() => {
-                        if (ytPlayer && typeof ytPlayer.isMuted === 'function') {
-                            console.log(`YouTube Player Current Mute Status after speaker button click: ${ytPlayer.isMuted()}`);
-                            console.log(`YouTube Player Current Volume after speaker button click: ${ytPlayer.getVolume()}`);
-                        }
-                    }, 200);
                 }
             }
         }
 
-        // Event listeners for HLS player to save state periodically and on pause/end
-        hlsPlayer.addEventListener('timeupdate', () => {
-            // Save state periodically (e.g., every 5 seconds of playback)
-            if (Math.floor(hlsPlayer.currentTime) % 5 === 0 && Math.floor(hlsPlayer.currentTime) !== hlsPlayer._lastSavedTime) {
-                savePlayerState();
-                hlsPlayer._lastSavedTime = Math.floor(hlsPlayer.currentTime); // Prevent saving multiple times for same second
+        // Initialize display and start processes
+        window.onload = function() {
+            console.log("Window loaded. Initializing...");
+            updateMelbourneTime(); // Initial time update
+            setInterval(updateMelbourneTime, 1000); // Update time every second
+            loadPlayerState(); // Load saved state or start fresh
+            buildGuide(); // Initial build of the TV guide
+
+            // Add event listeners for media ending
+            hlsPlayer.addEventListener('ended', playNextVideo);
+
+            // Periodically save state for HLS player
+            if (!window._hlsSaveInterval) {
+                window._hlsSaveInterval = setInterval(savePlayerState, 5000); // Save every 5 seconds
             }
-        });
-        hlsPlayer.addEventListener('pause', savePlayerState);
-        hlsPlayer.addEventListener('ended', playNextVideo); // HLS video ends, play next in playlist
 
-        // Save state before the page is unloaded (e.g., refresh, close tab, navigate away)
-        window.addEventListener('beforeunload', savePlayerState);
-
-        // Initial setup sequence on window load
-        window.onload = () => {
-            loadPlayerState(); // 1. Load saved state and prepare for playback
-            updateMelbourneTime(); // 2. Display initial Melbourne time
-            buildGuide(); // 3. Build and display the TV guide
+            // Initial update of mute state for the speaker button icon
+            updateMuteState();
         };
 
-        // Update Melbourne time every second (or adjust interval as needed)
-        setInterval(updateMelbourneTime, 1000);
+        // Ensure state is saved when user leaves or closes the page
+        window.addEventListener('beforeunload', savePlayerState);
+
+        // Debugging: Log initial mute state
+        console.log("Initial global isMuted state:", isMuted);
     </script>
 </body>
 </html>
