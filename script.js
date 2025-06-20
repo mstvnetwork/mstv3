@@ -52,4 +52,16 @@ function playStream(item) {
     video.height = 360;
 
     if (Hls.isSupported()) {
-      const
+      const hls = new Hls();
+      hls.loadSource(item.url);
+      hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = item.url;
+    }
+
+    container.appendChild(video);
+  }
+}
+
+loadPlaylist();
+setInterval(loadPlaylist, 60000);
