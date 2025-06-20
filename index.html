@@ -3,181 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-  <title>MSTV Live</title>
+  <title>MSTV Live - Sequential Playlist</title>
   <style>
+    /* ... keep your existing styling here from before ... */
+    /* For brevity, only essential styles shown here */
     body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #000;
-      color: #fff;
-      text-align: center;
-      -webkit-font-smoothing: antialiased;
+      margin: 0; background: #000; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align:center;
     }
     .title {
-      font-size: 2.5rem;
-      font-weight: 900;
-      color: gold;
-      margin: 1rem 0 0;
-      text-shadow: 0 0 15px gold;
-    }
-    .golden-scroll {
-      color: orange;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      user-select: none;
-    }
-    .now-playing {
-      font-size: 1.2rem;
-      margin: 0.5rem 0 1rem;
-      font-weight: 600;
-      text-shadow: 0 0 3px #000;
+      font-size: 2.5rem; font-weight: 900; color: gold; margin: 1rem 0 0; text-shadow: 0 0 15px gold;
     }
     .player-container {
-      width: 90%;
-      max-width: 720px;
-      margin: 0 auto 1rem;
-      aspect-ratio: 16 / 9;
-      position: relative;
-      background: #111;
-      border: 3px solid gold;
-      border-radius: 16px;
-      overflow: hidden;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none; /* disables all touch interactions */
+      width: 90%; max-width: 720px; margin: 1rem auto; aspect-ratio: 16 / 9; position: relative; background: #111;
+      border: 3px solid gold; border-radius: 16px; overflow: hidden; user-select: none; touch-action: none;
     }
     video, #ytPlayer {
-      width: 100%;
-      height: 100%;
-      pointer-events: none; /* disables clicks & seek on video */
-      touch-action: none; /* disables touch on video */
-      user-select: none;
-      -webkit-user-select: none;
+      width: 100%; height: 100%; pointer-events: none; user-select: none; touch-action: none;
     }
-    #ytPlayer {
-      display: none;
-    }
-    .off-air {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #000c;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: bold;
-      z-index: 10;
-      user-select: none;
-    }
-
-    /* Speaker button styles */
+    #ytPlayer { display: none; }
     #speakerBtn {
-      position: absolute;
-      bottom: 12px;
-      right: 12px;
-      background: rgba(255, 215, 0, 0.8);
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      z-index: 20;
-      user-select: none;
-      box-shadow: 0 0 8px gold;
-      transition: background-color 0.3s ease;
+      position: absolute; bottom: 12px; right: 12px; background: rgba(255, 215, 0, 0.8);
+      border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 20; box-shadow: 0 0 8px gold; transition: background-color 0.3s ease;
     }
-    #speakerBtn:hover {
-      background: rgba(255, 215, 0, 1);
+    #speakerBtn:hover { background: rgba(255, 215, 0, 1); }
+    #speakerIcon { width: 24px; height: 24px; fill: #000; }
+    #muteCross { stroke: #000; stroke-width: 2; stroke-linecap: round; display:none; }
+    .now-playing {
+      margin-top: 0.5rem; font-size: 1.2rem; font-weight: 600; text-shadow: 0 0 3px #000;
     }
-    #speakerIcon {
-      width: 24px;
-      height: 24px;
-      fill: #000;
-    }
-
-    /* TV Guide styles */
     .tv-guide {
-      width: 90%;
-      max-width: 720px;
-      margin: 0 auto 2rem;
-      background: linear-gradient(90deg, #222, #111);
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-      padding: 16px 24px;
-      user-select: none;
+      width: 90%; max-width: 720px; margin: 1rem auto 3rem; background: linear-gradient(90deg, #222, #111);
+      border-radius: 12px; box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); padding: 16px 24px; user-select: none;
+      font-family: 'Consolas', monospace;
     }
     .tv-guide h2 {
-      margin: 0 0 12px;
-      font-weight: 800;
-      color: gold;
-      text-shadow: 0 0 8px orange;
-      font-size: 1.5rem;
-      letter-spacing: 1.5px;
+      margin-bottom: 12px; font-weight: 800; color: gold; text-shadow: 0 0 8px orange; font-size: 1.5rem; letter-spacing: 1.5px;
     }
     #tvGuideList {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: 300px;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: gold transparent;
-      font-family: 'Consolas', monospace;
+      list-style: none; padding: 0; margin: 0; max-height: 300px; overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: gold transparent;
     }
     #tvGuideList::-webkit-scrollbar {
       width: 6px;
     }
     #tvGuideList::-webkit-scrollbar-thumb {
-      background-color: gold;
-      border-radius: 3px;
+      background-color: gold; border-radius: 3px;
     }
     #tvGuideList li {
-      padding: 10px 16px;
-      margin-bottom: 6px;
-      border-radius: 8px;
-      background: #222;
-      font-weight: 600;
-      font-size: 1.1rem;
-      color: #eee;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      padding: 10px 16px; margin-bottom: 6px; border-radius: 8px; background: #222;
+      font-weight: 600; font-size: 1.1rem; color: #eee; cursor: default;
+      display: flex; justify-content: space-between; align-items: center;
       transition: background-color 0.25s ease;
     }
     #tvGuideList li.active {
-      background: gold;
-      color: #000;
-      font-weight: 800;
-      box-shadow: 0 0 15px gold;
+      background: gold; color: #000; font-weight: 800; box-shadow: 0 0 15px gold;
       pointer-events: none;
     }
-    #tvGuideList li span.time {
-      font-family: 'Consolas', monospace;
-      font-weight: 700;
-      letter-spacing: 1.2px;
-      margin-right: 12px;
-      min-width: 55px;
-      text-align: left;
-    }
     #tvGuideList li span.title {
-      flex-grow: 1;
-      text-align: left;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      flex-grow: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-
     footer {
-      margin: 2rem 0 3rem;
-      font-size: 0.8rem;
-      color: #aaa;
-      user-select: none;
+      margin: 2rem 0 3rem; font-size: 0.8rem; color: #aaa; user-select: none;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
@@ -185,22 +72,18 @@
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
+
   <h1 class="title">MSTV NETWORK</h1>
   <marquee class="golden-scroll" behavior="scroll" direction="left" scrollamount="7" scrolldelay="80">
     🔥 Welcome to MSTV | Live Streaming | Entertainment | News | Music 🔥
   </marquee>
 
   <div class="now-playing" id="nowPlaying">Now Playing: Loading...</div>
-  <div style="font-size: 0.9rem; color: #ccc; margin-bottom: 0.5rem;">
-    Melbourne Time: <span id="melNow">loading...</span>
-  </div>
 
   <div class="player-container" id="playerContainer">
-    <video id="hlsPlayer" controls muted autoplay playsinline style="display:none;" controlsList="nodownload nofullscreen noremoteplayback"></video>
+    <video id="hlsPlayer" muted autoplay playsinline style="display:none;" controlsList="nodownload nofullscreen noremoteplayback"></video>
     <div id="ytPlayer"></div>
-    <div class="off-air" id="offAir">🔌 Off Air</div>
 
-    <!-- Speaker toggle button -->
     <div id="speakerBtn" title="Toggle mute">
       <svg id="speakerIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M5 9v6h4l5 5V4L9 9H5z"/>
@@ -210,8 +93,8 @@
   </div>
 
   <section class="tv-guide">
-    <h2>📺 TV Guide</h2>
-    <ul id="tvGuideList" tabindex="0" aria-label="TV Guide List"></ul>
+    <h2>📺 Playlist Guide</h2>
+    <ul id="tvGuideList" tabindex="0" aria-label="Playlist Guide"></ul>
   </section>
 
   <footer>
@@ -221,117 +104,69 @@
   <script>
     const hlsPlayer = document.getElementById('hlsPlayer');
     const ytContainer = document.getElementById('ytPlayer');
-    const offAir = document.getElementById('offAir');
     const nowPlaying = document.getElementById('nowPlaying');
     const tvGuideList = document.getElementById('tvGuideList');
     const speakerBtn = document.getElementById('speakerBtn');
     const muteCross = document.getElementById('muteCross');
-    let currentIndex = -1;
-    let ytPlayer;
 
     const sources = [
-      { title: "Morning News", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
-      { title: "Cafe Jazz Live (YouTube)", url: "https://www.youtube.com/watch?v=Dx5qFachd3A" },
-      { title: "Nature Documentary", url: "https://www.youtube.com/embed/NdYQ00MM-IY?si=9RqCvFaVdFW6hF1-" },
-      { title: "Live DJ Set (YouTube)", url: "https://www.youtube.com/watch?v=jfKfPfyJRdk" },
-      { title: "World Report", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
-      { title: "Music Hour (YT)", url: "https://www.youtube.com/watch?v=DWcJFNfaw9c" }
+      { title: "Bollywood Hits 1", url: "https://www.youtube.com/watch?v=NdYQ00MM-IY", type: "youtube" },
+      { title: "Bollywood Hits 2", url: "https://www.youtube.com/watch?v=_ZXk0hu5BLA", type: "youtube" },
+      { title: "Live News", url: "https://www.youtube.com/watch?v=1b8bBvoIFHY", type: "youtube" }
     ];
 
-    function generateSchedule() {
-      const schedule = [];
-      const now = luxon.DateTime.now().setZone('Australia/Melbourne').startOf('day');
-      for (let i = 0; i < 24; i++) {
-        const start = now.plus({ hours: i });
-        const end = start.plus({ hours: 1 });
-        const item = sources[i % sources.length];
-        schedule.push({
-          title: item.title,
-          url: item.url,
-          start: start.toISO(),
-          end: end.toISO()
-        });
-      }
-      return schedule;
-    }
+    let currentIndex = 0;
+    let ytPlayer = null;
+    let isMuted = true;
 
-    const playlist = generateSchedule();
-
+    // Initialize player UI
     function updateNowPlaying() {
-      const now = luxon.DateTime.now().setZone('Australia/Melbourne');
-      document.getElementById('melNow').textContent = now.toFormat('HH:mm:ss');
-
-      let foundIndex = -1;
-      playlist.forEach((item, i) => {
-        const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
-        const end = luxon.DateTime.fromISO(item.end).setZone('Australia/Melbourne');
-        if (now >= start && now < end) {
-          foundIndex = i;
-        }
-      });
-
-      if (foundIndex !== currentIndex) {
-        currentIndex = foundIndex;
-        if (foundIndex === -1) {
-          showOffAir();
-        } else {
-          playSegment(playlist[foundIndex]);
-        }
-        buildGuide();
-      }
+      nowPlaying.textContent = `Now Playing: ${sources[currentIndex].title}`;
+      buildGuide();
     }
 
+    // Build playlist guide list with highlight on current playing
     function buildGuide() {
-      tvGuideList.innerHTML = "";
-      playlist.forEach((item, i) => {
-        const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
-        const time = start.toFormat('HH:mm');
+      tvGuideList.innerHTML = '';
+      sources.forEach((item, i) => {
         const li = document.createElement('li');
-        li.innerHTML = `<span class="time">${time}</span><span class="title">${item.title}</span>`;
-        if (i === currentIndex) li.classList.add("active");
+        li.textContent = item.title;
+        if (i === currentIndex) li.classList.add('active');
         tvGuideList.appendChild(li);
       });
     }
 
-    function showOffAir() {
-      nowPlaying.textContent = "Now Playing: Off Air";
-      offAir.style.display = "flex";
-      hlsPlayer.style.display = "none";
-      ytContainer.style.display = "none";
-      if (ytPlayer) {
-        ytPlayer.destroy();
-        ytPlayer = null;
-      }
+    // Play next item in playlist loop
+    function playNext() {
+      currentIndex = (currentIndex + 1) % sources.length;
+      playSegment(sources[currentIndex]);
     }
 
+    // Play segment (YouTube or HLS)
     function playSegment(item) {
-      nowPlaying.textContent = `Now Playing: ${item.title}`;
-      offAir.style.display = "none";
-      const start = luxon.DateTime.fromISO(item.start).setZone('Australia/Melbourne');
-      const now = luxon.DateTime.now().setZone('Australia/Melbourne');
-      const seekTo = Math.floor(now.diff(start, 'seconds').seconds);
-
-      if (item.url.includes("youtube.com")) {
-        playYouTube(item.url, seekTo);
+      updateNowPlaying();
+      if (item.type === "youtube") {
+        playYouTube(item.url);
       } else {
-        playHLS(item.url, seekTo);
+        playHLS(item.url);
       }
     }
 
-    function playHLS(url, seekTo) {
+    // Play HLS stream
+    function playHLS(url) {
       if (ytPlayer) {
         ytPlayer.destroy();
         ytPlayer = null;
-        ytContainer.innerHTML = "";
+        ytContainer.innerHTML = '';
       }
-      ytContainer.style.display = "none";
-      hlsPlayer.style.display = "block";
+      ytContainer.style.display = 'none';
+      hlsPlayer.style.display = 'block';
 
       if (hlsPlayer.canPlayType("application/vnd.apple.mpegurl")) {
         hlsPlayer.src = url;
-        hlsPlayer.currentTime = seekTo;
         hlsPlayer.muted = isMuted;
         hlsPlayer.play();
+        hlsPlayer.onended = playNext;
       } else if (Hls.isSupported()) {
         if (window.hls) {
           window.hls.destroy();
@@ -340,57 +175,69 @@
         window.hls.loadSource(url);
         window.hls.attachMedia(hlsPlayer);
         window.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          hlsPlayer.currentTime = seekTo;
           hlsPlayer.muted = isMuted;
           hlsPlayer.play();
         });
+        hlsPlayer.onended = playNext;
       }
     }
 
-    let isMuted = true;
+    // Extract videoId from YouTube URL
+    function getYoutubeVideoId(url) {
+      try {
+        const urlObj = new URL(url);
+        if (urlObj.searchParams.has('v')) return urlObj.searchParams.get('v');
+        return urlObj.pathname.split('/').pop();
+      } catch {
+        return url;
+      }
+    }
 
-    function playYouTube(url, seekTo) {
+    // Play YouTube video
+    function playYouTube(url) {
+      const videoId = getYoutubeVideoId(url);
+
       hlsPlayer.pause();
-      hlsPlayer.style.display = "none";
-      ytContainer.style.display = "block";
-
-      const videoId = new URL(url).searchParams.get("v") || url.split("/").pop();
+      hlsPlayer.style.display = 'none';
+      ytContainer.style.display = 'block';
 
       if (ytPlayer) {
-        ytPlayer.loadVideoById({videoId, startSeconds: seekTo});
-        ytPlayer.mute();
-        if (!isMuted) {
-          ytPlayer.unMute();
-        }
+        ytPlayer.loadVideoById(videoId);
+        if (isMuted) ytPlayer.mute();
+        else ytPlayer.unMute();
+        ytPlayer.playVideo();
         return;
       }
 
-      ytPlayer = new YT.Player("ytPlayer", {
-        height: "100%",
-        width: "100%",
-        videoId,
+      ytPlayer = new YT.Player('ytPlayer', {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
         playerVars: {
           autoplay: 1,
-          mute: 1,
-          start: seekTo,
           controls: 0,
           modestbranding: 1,
           playsinline: 1,
           disablekb: 1,
           rel: 0,
-          showinfo: 0
+          showinfo: 0,
+          mute: 1,
         },
         events: {
-          onReady: e => {
-            if (!isMuted) {
-              e.target.unMute();
+          onReady: (event) => {
+            if (!isMuted) event.target.unMute();
+            event.target.playVideo();
+          },
+          onStateChange: (event) => {
+            if (event.data === YT.PlayerState.ENDED) {
+              playNext();
             }
-            e.target.playVideo();
           }
         }
       });
     }
 
+    // Speaker toggle mute/unmute
     speakerBtn.addEventListener('click', () => {
       isMuted = !isMuted;
       updateMuteState();
@@ -398,23 +245,26 @@
 
     function updateMuteState() {
       if (isMuted) {
-        speakerBtn.title = "Unmute";
         muteCross.style.display = "inline";
+        speakerBtn.title = "Unmute";
         hlsPlayer.muted = true;
         if (ytPlayer) ytPlayer.mute();
       } else {
-        speakerBtn.title = "Mute";
         muteCross.style.display = "none";
+        speakerBtn.title = "Mute";
         hlsPlayer.muted = false;
         if (ytPlayer) ytPlayer.unMute();
       }
     }
 
-    setInterval(updateNowPlaying, 15000);
-    window.onload = () => {
-      updateNowPlaying();
+    // Load YouTube API and start first video after ready
+    function onYouTubeIframeAPIReady() {
+      playSegment(sources[currentIndex]);
       updateMuteState();
-    };
+    }
+
+    window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
   </script>
+
 </body>
 </html>
