@@ -274,8 +274,8 @@
     </div>
 
     <div class="player-container" id="playerContainer">
-        <!-- Added autoplay to HLS video. Muted attribute is initially set to false via JS -->
-        <video id="hlsPlayer" playsinline autoplay controlsList="nodownload nofullscreen noremoteplayback"></video>
+        <!-- Removed autoplay attribute from HLS video. Muted attribute is handled by JS -->
+        <video id="hlsPlayer" playsinline controlsList="nodownload nofullscreen noremoteplayback"></video>
         <div id="ytPlayer"></div>
         <div class="off-air" id="offAir">🔌 Off Air</div>
 
@@ -313,19 +313,21 @@
         // Global state variables
         let currentIndex = 0; // Current video index in the playlist
         let ytPlayer = null; // YouTube player instance
-        // Changed default mute state to false to attempt unmuted autoplay
-        let isMuted = false; // Global mute state, synchronized with speaker icon and players
+        // Default mute state is true (muted on load)
+        let isMuted = true; // Global mute state, synchronized with speaker icon and players
 
         // Define your master sequential playlist here.
         // These videos will play one after another automatically.
         const sources = [
-            { title: "Live Stream (MSTV Test)", url: "https://www.youtube.com/watch?v=1b8bBvoIFHY&autoplay=1" }, // Your primary live stream
-            { title: "Cafe Jazz Live (YouTube)", url: "https://www.youtube.com/watch?v=Dx5qFachd3A" },
-            { title: "Nature Documentary", url: "https://test-streams.mux.dev/test_001/stream.m3u8" },
-            { title: "YouTube Music Mix (Relaxing)", url: "https://www.youtube.com/watch?v=k_X1Jb_2S7w&list=RDk_X1Jb_2S7w&start_radio=1" }, // Example YouTube mix
-            { title: "World Report", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
-            { title: "Live DJ Set (YouTube)", url: "https://www.youtube.com/watch?v=jfKfPfyJRdk" }, // Another YouTube Live stream example
-            { title: "Music Hour (YouTube)", url: "https://www.youtube.com/watch?v=DWcJFNfaw9c" }
+            // Added "isLive" flag for explicit identification.
+            // You can mark any YouTube video you consider a "live stream" with isLive: true.
+            { title: "Live Stream (MSTV Test)", url: "https://www.youtube.com/watch?v=1b8bBvoIFHY", isLive: true },
+            { title: "Cafe Jazz Live (YouTube)", url: "https://www.youtube.com/watch?v=Dx5qFachd3A", isLive: true },
+            { title: "Nature Documentary", url: "https://test-streams.mux.dev/test_001/stream.m3u8", isLive: false },
+            { title: "YouTube Music Mix (Relaxing)", url: "https://www.youtube.com/watch?v=k_X1Jb_2S7w&list=RDk_X1Jb_2S7w&start_radio=1", isLive: false },
+            { title: "World Report", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", isLive: false },
+            { title: "Live DJ Set (YouTube)", url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", isLive: true },
+            { title: "Music Hour (YouTube)", url: "https://www.youtube.com/watch?v=DWcJFNfaw9c", isLive: false }
         ];
 
         /**
@@ -363,21 +365,21 @@
                     isMuted = state.muted; // Load saved mute state
                     console.log('Player state loaded:', state); // Debugging log
                 } else {
-                    console.log('No saved state found, starting from beginning, attempting unmuted.');
+                    console.log('No saved state found, starting from beginning, and muted by default.');
                     currentIndex = 0;
-                    isMuted = false; // Default to unmuted if no state
+                    isMuted = true; // Default to muted if no state found
                 }
-                // Initial update of mute state for the button icon and players.
-                updateMuteState();
                 // Play the video with the loaded state.
                 playSegment(sources[currentIndex], savedState ? JSON.parse(savedState).time : 0);
+                // Initial update of mute state for the button icon. This will be updated again by playSegment's logic.
+                updateMuteState();
             } catch (e) {
                 console.error('Error loading player state from localStorage:', e);
                 // Fallback to default if there's an error
                 currentIndex = 0;
-                isMuted = false; // Fallback to unmuted
-                updateMuteState();
+                isMuted = true;
                 playSegment(sources[currentIndex], 0);
+                updateMuteState();
             }
         }
 
@@ -481,7 +483,7 @@
 
         /**
          * Plays a specific video segment, managing both HLS and YouTube sources.
-         * @param {object} item - The video item containing title and url.
+         * @param {object} item - The video item containing title, url, and isLive flag.
          * @param {number} seekTo - The time in seconds to seek to.
          */
         function playSegment(item, seekTo = 0) {
@@ -490,7 +492,7 @@
             console.log(`Attempting to play: ${item.title} from ${seekTo}s`);
 
             if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
-                playYouTube(item.url, seekTo);
+                playYouTube(item.url, seekTo, item); // Pass the full item object
             } else {
                 playHLS(item.url, seekTo);
             }
@@ -523,14 +525,7 @@
                 hlsPlayer.src = url;
                 hlsPlayer.currentTime = seekTo;
                 hlsPlayer.muted = isMuted; // Apply global mute state
-                hlsPlayer.play().then(() => {
-                    console.log("HLS Autoplay successful.");
-                }).catch(e => {
-                    console.error("HLS Autoplay prevented:", e);
-                    // If autoplay fails, ensure it's still muted (browser might enforce) and log
-                    hlsPlayer.muted = true;
-                    updateMuteState(); // Update UI to reflect actual muted state
-                });
+                hlsPlayer.load(); // Load the video, but do not autoplay
             } else if (Hls.isSupported()) {
                 window.hls = new Hls();
                 window.hls.loadSource(url);
@@ -538,13 +533,7 @@
                 window.hls.on(Hls.Events.MANIFEST_PARSED, () => {
                     hlsPlayer.currentTime = seekTo;
                     hlsPlayer.muted = isMuted; // Apply global mute state
-                    hlsPlayer.play().then(() => {
-                        console.log("HLS Autoplay by HLS.js successful.");
-                    }).catch(e => {
-                        console.error("HLS Autoplay prevented by HLS.js:", e);
-                        hlsPlayer.muted = true;
-                        updateMuteState(); // Update UI
-                    });
+                    // No autoplay call here, simply load.
                 });
                 window.hls.on(Hls.Events.ERROR, (event, data) => {
                     console.error("HLS.js error:", data);
@@ -574,14 +563,14 @@
          * Plays a YouTube video.
          * @param {string} url - The YouTube video URL.
          * @param {number} seekTo - The time in seconds to seek to.
+         * @param {object} item - The full item object to check for live status.
          */
-        function playYouTube(url, seekTo) {
+        function playYouTube(url, seekTo, item) {
             hlsPlayer.pause();
             hlsPlayer.src = ''; // Clear HLS source to ensure it stops.
             hlsPlayer.style.display = "none";
             ytContainer.style.display = "block";
 
-            // Extract videoId from various YouTube URL formats
             let videoId = '';
             const urlObj = new URL(url);
             if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
@@ -597,91 +586,104 @@
                 return;
             }
 
-            // Function to apply mute state and ensure playback for YouTube player
+            // Determine if it's a live stream based on the 'isLive' flag in the sources array
+            const isYouTubeLiveStream = item.isLive === true;
+
+            // Define player variables based on whether it's a live stream
+            const playerVars = {
+                controls: 0,
+                modestbranding: 1,
+                playsinline: 1,
+                disablekb: 1,
+                rel: 0,
+                showinfo: 0,
+                start: seekTo,
+                autoplay: isYouTubeLiveStream ? 1 : 0, // Autoplay only for designated live streams
+                mute: isYouTubeLiveStream ? 0 : 1    // Unmuted for live streams, muted otherwise
+            };
+
+            // Function to apply mute/unmute and play state for YouTube player
             const applyMuteAndPlayYTPlayer = (playerInstance) => {
                 if (!playerInstance || typeof playerInstance.unMute !== 'function') {
                     console.warn("applyMuteAndPlayYTPlayer: Player instance not ready or methods missing.");
                     return;
                 }
 
-                if (!isMuted) {
+                if (isYouTubeLiveStream) {
+                    // For live streams, we explicitly try to unmute and play
                     playerInstance.unMute();
-                    playerInstance.setVolume(100); // Set to max volume just to be sure.
-                    console.log("YouTube Player: Attempting to unMute and set volume to 100.");
-                } else {
-                    playerInstance.mute();
-                    console.log("YouTube Player: Explicitly muted.");
-                }
-                playerInstance.playVideo(); // Always attempt to play
-                console.log("YouTube Player: Called playVideo().");
+                    playerInstance.setVolume(100);
+                    console.log("YouTube Live Stream: Attempting to unMute and set volume to 100.");
+                    playerInstance.playVideo();
+                    console.log("YouTube Live Stream: Called playVideo().");
 
-                // Verify mute state after a short delay, especially for live streams
+                    // If successful in playing unmuted, update global state and UI
+                    isMuted = false;
+                    updateMuteState(); // Sync speaker icon
+                } else {
+                    // For non-live YouTube videos, apply the global 'isMuted' state
+                    if (isMuted) {
+                        playerInstance.mute();
+                        console.log("YouTube Player (Non-Live): Explicitly muted.");
+                    } else {
+                        playerInstance.unMute();
+                        playerInstance.setVolume(100);
+                        console.log("YouTube Player (Non-Live): Explicitly unmuted.");
+                    }
+                    // Do not call playVideo() here, as non-live streams should not autoplay.
+                }
+
+                // Verify mute state after a short delay (especially for live streams)
                 setTimeout(() => {
                     if (playerInstance && typeof playerInstance.isMuted === 'function') {
                         console.log(`YouTube Player Current Mute Status: ${playerInstance.isMuted()}`);
                         console.log(`YouTube Player Current Volume: ${playerInstance.getVolume()}`);
-                        // If still muted but shouldn't be (and volume is 0), try again.
-                        if (!isMuted && playerInstance.isMuted() && playerInstance.getVolume() === 0) {
-                            console.warn("YouTube Player: Still muted despite unMute call. Retrying in 500ms.");
+                        // If it's a live stream and should be unmuted but is muted, retry
+                        if (isYouTubeLiveStream && playerInstance.isMuted() && playerInstance.getVolume() === 0) {
+                            console.warn("YouTube Live Stream: Still muted despite unMute call. Retrying in 500ms.");
                             setTimeout(() => {
                                 if (playerInstance && typeof playerInstance.unMute === 'function') {
                                     playerInstance.unMute();
                                     playerInstance.setVolume(100);
                                     playerInstance.playVideo();
-                                    console.log("YouTube Player: Second unMute/play attempt for stubborn case.");
+                                    isMuted = false; // Confirm global state
+                                    updateMuteState(); // Confirm UI state
+                                    console.log("YouTube Live Stream: Second unMute/play attempt.");
                                 }
                             }, 500);
                         }
                     }
-                }, 200); // Small delay to allow volume to update
+                }, 200);
             };
-
 
             if (ytPlayer) {
                 console.log(`YouTube Player Exists. Loading new video: ${videoId}`);
-                // Load new video source
                 ytPlayer.loadVideoById({videoId: videoId, startSeconds: seekTo});
-                // Apply mute state and play after a very short delay to ensure video data is processing.
+                // Apply mute and play logic after loading
                 setTimeout(() => applyMuteAndPlayYTPlayer(ytPlayer), 100);
-
             } else {
-                console.log(`Creating new YouTube Player for video: ${videoId}`);
-                // Create new player instance
+                console.log(`Creating new YouTube Player for video: ${videoId}, isLive: ${isYouTubeLiveStream}`);
                 ytPlayer = new YT.Player("ytPlayer", {
                     height: "100%",
                     width: "100%",
                     videoId: videoId,
-                    playerVars: {
-                        autoplay: 1,
-                        // Set mute to 0 to attempt unmuted autoplay as requested.
-                        // Browsers might still force muted autoplay initially without user gesture.
-                        mute: 0,
-                        start: seekTo,
-                        controls: 0,
-                        modestbranding: 1,
-                        playsinline: 1,
-                        disablekb: 1,
-                        rel: 0,
-                        showinfo: 0
-                    },
+                    playerVars: playerVars, // Use the dynamically created playerVars
                     events: {
                         onReady: (e) => {
                             console.log("YouTube player ready.");
-                            // On ready, apply the global mute state and start playing.
                             applyMuteAndPlayYTPlayer(e.target);
                         },
                         onStateChange: (e) => {
                             console.log("YouTube Player State Change:", e.data);
                             if (e.data === YT.PlayerState.ENDED) {
                                 console.log("YouTube video ended.");
-                                playNextVideo(); // Play next video when current one ends
+                                playNextVideo();
                             } else if (e.data === YT.PlayerState.PLAYING) {
                                 console.log("YouTube Player State: PLAYING. Ensuring mute state is correct.");
-                                // Re-apply mute state when it starts playing, to catch any browser overrides.
+                                // Re-apply mute/play logic when it starts playing, to catch any browser overrides.
                                 applyMuteAndPlayYTPlayer(e.target);
-                                // Start saving state periodically while playing YouTube
                                 if (!window._ytSaveInterval) {
-                                    window._ytSaveInterval = setInterval(savePlayerState, 5000); // Save every 5 seconds
+                                    window._ytSaveInterval = setInterval(savePlayerState, 5000);
                                 }
                             } else {
                                 // Clear interval when not playing
@@ -693,7 +695,6 @@
                         },
                         onError: (e) => {
                             console.error("YouTube Player Error:", e.data);
-                            // On error, try to play the next video in sequence
                             playNextVideo();
                         }
                     }
@@ -709,6 +710,15 @@
             isMuted = !isMuted; // Toggle global mute state
             updateMuteState(); // Apply the new state to UI and players
             savePlayerState(); // Save the new mute state immediately
+
+            // When user clicks to unmute, attempt to play (only if not already playing)
+            if (!isMuted) { // If the global state just became unmuted
+                if (hlsPlayer.style.display === 'block' && hlsPlayer.paused) {
+                    hlsPlayer.play().catch(e => console.error("HLS play on unmute click prevented:", e));
+                } else if (ytPlayer && ytContainer.style.display === 'block' && ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
+                    ytPlayer.playVideo();
+                }
+            }
         });
 
         /**
@@ -727,20 +737,11 @@
                 speakerBtn.title = "Mute";
                 muteCross.style.display = "none"; // Hide mute cross
                 hlsPlayer.muted = false; // Unmute HLS player
-                // Attempt to play HLS if it's paused and should be unmuted
-                if (hlsPlayer.paused && hlsPlayer.style.display === 'block') {
-                    hlsPlayer.play().catch(e => console.error("HLS play on unmute prevented:", e));
-                }
 
                 if (ytPlayer && typeof ytPlayer.unMute === 'function') {
                     console.log("Speaker button: Unmuting YouTube player.");
                     ytPlayer.unMute(); // Unmute YouTube player
                     ytPlayer.setVolume(100); // Set YouTube player volume to max
-
-                    // Ensure playback if YouTube player is paused/stopped.
-                    if (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
-                        ytPlayer.playVideo(); // Attempt to play video
-                    }
                 }
             }
         }
