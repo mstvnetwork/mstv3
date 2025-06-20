@@ -1,20 +1,20 @@
 [
   {
-    "title": "Segment 1: Test HLS",
+    "title": "Segment A: HLS Live",
     "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-    "start": "2025-06-20T06:28:00+10:00",
-    "end": "2025-06-20T06:30:00+10:00"
+    "start": "2025-06-20T06:42:00+10:00",
+    "end": "2025-06-20T06:44:00+10:00"
   },
   {
-    "title": "Segment 2: YouTube Lofi",
+    "title": "Segment B: YouTube Lofi",
     "url": "https://www.youtube.com/watch?v=5qap5aO4i9A",
-    "start": "2025-06-20T06:30:00+10:00",
-    "end": "2025-06-20T06:32:00+10:00"
+    "start": "2025-06-20T06:44:00+10:00",
+    "end": "2025-06-20T06:46:00+10:00"
   },
   {
-    "title": "Segment 3: Back to HLS",
+    "title": "Segment C: HLS Again",
     "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-    "start": "2025-06-20T06:32:00+10:00",
-    "end": "2025-06-20T06:34:00+10:00"
+    "start": "2025-06-20T06:46:00+10:00",
+    "end": "2025-06-20T06:48:00+10:00"
   }
 ]
