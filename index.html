@@ -1,29 +1,247 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Live Playlist Broadcast</title>
-  <meta charset="UTF-8">
+  <title>Live Daily Playlist with Dark/Light Themes</title>
+  <meta charset="UTF-8" />
+  <style>
+    :root {
+      --bg-color-dark: #000;
+      --text-color-dark: #eee;
+      --accent-color-dark: #00bcd4;
+      --countdown-color-dark: #0ff;
+      --playlist-bg-dark: #111;
+      --playlist-border-dark: #222;
+
+      --bg-color-light: #f0f0f0;
+      --text-color-light: #111;
+      --accent-color-light: #007acc;
+      --countdown-color-light: #007acc;
+      --playlist-bg-light: #fff;
+      --playlist-border-light: #ccc;
+
+      --transition-time: 0.4s;
+    }
+
+    body {
+      background: var(--bg-color-dark);
+      color: var(--text-color-dark);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 1rem;
+      transition: background var(--transition-time), color var(--transition-time);
+    }
+
+    #theme-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: var(--accent-color-dark);
+      border: none;
+      padding: 8px 14px;
+      color: var(--text-color-dark);
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--accent-color-dark);
+      transition: background var(--transition-time), color var(--transition-time), box-shadow var(--transition-time);
+      user-select: none;
+      z-index: 9999;
+    }
+    #theme-toggle:hover {
+      box-shadow: 0 0 16px var(--accent-color-dark);
+    }
+
+    #player {
+      max-width: 720px;
+      margin: auto;
+      position: relative;
+      transition: background var(--transition-time);
+    }
+    video, iframe {
+      width: 100%;
+      height: 405px;
+      background: var(--bg-color-dark);
+      border-radius: 8px;
+      transition: background var(--transition-time);
+    }
+    /* Elapsed time overlay */
+    #elapsed-time {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.6);
+      color: var(--countdown-color-dark);
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 14px;
+      user-select: none;
+      pointer-events: none;
+      text-shadow: 0 0 6px var(--countdown-color-dark);
+      transition: background var(--transition-time), color var(--transition-time), text-shadow var(--transition-time);
+    }
+    #status {
+      margin-top: 1rem;
+      font-size: 1.1rem;
+      transition: color var(--transition-time);
+    }
+    #countdown {
+      margin-top: 0.5rem;
+      font-weight: 600;
+      font-size: 1.2rem;
+      color: var(--countdown-color-dark);
+      animation: pulse 2s infinite ease-in-out;
+      transition: color var(--transition-time);
+    }
+    #playlist {
+      max-width: 720px;
+      margin: 1rem auto;
+      text-align: left;
+      list-style: none;
+      padding: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 12px var(--accent-color-dark)66;
+      background: var(--playlist-bg-dark);
+      transition: background var(--transition-time), box-shadow var(--transition-time);
+    }
+    #playlist li {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--playlist-border-dark);
+      cursor: default;
+      color: #aaa;
+      transition: background-color 0.4s, color 0.4s;
+    }
+    #playlist li.current {
+      background-color: var(--accent-color-dark);
+      color: #fff;
+      font-weight: bold;
+      box-shadow: inset 0 0 10px var(--accent-color-dark)aa;
+      animation: glow 3s infinite alternate;
+      transition: background-color 0.4s, color 0.4s, box-shadow 0.4s;
+    }
+
+    /* Animations */
+    @keyframes glow {
+      0% {
+        box-shadow: inset 0 0 5px var(--accent-color-dark)88;
+      }
+      100% {
+        box-shadow: inset 0 0 20px var(--accent-color-dark)dd;
+      }
+    }
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    /* LIGHT THEME */
+    body.light {
+      background: var(--bg-color-light);
+      color: var(--text-color-light);
+    }
+    body.light #theme-toggle {
+      background: var(--accent-color-light);
+      color: var(--text-color-light);
+      box-shadow: 0 0 8px var(--accent-color-light);
+    }
+    body.light #theme-toggle:hover {
+      box-shadow: 0 0 16px var(--accent-color-light);
+    }
+    body.light #player video,
+    body.light #player iframe {
+      background: var(--bg-color-light);
+    }
+    body.light #elapsed-time {
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--countdown-color-light);
+      text-shadow: 0 0 6px var(--countdown-color-light);
+    }
+    body.light #status {
+      color: var(--text-color-light);
+    }
+    body.light #countdown {
+      color: var(--countdown-color-light);
+    }
+    body.light #playlist {
+      background: var(--playlist-bg-light);
+      box-shadow: 0 0 12px var(--accent-color-light)66;
+    }
+    body.light #playlist li {
+      color: #444;
+      border-bottom: 1px solid var(--playlist-border-light);
+    }
+    body.light #playlist li.current {
+      background-color: var(--accent-color-light);
+      color: white;
+      box-shadow: inset 0 0 10px var(--accent-color-light)aa;
+    }
+  </style>
 </head>
 <body>
-  <h1>Live Playlist Broadcast</h1>
-  <audio id="player" controls autoplay></audio>
+  <button id="theme-toggle" aria-label="Toggle dark/light theme">Light Mode</button>
+
+  <h1>🎥 MSTV Live Playlist</h1>
+  <div id="player">
+    <div id="elapsed-time">00:00</div>
+  </div>
   <p id="status">Loading...</p>
+  <p id="countdown"></p>
+  <ul id="playlist"></ul>
 
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    const playlistUrl = 'playlist.json'; // Local file in Netlify deploy
-    const player = document.getElementById('player');
+    const playlistUrl = 'playlist.json';
+    const startHour = 8; // daily start time 08:00 AM
+
+    const playerDiv = document.getElementById('player');
     const status = document.getElementById('status');
+    const countdown = document.getElementById('countdown');
+    const playlistEl = document.getElementById('playlist');
+    const elapsedTimeEl = document.getElementById('elapsed-time');
+    const themeToggleBtn = document.getElementById('theme-toggle');
 
-    // Set your scheduled broadcast time (e.g., 8:00 AM today)
-    const scheduledHour = 8;
-    const scheduledMinute = 0;
+    // Load initial theme from localStorage or default to dark
+    function loadTheme() {
+      const saved = localStorage.getItem('mstv-theme');
+      if (saved === 'light') {
+        document.body.classList.add('light');
+        themeToggleBtn.textContent = 'Dark Mode';
+      } else {
+        document.body.classList.remove('light');
+        themeToggleBtn.textContent = 'Light Mode';
+      }
+    }
 
-    function getBroadcastStartTime() {
+    // Toggle theme & save preference
+    themeToggleBtn.addEventListener('click', () => {
+      if (document.body.classList.contains('light')) {
+        document.body.classList.remove('light');
+        themeToggleBtn.textContent = 'Light Mode';
+        localStorage.setItem('mstv-theme', 'dark');
+      } else {
+        document.body.classList.add('light');
+        themeToggleBtn.textContent = 'Dark Mode';
+        localStorage.setItem('mstv-theme', 'light');
+      }
+    });
+
+    loadTheme();
+
+    function getStartOfDayTime(hour) {
       const now = new Date();
-      const start = new Date();
-      start.setHours(scheduledHour, scheduledMinute, 0, 0);
-      if (now < start) return null;
-      return start;
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0, 0, 0);
+    }
+
+    function getTimeOffsetSeconds(startTime) {
+      const now = new Date();
+      return Math.max(0, Math.floor((now - startTime) / 1000));
     }
 
     async function fetchPlaylist() {
@@ -31,57 +249,142 @@
       return await res.json();
     }
 
-    function getCurrentTrackAndOffset(playlist, elapsedSeconds) {
+    function findCurrentTrack(playlist, elapsed) {
+      const totalDuration = playlist.reduce((acc, cur) => acc + cur.duration, 0);
+      elapsed = elapsed % totalDuration; // loop offset to playlist length
+
       let accumulated = 0;
       for (let i = 0; i < playlist.length; i++) {
-        const track = playlist[i];
-        if (accumulated + track.duration > elapsedSeconds) {
+        const item = playlist[i];
+        if (accumulated + item.duration > elapsed) {
           return {
-            trackIndex: i,
-            offset: elapsedSeconds - accumulated
+            item,
+            index: i,
+            offset: elapsed - accumulated,
+            totalDuration
           };
         }
-        accumulated += track.duration;
+        accumulated += item.duration;
       }
       return null;
     }
 
-    async function startBroadcast() {
-      const startTime = getBroadcastStartTime();
-      if (!startTime) {
-        status.textContent = 'Broadcast has not started yet.';
-        return;
-      }
+    function extractYouTubeId(url) {
+      const match = url.match(/v=([^&]+)/);
+      return match ? match[1] : null;
+    }
 
-      const now = new Date();
-      const elapsed = Math.floor((now - startTime) / 1000);
-      const playlist = await fetchPlaylist();
-
-      const current = getCurrentTrackAndOffset(playlist, elapsed);
-      if (!current) {
-        status.textContent = 'Broadcast has ended.';
-        return;
-      }
-
-      const currentTrack = playlist[current.trackIndex];
-      player.src = currentTrack.url;
-
-      player.addEventListener('loadedmetadata', () => {
-        if (player.duration > current.offset) {
-          player.currentTime = current.offset;
-        }
-        player.play();
-        status.textContent = `Now playing track #${current.trackIndex + 1} at ${formatTime(current.offset)}`;
+    function renderPlaylist(playlist, currentIndex) {
+      playlistEl.innerHTML = '';
+      playlist.forEach((item, i) => {
+        const li = document.createElement('li');
+        li.textContent = item.title || item.url;
+        if (i === currentIndex) li.classList.add('current');
+        playlistEl.appendChild(li);
       });
     }
 
-    function formatTime(sec) {
-      const mins = Math.floor(sec / 60);
-      const secs = sec % 60;
-      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    function loadPlayer(item, offset) {
+      playerDiv.querySelectorAll('video, iframe').forEach(el => el.remove());
+      status.textContent = `Now playing: ${item.type} | Offset: ${offset}s`;
+
+      if (item.type === 'youtube') {
+        const id = extractYouTubeId(item.url);
+        const startParam = `&start=${offset}`;
+        const embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&controls=1&rel=0${startParam}`;
+        const iframe = document.createElement('iframe');
+        iframe.src = embedUrl;
+        iframe.frameBorder = '0';
+        iframe.allow = 'autoplay; encrypted-media';
+        iframe.allowFullscreen = true;
+        playerDiv.appendChild(iframe);
+      } else if (item.type === 'mp4' || item.type === 'hls') {
+        const video = document.createElement('video');
+        video.controls = true;
+        video.autoplay = true;
+
+        if (item.type === 'mp4') {
+          video.src = item.url;
+          video.addEventListener('loadedmetadata', () => {
+            if (video.duration > offset) video.currentTime = offset;
+          });
+        } else {
+          if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(item.url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+              video.currentTime = offset;
+              video.play();
+            });
+          } else {
+            video.src = item.url;
+            video.currentTime = offset;
+          }
+        }
+
+        playerDiv.appendChild(video);
+      } else {
+        status.textContent = `Unsupported media type: ${item.type}`;
+      }
     }
 
-    startBroadcast();
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    (async function init() {
+      const startTime = getStartOfDayTime(startHour);
+      let elapsed = getTimeOffsetSeconds(startTime);
+
+      const playlist = await fetchPlaylist();
+
+      if (!playlist || playlist.length === 0) {
+        status.textContent = 'Playlist empty or not found.';
+        return;
+      }
+
+      function update() {
+        elapsed = getTimeOffsetSeconds(startTime);
+        const current = findCurrentTrack(playlist, elapsed);
+
+        if (!current) {
+          status.textContent = 'Broadcast ended. Please tune in tomorrow.';
+          renderPlaylist(playlist, -1);
+          countdown.textContent = '';
+          elapsedTimeEl.textContent = '';
+          return;
+        }
+
+        renderPlaylist(playlist, current.index);
+        loadPlayer(current.item, current.offset);
+
+        // Show countdown to next video
+        const timeLeft = current.item.duration - current.offset;
+        countdown.textContent = `Next video in: ${formatTime(timeLeft)}`;
+
+        // Show elapsed time inside player container
+        elapsedTimeEl.textContent = `Elapsed: ${formatTime(current.offset)}`;
+      }
+
+      update();
+
+      // Update countdown and elapsed time every 1 second (smooth!)
+      setInterval(() => {
+        const elapsedNow = getTimeOffsetSeconds(startTime);
+        const currentNow = findCurrentTrack(playlist, elapsedNow);
+        if (currentNow) {
+          renderPlaylist(playlist, currentNow.index);
+
+          const timeLeftNow = currentNow.item.duration - (elapsedNow - playlist.slice(0, currentNow.index).reduce((a,c) => a + c.duration, 0));
+          countdown.textContent = `Next video in: ${formatTime(timeLeftNow)}`;
+          elapsedTimeEl.textContent = `Elapsed: ${formatTime(elapsedNow - playlist.slice(0, currentNow.index).reduce((a,c) => a + c.duration, 0))}`;
+        }
+      }, 1000);
+
+    })();
   </script>
 </body>
 </html>
