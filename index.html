@@ -2,16 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
   <title>MSTV Live</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.3/luxon.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
-  <h1>📺 MSTV Network - Live Channel</h1>
-  <div id="video-container"></div>
-  <p id="now-playing"></p>
+  <div class="background"></div>
+
+  <header>
+    <h1 class="title">MSTV NETWORK</h1>
+    <marquee class="golden-scroll">🔥 Welcome to MSTV | Live Streaming | Entertainment | News | Music 🔥</marquee>
+  </header>
+
+  <main>
+    <div class="now-playing" id="nowPlaying">Now Playing: Loading...</div>
+
+    <div class="player-container">
+      <div id="playerWrapper">
+        <video id="hlsPlayer" controls muted autoplay style="display:none;" playsinline></video>
+        <div id="ytPlayer" style="display:none;"></div>
+      </div>
+    </div>
+
+    <section class="tv-guide">
+      <h2>📺 TV Guide</h2>
+      <ul id="tvGuideList"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2025 MSTV Network. All rights reserved.</p>
+  </footer>
+
   <script src="script.js"></script>
 </body>
 </html>
