@@ -1,26 +1,26 @@
 [
   {
-    "type": "youtube",
-    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "title": "Rick Astley - Never Gonna Give You Up",
+    "url": "https://example.com/video/rickastley.mp4",
     "duration": 213,
-    "title": "Rick Astley - Never Gonna Give You Up"
+    "type": "mp4"
   },
   {
-    "type": "youtube-live",
-    "url": "https://www.youtube.com/embed/1b8bBvoIFHY?si=e1sAwwTobBjUI3kS",
+    "title": "User Provided Live Stream",
+    "url": "https://www.youtube.com/embed/1b8bBvoIFHY?si=F3ZttN3OXcfyStQ2",
     "duration": 1800,
-    "title": "User Provided Live Stream"
+    "type": "youtube"
   },
   {
-    "type": "mp4",
-    "url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    "title": "Big Buck Bunny (MP4)",
+    "url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4",
     "duration": 60,
-    "title": "Big Buck Bunny (MP4)"
+    "type": "mp4"
   },
   {
-    "type": "hls",
+    "title": "Test HLS Stream",
     "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
     "duration": 120,
-    "title": "Test HLS Stream"
+    "type": "hls"
   }
 ]
