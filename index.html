@@ -5,38 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
   <title>MSTV Live</title>
   <link rel="stylesheet" href="style.css" />
+  
+  <!-- External Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
+  <!-- Background Effect (customizable in style.css) -->
   <div class="background"></div>
 
+  <!-- Header -->
   <header>
     <h1 class="title">MSTV NETWORK</h1>
     <marquee class="golden-scroll">🔥 Welcome to MSTV | Live Streaming | Entertainment | News | Music 🔥</marquee>
   </header>
 
+  <!-- Main Content -->
   <main>
+    <!-- Now Playing -->
     <div class="now-playing" id="nowPlaying">Now Playing: Loading...</div>
 
+    <!-- Debug Time Display -->
+    <div style="color: #ccc; text-align: center; font-size: 14px;">
+      Detected Melbourne Time: <span id="melNow">loading...</span>
+    </div>
+
+    <!-- Video Player -->
     <div class="player-container">
       <div id="playerWrapper">
-        <video id="hlsPlayer" controls muted autoplay style="display:none;" playsinline></video>
-        <div id="ytPlayer" style="display:none;"></div>
+        <video id="hlsPlayer" controls muted autoplay style="display: none;" playsinline></video>
+        <div id="ytPlayer" style="display: none;"></div>
       </div>
     </div>
 
+    <!-- TV Guide -->
     <section class="tv-guide">
       <h2>📺 TV Guide</h2>
       <ul id="tvGuideList"></ul>
     </section>
   </main>
 
+  <!-- Footer -->
   <footer>
     <p>© 2025 MSTV Network. All rights reserved.</p>
   </footer>
 
+  <!-- Main Script -->
   <script src="script.js"></script>
 </body>
 </html>
