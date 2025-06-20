@@ -1,14 +1,18 @@
 [
   {
-    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    "duration": 348  // duration in seconds (5:48)
+    "type": "youtube",
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "duration": 213
+    "title": "Rick Astley - Never Gonna Give You Up"
   },
   {
-    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-    "duration": 361  // 6:01
+    "type": "mp4",
+    "url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    "duration": 60
   },
   {
-    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-    "duration": 324  // 5:24
+    "type": "hls",
+    "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    "duration": 120
   }
 ]
