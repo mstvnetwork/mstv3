@@ -7,9 +7,10 @@
     <!-- Google Fonts for 'Inter' (used in TV guide for modern look), 'Segoe UI' (body), 'Consolas' (guide times) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Base styles */
         body {
             margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* User's preferred font */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #000;
             color: #fff;
             text-align: center;
@@ -51,14 +52,14 @@
             overflow: hidden;
             user-select: none;
             -webkit-user-select: none;
-            touch-action: none;
+            /* Removed touch-action: none; to allow YouTube API control */
         }
         video, #ytPlayer {
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            touch-action: none;
-            user-select: none;
+            /* REMOVED: pointer-events: none; */
+            /* REMOVED: touch-action: none; */
+            user-select: none; /* Keep user-select to prevent text selection */
             -webkit-user-select: none;
         }
         #ytPlayer {
@@ -109,7 +110,7 @@
             fill: #000;
         }
 
-        /* TV Guide Container (from first response, adapted for dark theme) */
+        /* TV Guide Container styling */
         .tv-guide-container {
             width: 90%;
             max-width: 720px;
@@ -133,8 +134,8 @@
             font-family: 'Inter', sans-serif; /* Keep Inter for this header */
         }
 
-        /* TV Guide List (Grid layout) */
-        #tvGuideList { /* This is now a div, not a ul */
+        /* TV Guide List (Grid layout for cards) */
+        #tvGuideList {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
             gap: 20px; /* Space between cards */
@@ -158,25 +159,20 @@
             background: #555;
         }
 
-        /* Individual Program Card */
-        .program-card { /* This is the div for each program */
+        /* Individual Program Card styling */
+        .program-card {
             background-color: #2a2a2a; /* Dark background for cards */
             padding: 16px;
             border-radius: 10px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5); /* Soft shadow */
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-            cursor: pointer; /* Indicate clickability */
             border: 1px solid #333; /* Subtle border */
             text-align: left; /* Align text within card */
             display: flex;
             flex-direction: column;
             justify-content: space-between; /* Space out content vertically */
             font-family: 'Inter', sans-serif; /* Inter for card content */
-        }
-        .program-card:hover:not(.active) {
-            background: #3a3a3a; /* Slightly lighter on hover */
-            transform: translateY(-3px); /* Lift effect */
-            box-shadow: 0 6px 16px rgba(255, 215, 0, 0.2); /* Soft gold shadow on hover */
+            /* Removed cursor: pointer; and hover transforms as it's not clickable */
         }
         .program-card.active {
             background: gold; /* Gold background for active item */
@@ -246,7 +242,7 @@
             color: #333;
         }
 
-
+        /* Footer styling */
         footer {
             margin-top: auto;
             padding: 2rem 0;
@@ -257,6 +253,7 @@
             border-top: 1px solid #333;
         }
     </style>
+    <!-- External JavaScript libraries -->
     <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -286,7 +283,7 @@
         </div>
     </div>
 
-    <!-- TV Guide Section (Reverted to a structure more like the first response) -->
+    <!-- TV Guide Section -->
     <div class="tv-guide-container">
         <h2>📺 Today's Broadcast Schedule</h2>
         <div id="tvGuideList">
@@ -299,6 +296,7 @@
     </footer>
 
     <script>
+        // DOM Elements
         const hlsPlayer = document.getElementById('hlsPlayer');
         const ytContainer = document.getElementById('ytPlayer');
         const offAir = document.getElementById('offAir');
@@ -306,23 +304,27 @@
         const tvGuideList = document.getElementById('tvGuideList');
         const speakerBtn = document.getElementById('speakerBtn');
         const muteCross = document.getElementById('muteCross');
-        let currentIndex = 0; // Start at the first video
-        let ytPlayer = null; // Initialize ytPlayer as null
-        let isMuted = true; // Initial mute state, will be loaded from localStorage
+
+        // Global state variables
+        let currentIndex = 0; // Current video index in the playlist
+        let ytPlayer = null; // YouTube player instance
+        let isMuted = true; // Global mute state, synchronized with speaker icon and players
 
         // Define your master sequential playlist here.
-        // This will now play one after another automatically.
+        // These videos will play one after another automatically.
         const sources = [
-            { title: "Morning News", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
+            { title: "Live Stream (MSTV Test)", url: "https://www.youtube.com/watch?v=1b8bBvoIFHY&autoplay=1" }, // Your primary live stream
             { title: "Cafe Jazz Live (YouTube)", url: "https://www.youtube.com/watch?v=Dx5qFachd3A" },
             { title: "Nature Documentary", url: "https://test-streams.mux.dev/test_001/stream.m3u8" },
-            { title: "Live DJ Set (YouTube)", url: "https://www.youtube.com/watch?v=jfKfPfyJRdk" },
+            { title: "YouTube Music Mix (Relaxing)", url: "https://www.youtube.com/watch?v=k_X1Jb_2S7w&list=RDk_X1Jb_2S7w&start_radio=1" }, // Example YouTube mix
             { title: "World Report", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
+            { title: "Live DJ Set (YouTube)", url: "https://www.youtube.com/watch?v=jfKfPfyJRdk" }, // Another YouTube Live stream example
             { title: "Music Hour (YouTube)", url: "https://www.youtube.com/watch?v=DWcJFNfaw9c" }
         ];
 
         /**
          * Saves the current playback state (video index, time, and mute status) to localStorage.
+         * This ensures the user can resume from where they left off.
          */
         function savePlayerState() {
             try {
@@ -332,7 +334,7 @@
                     muted: isMuted
                 };
                 localStorage.setItem('mstvPlayerState', JSON.stringify(state));
-                // console.log('Player state saved:', state); // Uncomment for debugging
+                console.log('Player state saved:', state); // Debugging log
             } catch (e) {
                 console.error('Error saving player state to localStorage:', e);
             }
@@ -348,20 +350,20 @@
                 if (savedState) {
                     const state = JSON.parse(savedState);
                     currentIndex = state.index;
-                    // Ensure index is within bounds of the playlist
+                    // Ensure index is within bounds of the playlist, reset if invalid
                     if (currentIndex < 0 || currentIndex >= sources.length) {
-                        currentIndex = 0; // Reset to first video if invalid
+                        currentIndex = 0;
                     }
                     isMuted = state.muted;
-                    // console.log('Player state loaded:', state); // Uncomment for debugging
+                    console.log('Player state loaded:', state); // Debugging log
                 } else {
                     console.log('No saved state found, starting from beginning.');
                     currentIndex = 0;
                     isMuted = true; // Default to muted if no state
                 }
-                // Initial update of mute state for the button icon
+                // Initial update of mute state for the button icon and players.
                 updateMuteState();
-                // Play the video with the loaded state
+                // Play the video with the loaded state.
                 playSegment(sources[currentIndex], savedState ? JSON.parse(savedState).time : 0);
             } catch (e) {
                 console.error('Error loading player state from localStorage:', e);
@@ -374,7 +376,7 @@
         }
 
         /**
-         * Gets the current playback time based on the active player (HLS or YouTube).
+         * Gets the current playback time based on the actively displayed player (HLS or YouTube).
          * @returns {number} The current playback time in seconds.
          */
         function getCurrentPlaybackTime() {
@@ -395,11 +397,11 @@
             console.log('Playing next video:', sources[currentIndex].title, 'Index:', currentIndex);
             playSegment(sources[currentIndex], 0); // Start next video from beginning
             savePlayerState(); // Save state after changing video
-            buildGuide(); // Update TV guide to highlight new active video
+            buildGuide(); // Update TV guide to highlight the new active video
         }
 
         /**
-         * Updates the Melbourne time display.
+         * Updates the Melbourne local time display.
          */
         function updateMelbourneTime() {
             const now = luxon.DateTime.now().setZone('Australia/Melbourne');
@@ -408,10 +410,11 @@
 
         /**
          * Builds and updates the TV Guide list based on the sequential playlist.
-         * Highlights the currently playing item using the new card-like structure.
+         * Highlights the currently playing and next up items.
+         * This function is purely for display and does not involve click functionality.
          */
         function buildGuide() {
-            tvGuideList.innerHTML = "";
+            tvGuideList.innerHTML = ""; // Clear existing guide entries
             sources.forEach((item, i) => {
                 const programCard = document.createElement('div');
                 programCard.classList.add('program-card');
@@ -422,7 +425,7 @@
                 if (i === currentIndex) {
                     programCard.classList.add("active");
                     statusText = 'NOW PLAYING';
-                    programTimeText = 'LIVE'; // Or current time if preferred, but "LIVE" is more fitting for current
+                    programTimeText = 'LIVE'; // Or current time if preferred
                 } else if (i === (currentIndex + 1) % sources.length) {
                     statusText = 'NEXT UP';
                     programTimeText = ''; // No specific time for 'Next Up'
@@ -440,15 +443,9 @@
                     <div class="program-url">${item.url.length > 50 ? item.url.substring(0, 47) + '...' : item.url}</div>
                 `;
 
-                // Add click listener to jump to this video (optional, but useful for user)
-                programCard.addEventListener('click', () => {
-                    if (i !== currentIndex) { // Only jump if it's not the current video
-                        currentIndex = i;
-                        playSegment(sources[currentIndex], 0); // Play selected video from start
-                        savePlayerState();
-                        buildGuide(); // Update guide
-                    }
-                });
+                // NO click event listener added here, as per requirement.
+                // The TV guide is now purely informational.
+
                 tvGuideList.appendChild(programCard);
             });
             // Scroll to the active item for better user experience
@@ -462,7 +459,7 @@
         }
 
         /**
-         * Shows the "Off Air" message and hides players.
+         * Displays the "Off Air" message and hides all video players.
          */
         function showOffAir() {
             nowPlaying.textContent = "Now Playing: Off Air";
@@ -470,20 +467,20 @@
             hlsPlayer.style.display = "none";
             ytContainer.style.display = "none";
             if (ytPlayer) {
-                ytPlayer.stopVideo(); // Stop YouTube video
+                ytPlayer.stopVideo(); // Stop YouTube video if it's active
             }
-            hlsPlayer.pause(); // Pause HLS video
-            hlsPlayer.src = ''; // Clear HLS source
+            hlsPlayer.pause(); // Pause HLS video if it's active
+            hlsPlayer.src = ''; // Clear HLS source to ensure it stops.
         }
 
         /**
-         * Plays a specific video segment (HLS or YouTube).
+         * Plays a specific video segment, managing both HLS and YouTube sources.
          * @param {object} item - The video item containing title and url.
          * @param {number} seekTo - The time in seconds to seek to.
          */
         function playSegment(item, seekTo = 0) {
             nowPlaying.textContent = `Now Playing: ${item.title}`;
-            offAir.style.display = "none"; // Hide off-air message
+            offAir.style.display = "none"; // Hide off-air message when playing
             console.log(`Attempting to play: ${item.title} from ${seekTo}s`);
 
             if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
@@ -500,16 +497,21 @@
          * @param {number} seekTo - The time in seconds to seek to.
          */
         function playHLS(url, seekTo) {
-            // Hide YouTube player
+            // Stop and hide YouTube player
             if (ytPlayer) {
                 ytPlayer.stopVideo();
+                // Ensure the YouTube player iframe is truly cleared/hidden to prevent audio bleeding.
+                // This will effectively destroy the old player, requiring re-creation if needed later.
+                ytContainer.innerHTML = '';
+                ytPlayer = null; // Clear the reference to the old player instance
             }
             ytContainer.style.display = "none";
             hlsPlayer.style.display = "block";
 
-            // If HLS.js instance exists, destroy it before loading new source
+            // If an HLS.js instance exists, destroy it before loading a new source.
             if (window.hls) {
                 window.hls.destroy();
+                window.hls = null; // Clear the reference
             }
 
             if (hlsPlayer.canPlayType("application/vnd.apple.mpegurl")) {
@@ -557,29 +559,83 @@
          */
         function playYouTube(url, seekTo) {
             hlsPlayer.pause();
+            hlsPlayer.src = ''; // Clear HLS source to ensure it stops.
             hlsPlayer.style.display = "none";
             ytContainer.style.display = "block";
 
-            const videoId = new URL(url).searchParams.get("v") || url.split("/").pop(); // Handles both watch?v= and youtu.be/ links
+            // Extract videoId from various YouTube URL formats (watch?v=, youtu.be/, &list= for mixes)
+            let videoId = '';
+            const urlObj = new URL(url);
+            if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
+                videoId = urlObj.searchParams.get("v");
+                if (!videoId && urlObj.pathname.startsWith('/youtu.be/')) {
+                    videoId = urlObj.pathname.substring(urlObj.pathname.lastIndexOf('/') + 1);
+                }
+            }
+
+            if (!videoId) {
+                console.error("Could not extract YouTube video ID from URL:", url);
+                playNextVideo(); // Play next if video ID cannot be found
+                return;
+            }
+
+            // Function to apply mute state and ensure playback for YouTube player
+            const applyMuteAndPlayYTPlayer = (playerInstance) => {
+                if (!playerInstance || typeof playerInstance.mute !== 'function') {
+                    console.warn("applyMuteAndPlayYTPlayer: Player instance not ready or methods missing.");
+                    return;
+                }
+
+                if (!isMuted) {
+                    playerInstance.unMute();
+                    playerInstance.setVolume(100); // Set to max volume just to be sure.
+                    console.log("YouTube Player: Explicitly unmuted, setting volume to 100.");
+                } else {
+                    playerInstance.mute();
+                    console.log("YouTube Player: Explicitly muted.");
+                }
+                playerInstance.playVideo(); // Always attempt to play
+                console.log("YouTube Player: Called playVideo().");
+
+                // Verify mute state after a short delay, especially for live streams
+                setTimeout(() => {
+                    if (playerInstance && typeof playerInstance.isMuted === 'function') {
+                        console.log(`YouTube Player Current Mute Status: ${playerInstance.isMuted()}`);
+                        console.log(`YouTube Player Current Volume: ${playerInstance.getVolume()}`);
+                        // If still muted but shouldn't be, and volume is 0, try again.
+                        if (!isMuted && playerInstance.isMuted() && playerInstance.getVolume() === 0) {
+                            console.warn("YouTube Player: Still muted despite unMute call. Retrying in 500ms.");
+                            setTimeout(() => {
+                                if (playerInstance && typeof playerInstance.unMute === 'function') {
+                                    playerInstance.unMute();
+                                    playerInstance.setVolume(100);
+                                    playerInstance.playVideo();
+                                    console.log("YouTube Player: Second unMute/play attempt for stubborn case.");
+                                }
+                            }, 500);
+                        }
+                    }
+                }, 200); // Small delay to allow volume to update
+            };
+
 
             if (ytPlayer) {
-                // If player already exists, load new video and seek
+                console.log(`YouTube Player Exists. Loading new video: ${videoId}`);
+                // Load new video source
                 ytPlayer.loadVideoById({videoId: videoId, startSeconds: seekTo});
-                if (isMuted) {
-                    ytPlayer.mute();
-                } else {
-                    ytPlayer.unMute();
-                }
-                ytPlayer.playVideo();
+                // Apply mute state and play after a very short delay to ensure video data is processing.
+                setTimeout(() => applyMuteAndPlayYTPlayer(ytPlayer), 100);
+
             } else {
-                // Create new player if it doesn't exist
+                console.log(`Creating new YouTube Player for video: ${videoId}`);
+                // Create new player instance
                 ytPlayer = new YT.Player("ytPlayer", {
                     height: "100%",
                     width: "100%",
                     videoId: videoId,
                     playerVars: {
                         autoplay: 1,
-                        mute: 1, // Start muted to comply with autoplay policies
+                        mute: 1, // Start muted to comply with browser autoplay policies (essential)
                         start: seekTo,
                         controls: 0,
                         modestbranding: 1,
@@ -590,17 +646,19 @@
                     },
                     events: {
                         onReady: (e) => {
-                            if (!isMuted) {
-                                e.target.unMute(); // Unmute if global state is unmuted
-                            }
-                            e.target.playVideo();
                             console.log("YouTube player ready.");
+                            // On ready, apply the global mute state and start playing.
+                            applyMuteAndPlayYTPlayer(e.target);
                         },
                         onStateChange: (e) => {
+                            console.log("YouTube Player State Change:", e.data);
                             if (e.data === YT.PlayerState.ENDED) {
                                 console.log("YouTube video ended.");
                                 playNextVideo(); // Play next video when current one ends
                             } else if (e.data === YT.PlayerState.PLAYING) {
+                                console.log("YouTube Player State: PLAYING. Ensuring mute state is correct.");
+                                // Re-apply mute state when it starts playing, to catch any browser overrides.
+                                applyMuteAndPlayYTPlayer(e.target);
                                 // Start saving state periodically while playing YouTube
                                 if (!window._ytSaveInterval) {
                                     window._ytSaveInterval = setInterval(savePlayerState, 5000); // Save every 5 seconds
@@ -624,54 +682,80 @@
         }
 
         /**
-         * Toggles the mute state and updates the UI and players.
+         * Toggles the mute state (global `isMuted` variable) and updates the UI (speaker icon)
+         * and the actual mute status of the active video player.
          */
         speakerBtn.addEventListener('click', () => {
-            isMuted = !isMuted;
-            updateMuteState();
-            savePlayerState(); // Save mute state immediately
+            isMuted = !isMuted; // Toggle global mute state
+            updateMuteState(); // Apply the new state to UI and players
+            savePlayerState(); // Save the new mute state immediately
         });
 
         /**
-         * Updates the speaker icon and player mute status based on `isMuted`.
+         * Updates the speaker icon appearance and sets the mute status for the currently active player.
          */
         function updateMuteState() {
             if (isMuted) {
                 speakerBtn.title = "Unmute";
-                muteCross.style.display = "inline";
-                hlsPlayer.muted = true;
-                if (ytPlayer && typeof ytPlayer.mute === 'function') ytPlayer.mute();
+                muteCross.style.display = "inline"; // Show mute cross
+                hlsPlayer.muted = true; // Mute HLS player
+                if (ytPlayer && typeof ytPlayer.mute === 'function') {
+                    ytPlayer.mute(); // Mute YouTube player
+                    console.log("Speaker button: Muting YouTube player.");
+                }
             } else {
                 speakerBtn.title = "Mute";
-                muteCross.style.display = "none";
-                hlsPlayer.muted = false;
-                if (ytPlayer && typeof ytPlayer.unMute === 'function') ytPlayer.unMute();
+                muteCross.style.display = "none"; // Hide mute cross
+                hlsPlayer.muted = false; // Unmute HLS player
+                // Attempt to play HLS if it's paused and should be unmuted
+                if (hlsPlayer.paused && hlsPlayer.style.display === 'block') {
+                    hlsPlayer.play().catch(e => console.error("HLS play on unmute prevented:", e));
+                }
+
+                if (ytPlayer && typeof ytPlayer.unMute === 'function') {
+                    console.log("Speaker button: Unmuting YouTube player.");
+                    ytPlayer.unMute(); // Unmute YouTube player
+                    ytPlayer.setVolume(100); // Set YouTube player volume to max
+
+                    // Ensure playback if YouTube player is paused/stopped.
+                    // This is crucial after unmuting, as browsers might pause if user interaction unmuted.
+                    if (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
+                        ytPlayer.playVideo();
+                        console.log("Speaker button: Called YouTube playVideo() on unmute to ensure playback.");
+                    }
+                    // Verify mute state after a short delay
+                    setTimeout(() => {
+                        if (ytPlayer && typeof ytPlayer.isMuted === 'function') {
+                            console.log(`YouTube Player Current Mute Status after speaker button click: ${ytPlayer.isMuted()}`);
+                            console.log(`YouTube Player Current Volume after speaker button click: ${ytPlayer.getVolume()}`);
+                        }
+                    }, 200);
+                }
             }
         }
 
-        // Event listeners for HLS player to save state periodically and on pause
+        // Event listeners for HLS player to save state periodically and on pause/end
         hlsPlayer.addEventListener('timeupdate', () => {
             // Save state periodically (e.g., every 5 seconds of playback)
-            // Use Math.floor and a custom property to prevent saving on every single timeupdate event
             if (Math.floor(hlsPlayer.currentTime) % 5 === 0 && Math.floor(hlsPlayer.currentTime) !== hlsPlayer._lastSavedTime) {
                 savePlayerState();
-                hlsPlayer._lastSavedTime = Math.floor(hlsPlayer.currentTime);
+                hlsPlayer._lastSavedTime = Math.floor(hlsPlayer.currentTime); // Prevent saving multiple times for same second
             }
         });
         hlsPlayer.addEventListener('pause', savePlayerState);
-        hlsPlayer.addEventListener('ended', playNextVideo); // HLS video ends, play next
+        hlsPlayer.addEventListener('ended', playNextVideo); // HLS video ends, play next in playlist
 
         // Save state before the page is unloaded (e.g., refresh, close tab, navigate away)
         window.addEventListener('beforeunload', savePlayerState);
 
-        // Initial setup on window load
+        // Initial setup sequence on window load
         window.onload = () => {
-            loadPlayerState(); // Load saved state and start playback
-            updateMelbourneTime(); // Initial update of Melbourne time
-            buildGuide(); // Build initial TV guide
+            loadPlayerState(); // 1. Load saved state and prepare for playback
+            updateMelbourneTime(); // 2. Display initial Melbourne time
+            buildGuide(); // 3. Build and display the TV guide
         };
 
-        // Update Melbourne time every second
+        // Update Melbourne time every second (or adjust interval as needed)
         setInterval(updateMelbourneTime, 1000);
     </script>
 </body>
