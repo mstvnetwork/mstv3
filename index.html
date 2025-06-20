@@ -1,249 +1,396 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <title>Live Daily Playlist with Dark/Light Themes</title>
   <meta charset="UTF-8" />
-  <title>MSTV Live Playlist</title>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #000;
-      color: #eee;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
+    :root {
+      --bg-color-dark: #000;
+      --text-color-dark: #eee;
+      --accent-color-dark: #00bcd4;
+      --countdown-color-dark: #0ff;
+      --playlist-bg-dark: #111;
+      --playlist-border-dark: #222;
+
+      --bg-color-light: #f0f0f0;
+      --text-color-light: #111;
+      --accent-color-light: #007acc;
+      --countdown-color-light: #007acc;
+      --playlist-bg-light: #fff;
+      --playlist-border-light: #ccc;
+
+      --transition-time: 0.4s;
     }
+
+    body {
+      background: var(--bg-color-dark);
+      color: var(--text-color-dark);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 1rem;
+      transition: background var(--transition-time), color var(--transition-time);
+    }
+
+    #theme-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: var(--accent-color-dark);
+      border: none;
+      padding: 8px 14px;
+      color: var(--text-color-dark);
+      font-weight: bold;
+      border-radius: 20px;
+      cursor: pointer;
+      box-shadow: 0 0 8px var(--accent-color-dark);
+      transition: background var(--transition-time), color var(--transition-time), box-shadow var(--transition-time);
+      user-select: none;
+      z-index: 9999;
+    }
+    #theme-toggle:hover {
+      box-shadow: 0 0 16px var(--accent-color-dark);
+    }
+
     #player {
       max-width: 720px;
-      margin: 0 auto;
+      margin: auto;
+      position: relative;
+      transition: background var(--transition-time);
     }
     video, iframe {
       width: 100%;
       height: 405px;
-      background: #111;
+      background: var(--bg-color-dark);
       border-radius: 8px;
+      transition: background var(--transition-time);
     }
-    #status, #countdown, #elapsed-time {
-      margin-top: 10px;
+    /* Elapsed time overlay */
+    #elapsed-time {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.6);
+      color: var(--countdown-color-dark);
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 14px;
+      user-select: none;
+      pointer-events: none;
+      text-shadow: 0 0 6px var(--countdown-color-dark);
+      transition: background var(--transition-time), color var(--transition-time), text-shadow var(--transition-time);
     }
-    ul#playlist {
+    #status {
+      margin-top: 1rem;
+      font-size: 1.1rem;
+      transition: color var(--transition-time);
+    }
+    #countdown {
+      margin-top: 0.5rem;
+      font-weight: 600;
+      font-size: 1.2rem;
+      color: var(--countdown-color-dark);
+      animation: pulse 2s infinite ease-in-out;
+      transition: color var(--transition-time);
+    }
+    #playlist {
+      max-width: 720px;
+      margin: 1rem auto;
+      text-align: left;
       list-style: none;
       padding: 0;
-      max-width: 720px;
-      margin: 20px auto;
-      text-align: left;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 12px var(--accent-color-dark)66;
+      background: var(--playlist-bg-dark);
+      transition: background var(--transition-time), box-shadow var(--transition-time);
     }
-    ul#playlist li {
-      padding: 8px;
-      border-bottom: 1px solid #444;
+    #playlist li {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--playlist-border-dark);
+      cursor: default;
+      color: #aaa;
+      transition: background-color 0.4s, color 0.4s;
     }
-    ul#playlist li.current {
-      background: #007acc;
-      color: white;
+    #playlist li.current {
+      background-color: var(--accent-color-dark);
+      color: #fff;
       font-weight: bold;
+      box-shadow: inset 0 0 10px var(--accent-color-dark)aa;
+      animation: glow 3s infinite alternate;
+      transition: background-color 0.4s, color 0.4s, box-shadow 0.4s;
     }
 
-    /* 📺 TV Guide Table */
-    #guide {
-      max-width: 720px;
-      margin: 30px auto;
-      border-collapse: collapse;
-      width: 100%;
+    /* Animations */
+    @keyframes glow {
+      0% {
+        box-shadow: inset 0 0 5px var(--accent-color-dark)88;
+      }
+      100% {
+        box-shadow: inset 0 0 20px var(--accent-color-dark)dd;
+      }
     }
-    #guide th, #guide td {
-      padding: 10px;
-      border: 1px solid #333;
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
     }
-    #guide .now {
-      background: #007acc;
+
+    /* LIGHT THEME */
+    body.light {
+      background: var(--bg-color-light);
+      color: var(--text-color-light);
+    }
+    body.light #theme-toggle {
+      background: var(--accent-color-light);
+      color: var(--text-color-light);
+      box-shadow: 0 0 8px var(--accent-color-light);
+    }
+    body.light #theme-toggle:hover {
+      box-shadow: 0 0 16px var(--accent-color-light);
+    }
+    body.light #player video,
+    body.light #player iframe {
+      background: var(--bg-color-light);
+    }
+    body.light #elapsed-time {
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--countdown-color-light);
+      text-shadow: 0 0 6px var(--countdown-color-light);
+    }
+    body.light #status {
+      color: var(--text-color-light);
+    }
+    body.light #countdown {
+      color: var(--countdown-color-light);
+    }
+    body.light #playlist {
+      background: var(--playlist-bg-light);
+      box-shadow: 0 0 12px var(--accent-color-light)66;
+    }
+    body.light #playlist li {
+      color: #444;
+      border-bottom: 1px solid var(--playlist-border-light);
+    }
+    body.light #playlist li.current {
+      background-color: var(--accent-color-light);
       color: white;
-      font-weight: bold;
+      box-shadow: inset 0 0 10px var(--accent-color-light)aa;
     }
   </style>
 </head>
 <body>
+  <button id="theme-toggle" aria-label="Toggle dark/light theme">Light Mode</button>
+
   <h1>🎥 MSTV Live Playlist</h1>
   <div id="player">
-    <div id="elapsed-time"></div>
+    <div id="elapsed-time">00:00</div>
   </div>
-  <div id="status">Loading...</div>
-  <div id="countdown"></div>
+  <p id="status">Loading...</p>
+  <p id="countdown"></p>
   <ul id="playlist"></ul>
-  <h2>📺 Today's TV Guide</h2>
-  <table id="guide">
-    <thead>
-      <tr><th>Start</th><th>End</th><th>Title</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-<script>
-const playlistUrl = 'playlist.json';
-const startHour = 8; // Broadcast starts daily at 8:00 AM local time
 
-const playerDiv = document.getElementById('player');
-const status = document.getElementById('status');
-const countdown = document.getElementById('countdown');
-const playlistEl = document.getElementById('playlist');
-const guideEl = document.querySelector('#guide tbody');
-const elapsedTimeEl = document.getElementById('elapsed-time');
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    const playlistUrl = 'playlist.json';
+    const startHour = 8; // daily start time 08:00 AM
 
-function getStartOfDayTime(hour) {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0, 0, 0);
-}
+    const playerDiv = document.getElementById('player');
+    const status = document.getElementById('status');
+    const countdown = document.getElementById('countdown');
+    const playlistEl = document.getElementById('playlist');
+    const elapsedTimeEl = document.getElementById('elapsed-time');
+    const themeToggleBtn = document.getElementById('theme-toggle');
 
-function getTimeOffsetSeconds(startTime) {
-  const now = new Date();
-  return Math.max(0, Math.floor((now - startTime) / 1000));
-}
-
-function formatTime(seconds) {
-  const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-  const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-  return `${h}:${m}`;
-}
-
-function extractYouTubeId(url) {
-  const match = url.match(/v=([^&]+)/);
-  return match ? match[1] : null;
-}
-
-async function fetchPlaylist() {
-  const res = await fetch(playlistUrl);
-  return await res.json();
-}
-
-function findCurrentTrack(playlist, elapsed) {
-  const total = playlist.reduce((acc, cur) => acc + cur.duration, 0);
-  elapsed = elapsed % total;
-
-  let acc = 0;
-  for (let i = 0; i < playlist.length; i++) {
-    const item = playlist[i];
-    if (acc + item.duration > elapsed) {
-      return {
-        item,
-        index: i,
-        offset: elapsed - acc
-      };
-    }
-    acc += item.duration;
-  }
-  return null;
-}
-
-function renderPlaylist(playlist, currentIndex) {
-  playlistEl.innerHTML = '';
-  playlist.forEach((item, i) => {
-    const li = document.createElement('li');
-    li.textContent = item.title || item.url;
-    if (i === currentIndex) li.classList.add('current');
-    playlistEl.appendChild(li);
-  });
-}
-
-function renderGuide(playlist, startHour, currentIndex, currentOffset) {
-  guideEl.innerHTML = '';
-  let time = new Date();
-  time.setHours(startHour, 0, 0, 0);
-
-  playlist.forEach((item, index) => {
-    const start = new Date(time);
-    const end = new Date(time.getTime() + item.duration * 1000);
-    const tr = document.createElement('tr');
-
-    if (index === currentIndex) tr.classList.add('now');
-
-    tr.innerHTML = `
-      <td>${start.toTimeString().slice(0,5)}</td>
-      <td>${end.toTimeString().slice(0,5)}</td>
-      <td>${item.title || item.url}</td>
-    `;
-    guideEl.appendChild(tr);
-    time = end;
-  });
-}
-
-function loadPlayer(item, offset) {
-  playerDiv.innerHTML = ''; // Clear previous
-  status.textContent = `Now playing: ${item.title || item.type} | Offset: ${offset}s`;
-
-  if (item.type === 'youtube') {
-    const id = extractYouTubeId(item.url);
-    const startParam = `&start=${offset}`;
-    const embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&controls=1&rel=0${startParam}`;
-    const iframe = document.createElement('iframe');
-    iframe.src = embedUrl;
-    iframe.frameBorder = '0';
-    iframe.allow = 'autoplay; encrypted-media';
-    iframe.allowFullscreen = true;
-    playerDiv.appendChild(iframe);
-  } else if (item.type === 'mp4' || item.type === 'hls') {
-    const video = document.createElement('video');
-    video.controls = true;
-    video.autoplay = true;
-
-    if (item.type === 'mp4') {
-      video.src = item.url;
-      video.addEventListener('loadedmetadata', () => {
-        if (video.duration > offset) video.currentTime = offset;
-      });
-    } else {
-      if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(item.url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.currentTime = offset;
-          video.play();
-        });
+    // Load initial theme from localStorage or default to dark
+    function loadTheme() {
+      const saved = localStorage.getItem('mstv-theme');
+      if (saved === 'light') {
+        document.body.classList.add('light');
+        themeToggleBtn.textContent = 'Dark Mode';
       } else {
-        video.src = item.url;
-        video.currentTime = offset;
+        document.body.classList.remove('light');
+        themeToggleBtn.textContent = 'Light Mode';
       }
     }
-    playerDiv.appendChild(video);
-  } else {
-    status.textContent = 'Unsupported media type: ' + item.type;
-  }
-}
 
-(async function init() {
-  const startTime = getStartOfDayTime(startHour);
-  const playlist = await fetchPlaylist();
-  if (!playlist || playlist.length === 0) {
-    status.textContent = 'Playlist not found or empty.';
-    return;
-  }
+    // Toggle theme & save preference
+    themeToggleBtn.addEventListener('click', () => {
+      if (document.body.classList.contains('light')) {
+        document.body.classList.remove('light');
+        themeToggleBtn.textContent = 'Light Mode';
+        localStorage.setItem('mstv-theme', 'dark');
+      } else {
+        document.body.classList.add('light');
+        themeToggleBtn.textContent = 'Dark Mode';
+        localStorage.setItem('mstv-theme', 'light');
+      }
+    });
 
-  function update() {
-    const elapsed = getTimeOffsetSeconds(startTime);
-    const current = findCurrentTrack(playlist, elapsed);
-    if (!current) return;
+    loadTheme();
 
-    renderPlaylist(playlist, current.index);
-    renderGuide(playlist, startHour, current.index, current.offset);
-    loadPlayer(current.item, current.offset);
+    function getStartOfDayTime(hour) {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0, 0, 0);
+    }
 
-    // Update countdown & elapsed time
-    const remaining = current.item.duration - current.offset;
-    countdown.textContent = `Next video in: ${formatTime(remaining)}`;
-    elapsedTimeEl.textContent = `Elapsed: ${formatTime(current.offset)}`;
-  }
+    function getTimeOffsetSeconds(startTime) {
+      const now = new Date();
+      return Math.max(0, Math.floor((now - startTime) / 1000));
+    }
 
-  update();
-  setInterval(() => {
-    const elapsed = getTimeOffsetSeconds(startTime);
-    const current = findCurrentTrack(playlist, elapsed);
-    if (!current) return;
-    renderPlaylist(playlist, current.index);
-    renderGuide(playlist, startHour, current.index, current.offset);
+    async function fetchPlaylist() {
+      const res = await fetch(playlistUrl);
+      return await res.json();
+    }
 
-    const rem = current.item.duration - current.offset;
-    countdown.textContent = `Next video in: ${formatTime(rem)}`;
-    elapsedTimeEl.textContent = `Elapsed: ${formatTime(current.offset)}`;
-  }, 1000);
-})();
-</script>
+    function findCurrentTrack(playlist, elapsed) {
+      const totalDuration = playlist.reduce((acc, cur) => acc + cur.duration, 0);
+      elapsed = elapsed % totalDuration; // loop offset to playlist length
+
+      let accDuration = 0;
+      for (let i = 0; i < playlist.length; i++) {
+        accDuration += playlist[i].duration;
+        if (elapsed < accDuration) {
+          return { index: i, offset: elapsed - (accDuration - playlist[i].duration) };
+        }
+      }
+      return { index: 0, offset: 0 };
+    }
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function extractYouTubeId(url) {
+      // Extract video ID from normal or shortened URL
+      const ytRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/;
+      const match = url.match(ytRegex);
+      return match ? match[1] : null;
+    }
+
+    let currentIndex = -1;
+    let currentTimeout = null;
+    let hls = null;
+
+    function clearPlayer() {
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+      playerDiv.innerHTML = '';
+      playerDiv.appendChild(elapsedTimeEl);
+    }
+
+    function loadPlayer(item, offset) {
+      clearPlayer();
+      status.textContent = `Playing: ${item.title}`;
+      elapsedTimeEl.textContent = formatTime(offset);
+
+      if (item.type === 'mp4') {
+        const video = document.createElement('video');
+        video.src = item.url;
+        video.controls = true;
+        video.autoplay = true;
+        video.currentTime = offset;
+        playerDiv.appendChild(video);
+        video.addEventListener('timeupdate', () => {
+          elapsedTimeEl.textContent = formatTime(Math.floor(video.currentTime));
+        });
+      } else if (item.type === 'hls') {
+        const video = document.createElement('video');
+        video.controls = true;
+        video.autoplay = true;
+        playerDiv.appendChild(video);
+        hls = new Hls();
+        hls.loadSource(item.url);
+        hls.attachMedia(video);
+        video.addEventListener('timeupdate', () => {
+          elapsedTimeEl.textContent = formatTime(Math.floor(video.currentTime));
+        });
+        video.currentTime = offset;
+      } else if (item.type === 'youtube' || item.type === 'youtube-live') {
+        const id = extractYouTubeId(item.url);
+        const startParam = item.type === 'youtube' ? `&start=${offset}` : '';
+        const embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&controls=1&rel=0${startParam}`;
+        const iframe = document.createElement('iframe');
+        iframe.src = embedUrl;
+        iframe.frameBorder = '0';
+        iframe.allow = 'autoplay; encrypted-media';
+        iframe.allowFullscreen = true;
+        playerDiv.appendChild(iframe);
+        // No elapsed time update for iframe (YouTube), so keep timer static or update with playlist timer below
+        elapsedTimeEl.textContent = formatTime(offset);
+      } else {
+        status.textContent = 'Unsupported media type: ' + item.type;
+      }
+    }
+
+    function updatePlaylistUI(playlist, current) {
+      playlistEl.innerHTML = '';
+      playlist.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.textContent = `${item.title} (${formatTime(item.duration)})`;
+        if (idx === current) {
+          li.classList.add('current');
+        }
+        playlistEl.appendChild(li);
+      });
+    }
+
+    function startPlayback(playlist, startTime) {
+      function playNext() {
+        const now = new Date();
+        const elapsed = Math.floor((now - startTime) / 1000);
+        const { index, offset } = findCurrentTrack(playlist, elapsed);
+        if (index !== currentIndex) {
+          currentIndex = index;
+          loadPlayer(playlist[currentIndex], offset);
+          updatePlaylistUI(playlist, currentIndex);
+        }
+        // Update countdown to next switch
+        const currentItem = playlist[currentIndex];
+        const timeInCurrent = elapsed - playlist.slice(0, currentIndex).reduce((a, b) => a + b.duration, 0);
+        const remaining = currentItem.duration - timeInCurrent;
+        countdown.textContent = `Next switch in ${formatTime(remaining)}`;
+
+        // Schedule next switch a bit before exact end for accuracy
+        clearTimeout(currentTimeout);
+        currentTimeout = setTimeout(playNext, (remaining + 0.5) * 1000);
+
+        // Update elapsed time display for non-YouTube iframe items
+        if (currentItem.type === 'mp4' || currentItem.type === 'hls') {
+          // Handled by media event listeners
+        } else {
+          // Update elapsed time ourselves every second
+          elapsedTimeEl.textContent = formatTime(timeInCurrent);
+        }
+      }
+      playNext();
+    }
+
+    async function main() {
+      const playlist = await fetchPlaylist();
+      const startTime = getStartOfDayTime(startHour);
+      const now = new Date();
+      if (now < startTime) {
+        status.textContent = `Playlist will start daily at ${startHour}:00`;
+        countdown.textContent = '';
+        setTimeout(main, startTime - now);
+        return;
+      }
+      status.textContent = 'Loading playlist...';
+      startPlayback(playlist, startTime);
+    }
+
+    main();
+  </script>
 </body>
 </html>
