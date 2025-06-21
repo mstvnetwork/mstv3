@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
     <title>MSTV Live</title>
-    <!-- Google Fonts for 'Inter' (used in TV guide for modern look), 'Segoe UI' (body), 'Consolas' (guide times) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         /* Base styles */
@@ -59,7 +58,7 @@
             width: 100%;
             height: 100%;
             /* Make video elements unresponsive to touch on their surface */
-            pointer-events: none; /* Prevents all mouse/touch events on the element itself */
+            /* pointer-events: none; */ /* Removing this to allow play/pause if needed, but managing via JS */
             touch-action: none; /* Prevents default touch actions like pan, zoom */
             user-select: none; /* Keep user-select to prevent text selection */
             -webkit-user-select: none;
@@ -257,7 +256,6 @@
             border-top: 1px solid #333;
         }
     </style>
-    <!-- External JavaScript libraries -->
     <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -274,12 +272,10 @@
     </div>
 
     <div class="player-container" id="playerContainer">
-        <!-- Removed autoplay attribute from HLS video. Muted attribute is handled by JS -->
         <video id="hlsPlayer" playsinline controlsList="nodownload nofullscreen noremoteplayback"></video>
         <div id="ytPlayer"></div>
         <div class="off-air" id="offAir">🔌 Off Air</div>
 
-        <!-- Speaker toggle button -->
         <div id="speakerBtn" title="Toggle mute">
             <svg id="speakerIcon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5 9v6h4l5 5V4L9 9H5z"/>
@@ -288,12 +284,10 @@
         </div>
     </div>
 
-    <!-- TV Guide Section -->
     <div class="tv-guide-container">
         <h2>📺 Today's Broadcast Schedule</h2>
         <div id="tvGuideList">
-            <!-- TV Guide items will be dynamically inserted here by JavaScript -->
-        </div>
+            </div>
     </div>
 
     <footer>
@@ -313,7 +307,6 @@
         // Global state variables
         let currentIndex = 0; // Current video index in the playlist
         let ytPlayer = null; // YouTube player instance
-        // Default mute state is true (muted on load)
         let isMuted = true; // Global mute state, synchronized with speaker icon and players
 
         // Define your master sequential playlist here.
@@ -321,14 +314,20 @@
         const sources = [
             // Added "isLive" flag for explicit identification.
             // You can mark any YouTube video you consider a "live stream" with isLive: true.
-            { title: "Live Stream (MSTV Test)", url: "https://www.youtube.com/watch?v=1b8bBvoIFHY", isLive: true },
-            { title: "Cafe Jazz Live (YouTube)", url: "https://www.youtube.com/watch?v=Dx5qFachd3A", isLive: true },
-            { title: "Nature Documentary", url: "https://test-streams.mux.dev/test_001/stream.m3u8", isLive: false },
-            { title: "YouTube Music Mix (Relaxing)", url: "https://www.youtube.com/watch?v=k_X1Jb_2S7w&list=RDk_X1Jb_2S7w&start_radio=1", isLive: false },
-            { title: "World Report", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", isLive: false },
-            { title: "Live DJ Set (YouTube)", url: "https://www.youtube.com/watch?v=jfKfPfyJRdk", isLive: true },
-            { title: "Music Hour (YouTube)", url: "https://www.youtube.com/watch?v=DWcJFNfaw9c", isLive: false }
+            // Replace these with actual YouTube video IDs for live or non-live content.
+            // For example: { title: "Live News Channel", url: "https://www.youtube.com/watch?v=your_live_video_id", isLive: true },
+            // { title: "Tutorial Video", url: "https://www.youtube.com/watch?v=your_tutorial_video_id", isLive: false },
+            { title: "Live Stream (YouTube Demo)", url: "https://www.youtube.com/watch?v=jfKfPfyDMYQ", isLive: true }, // A 24/7 stream example
+            { title: "M3U8 Test Stream", url: "https://test-streams.mux.dev/test_001/stream.m3u8", isLive: false },
+            { title: "MP4 Video", url: "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4", isLive: false },
+            { title: "Another YouTube Video", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", isLive: false }, // Rick Astley!
+            { title: "HLS Example Stream", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8", isLive: false },
+            { title: "YouTube Music (Non-Live)", url: "https://www.youtube.com/watch?v=ru0K8uYEZWw", isLive: false }
         ];
+
+        // ---
+        // Player State Management
+        // ---
 
         /**
          * Saves the current playback state (video index, time, and mute status) to localStorage.
@@ -342,7 +341,7 @@
                     muted: isMuted
                 };
                 localStorage.setItem('mstvPlayerState', JSON.stringify(state));
-                console.log('Player state saved:', state); // Debugging log
+                // console.log('Player state saved:', state); // Debugging log
             } catch (e) {
                 console.error('Error saving player state to localStorage:', e);
             }
@@ -391,7 +390,10 @@
             if (hlsPlayer.style.display === 'block') {
                 return hlsPlayer.currentTime;
             } else if (ytPlayer && ytContainer.style.display === 'block' && typeof ytPlayer.getCurrentTime === 'function') {
-                return ytPlayer.getCurrentTime();
+                // Ensure player is ready before asking for time
+                if (ytPlayer.getPlayerState() !== -1) { // -1 means unstarted
+                    return ytPlayer.getCurrentTime();
+                }
             }
             return 0;
         }
@@ -408,6 +410,10 @@
             buildGuide(); // Update TV guide to highlight the new active video
         }
 
+        // ---
+        // UI Updates
+        // ---
+
         /**
          * Updates the Melbourne local time display.
          */
@@ -417,9 +423,40 @@
         }
 
         /**
+         * Updates the speaker icon based on the global mute state and applies mute/unmute to players.
+         */
+        function updateMuteState() {
+            if (isMuted) {
+                muteCross.style.display = 'block';
+                // Mute currently active player
+                if (hlsPlayer.style.display === 'block') {
+                    hlsPlayer.muted = true;
+                } else if (ytPlayer && ytContainer.style.display === 'block' && typeof ytPlayer.mute === 'function') {
+                    ytPlayer.mute();
+                }
+            } else {
+                muteCross.style.display = 'none';
+                // Unmute currently active player
+                if (hlsPlayer.style.display === 'block') {
+                    hlsPlayer.muted = false;
+                    // Attempt to play if unmuted and paused (HLS can pause automatically when muted)
+                    if (hlsPlayer.paused) {
+                        hlsPlayer.play().catch(e => console.warn("HLS player play failed on unmute:", e.message));
+                    }
+                } else if (ytPlayer && ytContainer.style.display === 'block' && typeof ytPlayer.unMute === 'function') {
+                    ytPlayer.unMute();
+                    ytPlayer.setVolume(100); // Ensure volume is set
+                    // Attempt to play if unmuted and paused
+                    if (ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
+                         ytPlayer.playVideo();
+                    }
+                }
+            }
+        }
+
+        /**
          * Builds and updates the TV Guide list based on the sequential playlist.
          * Highlights the currently playing and next up items.
-         * This function is purely for display and does not involve click functionality.
          */
         function buildGuide() {
             tvGuideList.innerHTML = ""; // Clear existing guide entries
@@ -433,12 +470,12 @@
                 if (i === currentIndex) {
                     programCard.classList.add("active");
                     statusText = 'NOW PLAYING';
-                    programTimeText = 'LIVE'; // Or current time if preferred
+                    programTimeText = 'LIVE';
                 } else if (i === (currentIndex + 1) % sources.length) {
                     statusText = 'NEXT UP';
-                    programTimeText = ''; // No specific time for 'Next Up'
+                    programTimeText = '';
                 } else {
-                    statusText = `#${i + 1}`; // For other items, show sequential number
+                    statusText = `#${i + 1}`;
                     programTimeText = '';
                 }
 
@@ -450,16 +487,11 @@
                     <div class="program-title">${item.title}</div>
                     <div class="program-url">${item.url.length > 50 ? item.url.substring(0, 47) + '...' : item.url}</div>
                 `;
-
-                // NO click event listener added here, as per requirement.
-                // The TV guide is now purely informational.
-
                 tvGuideList.appendChild(programCard);
             });
             // Scroll to the active item for better user experience
             const activeItem = tvGuideList.querySelector('.program-card.active');
             if (activeItem) {
-                // Use a slight delay to ensure layout is stable for scrolling
                 setTimeout(() => {
                     activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 100);
@@ -481,20 +513,31 @@
             hlsPlayer.src = ''; // Clear HLS source to ensure it stops.
         }
 
+        // ---
+        // Video Playback Logic
+        // ---
+
         /**
-         * Plays a specific video segment, managing both HLS and YouTube sources.
+         * Plays a specific video segment, managing both HLS, MP4 and YouTube sources.
          * @param {object} item - The video item containing title, url, and isLive flag.
          * @param {number} seekTo - The time in seconds to seek to.
          */
         function playSegment(item, seekTo = 0) {
             nowPlaying.textContent = `Now Playing: ${item.title}`;
             offAir.style.display = "none"; // Hide off-air message when playing
-            console.log(`Attempting to play: ${item.title} from ${seekTo}s`);
+            console.log(`Attempting to play: ${item.title} (isLive: ${item.isLive}) from ${seekTo}s`);
 
-            if (item.url.includes("youtube.com") || item.url.includes("youtu.be")) {
+            // Check for YouTube URL pattern
+            if (item.url.includes("youtube.com/watch?") || item.url.includes("youtu.be/")) {
                 playYouTube(item.url, seekTo, item); // Pass the full item object
-            } else {
+            } else if (item.url.endsWith(".m3u8")) {
                 playHLS(item.url, seekTo);
+            } else if (item.url.endsWith(".mp4")) {
+                playMP4(item.url, seekTo);
+            } else {
+                console.error("Unsupported video format or URL:", item.url);
+                showOffAir();
+                playNextVideo(); // Try next video on unsupported format
             }
             buildGuide(); // Always update guide when a new segment plays
         }
@@ -508,7 +551,6 @@
             // Stop and hide YouTube player
             if (ytPlayer) {
                 ytPlayer.stopVideo();
-                // Ensure the YouTube player iframe is truly cleared/hidden to prevent audio bleeding.
                 ytContainer.innerHTML = ''; // Clear the inner HTML to remove the iframe
                 ytPlayer = null; // Clear the reference to the old player instance
             }
@@ -518,14 +560,15 @@
             // If an HLS.js instance exists, destroy it before loading a new source.
             if (window.hls) {
                 window.hls.destroy();
-                window.hls = null; // Clear the reference
+                window.hls = null;
             }
 
-            if (hlsPlayer.canPlayType("application/vnd.apple.mpegurl")) {
+            if (hlsPlayer.canPlayType("application/vnd.apple.mpegurl") || hlsPlayer.canPlayType("application/x-mpegURL")) {
                 hlsPlayer.src = url;
                 hlsPlayer.currentTime = seekTo;
                 hlsPlayer.muted = isMuted; // Apply global mute state
-                hlsPlayer.load(); // Load the video, but do not autoplay
+                hlsPlayer.load();
+                hlsPlayer.play().catch(e => console.warn("HLS native play failed:", e.message)); // Attempt autoplay
             } else if (Hls.isSupported()) {
                 window.hls = new Hls();
                 window.hls.loadSource(url);
@@ -533,7 +576,7 @@
                 window.hls.on(Hls.Events.MANIFEST_PARSED, () => {
                     hlsPlayer.currentTime = seekTo;
                     hlsPlayer.muted = isMuted; // Apply global mute state
-                    // No autoplay call here, simply load.
+                    hlsPlayer.play().catch(e => console.warn("HLS.js play failed:", e.message)); // Attempt autoplay
                 });
                 window.hls.on(Hls.Events.ERROR, (event, data) => {
                     console.error("HLS.js error:", data);
@@ -560,6 +603,35 @@
         }
 
         /**
+         * Plays a standard MP4 video.
+         * @param {string} url - The MP4 video URL.
+         * @param {number} seekTo - The time in seconds to seek to.
+         */
+        function playMP4(url, seekTo) {
+            // Stop and hide YouTube player
+            if (ytPlayer) {
+                ytPlayer.stopVideo();
+                ytContainer.innerHTML = '';
+                ytPlayer = null;
+            }
+            ytContainer.style.display = "none";
+            hlsPlayer.style.display = "block"; // Use the HLS player for MP4 as well
+
+            // Destroy HLS.js instance if it exists
+            if (window.hls) {
+                window.hls.destroy();
+                window.hls = null;
+            }
+
+            hlsPlayer.src = url;
+            hlsPlayer.currentTime = seekTo;
+            hlsPlayer.muted = isMuted; // Apply global mute state
+            hlsPlayer.load();
+            hlsPlayer.play().catch(e => console.warn("MP4 video play failed:", e.message)); // Attempt autoplay
+        }
+
+
+        /**
          * Plays a YouTube video.
          * @param {string} url - The YouTube video URL.
          * @param {number} seekTo - The time in seconds to seek to.
@@ -574,9 +646,13 @@
             let videoId = '';
             const urlObj = new URL(url);
             if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
-                videoId = urlObj.searchParams.get("v");
-                if (!videoId && urlObj.pathname.startsWith('/youtu.be/')) {
-                    videoId = urlObj.pathname.substring(urlObj.pathname.lastIndexOf('/') + 1);
+                // Extract video ID for standard watch links
+                if (urlObj.searchParams.has("v")) {
+                    videoId = urlObj.searchParams.get("v");
+                }
+                // Extract video ID for youtu.be short links
+                else if (urlObj.pathname.length > 1) { // e.g., /dQw4w9WgXcQ
+                    videoId = urlObj.pathname.substring(1);
                 }
             }
 
@@ -599,7 +675,7 @@
                 showinfo: 0,
                 start: seekTo,
                 autoplay: isYouTubeLiveStream ? 1 : 0, // Autoplay only for designated live streams
-                mute: isYouTubeLiveStream ? 0 : 1    // Unmuted for live streams, muted otherwise
+                mute: isYouTubeLiveStream ? 0 : 1    // Unmuted for live streams, muted otherwise (initial state)
             };
 
             // Function to apply mute/unmute and play state for YouTube player
@@ -612,14 +688,11 @@
                 if (isYouTubeLiveStream) {
                     // For live streams, we explicitly try to unmute and play
                     playerInstance.unMute();
-                    playerInstance.setVolume(100);
-                    console.log("YouTube Live Stream: Attempting to unMute and set volume to 100.");
+                    playerInstance.setVolume(100); // Ensure volume is up
                     playerInstance.playVideo();
-                    console.log("YouTube Live Stream: Called playVideo().");
-
-                    // If successful in playing unmuted, update global state and UI
-                    isMuted = false;
+                    isMuted = false; // Update global state as we force unmute for live
                     updateMuteState(); // Sync speaker icon
+                    console.log("YouTube Live Stream: Attempting to unMute, set volume to 100, and play.");
                 } else {
                     // For non-live YouTube videos, apply the global 'isMuted' state
                     if (isMuted) {
@@ -630,36 +703,23 @@
                         playerInstance.setVolume(100);
                         console.log("YouTube Player (Non-Live): Explicitly unmuted.");
                     }
-                    // Do not call playVideo() here, as non-live streams should not autoplay.
+                    // Do not call playVideo() here, as non-live streams should only autoplay if browser allows
+                    // and are generally expected to be manually played if muted initially.
                 }
 
-                // Verify mute state after a short delay (especially for live streams)
+                // Verify mute state after a short delay
                 setTimeout(() => {
                     if (playerInstance && typeof playerInstance.isMuted === 'function') {
-                        console.log(`YouTube Player Current Mute Status: ${playerInstance.isMuted()}`);
-                        console.log(`YouTube Player Current Volume: ${playerInstance.getVolume()}`);
-                        // If it's a live stream and should be unmuted but is muted, retry
-                        if (isYouTubeLiveStream && playerInstance.isMuted() && playerInstance.getVolume() === 0) {
-                            console.warn("YouTube Live Stream: Still muted despite unMute call. Retrying in 500ms.");
-                            setTimeout(() => {
-                                if (playerInstance && typeof playerInstance.unMute === 'function') {
-                                    playerInstance.unMute();
-                                    playerInstance.setVolume(100);
-                                    playerInstance.playVideo();
-                                    isMuted = false; // Confirm global state
-                                    updateMuteState(); // Confirm UI state
-                                    console.log("YouTube Live Stream: Second unMute/play attempt.");
-                                }
-                            }, 500);
-                        }
+                        console.log(`Youtubeer Current Mute Status (verified): ${playerInstance.isMuted()}`);
+                        console.log(`Youtubeer Current Volume (verified): ${playerInstance.getVolume()}`);
                     }
                 }, 200);
             };
 
             if (ytPlayer) {
-                console.log(`YouTube Player Exists. Loading new video: ${videoId}`);
-                ytPlayer.loadVideoById({videoId: videoId, startSeconds: seekTo});
-                // Apply mute and play logic after loading
+                console.log(`Youtubeer Exists. Loading new video: ${videoId}`);
+                ytPlayer.loadVideoById({ videoId: videoId, startSeconds: seekTo });
+                // Apply mute and play logic after loading (important for existing player)
                 setTimeout(() => applyMuteAndPlayYTPlayer(ytPlayer), 100);
             } else {
                 console.log(`Creating new YouTube Player for video: ${videoId}, isLive: ${isYouTubeLiveStream}`);
@@ -667,7 +727,7 @@
                     height: "100%",
                     width: "100%",
                     videoId: videoId,
-                    playerVars: playerVars, // Use the dynamically created playerVars
+                    playerVars: playerVars,
                     events: {
                         onReady: (e) => {
                             console.log("YouTube player ready.");
@@ -702,75 +762,43 @@
             }
         }
 
-        /**
-         * Toggles the mute state (global `isMuted` variable) and updates the UI (speaker icon)
-         * and the actual mute status of the active video player.
-         */
+        // ---
+        // Event Listeners and Initial Setup
+        // ---
+
+        // Speaker toggle button
         speakerBtn.addEventListener('click', () => {
             isMuted = !isMuted; // Toggle global mute state
             updateMuteState(); // Apply the new state to UI and players
             savePlayerState(); // Save the new mute state immediately
-
-            // When user clicks to unmute, attempt to play (only if not already playing)
-            if (!isMuted) { // If the global state just became unmuted
-                if (hlsPlayer.style.display === 'block' && hlsPlayer.paused) {
-                    hlsPlayer.play().catch(e => console.error("HLS play on unmute click prevented:", e));
-                } else if (ytPlayer && ytContainer.style.display === 'block' && ytPlayer.getPlayerState() !== YT.PlayerState.PLAYING) {
-                    ytPlayer.playVideo();
-                }
-            }
         });
 
-        /**
-         * Updates the speaker icon appearance and sets the mute status for the currently active player.
-         */
-        function updateMuteState() {
-            if (isMuted) {
-                speakerBtn.title = "Unmute";
-                muteCross.style.display = "inline"; // Show mute cross
-                hlsPlayer.muted = true; // Mute HLS player
-                if (ytPlayer && typeof ytPlayer.mute === 'function') {
-                    ytPlayer.mute(); // Mute YouTube player
-                    console.log("Speaker button: Muting YouTube player.");
-                }
-            } else {
-                speakerBtn.title = "Mute";
-                muteCross.style.display = "none"; // Hide mute cross
-                hlsPlayer.muted = false; // Unmute HLS player
-
-                if (ytPlayer && typeof ytPlayer.unMute === 'function') {
-                    console.log("Speaker button: Unmuting YouTube player.");
-                    ytPlayer.unMute(); // Unmute YouTube player
-                    ytPlayer.setVolume(100); // Set YouTube player volume to max
-                }
-            }
-        }
-
-        // Initialize display and start processes
-        window.onload = function() {
-            console.log("Window loaded. Initializing...");
-            updateMelbourneTime(); // Initial time update
-            setInterval(updateMelbourneTime, 1000); // Update time every second
-            loadPlayerState(); // Load saved state or start fresh
-            buildGuide(); // Initial build of the TV guide
-
-            // Add event listeners for media ending
-            hlsPlayer.addEventListener('ended', playNextVideo);
-
-            // Periodically save state for HLS player
-            if (!window._hlsSaveInterval) {
-                window._hlsSaveInterval = setInterval(savePlayerState, 5000); // Save every 5 seconds
-            }
-
-            // Initial update of mute state for the speaker button icon
-            updateMuteState();
+        // Initialize YouTube Player API when it's ready (global function)
+        window.onYouTubeIframeAPIReady = () => {
+            console.log("YouTube IFrame API is ready.");
+            loadPlayerState(); // Start playback after API is ready
         };
 
-        // Ensure state is saved when user leaves or closes the page
-        window.addEventListener('beforeunload', savePlayerState);
+        // For non-YouTube content, listen for 'ended' event to play next
+        hlsPlayer.addEventListener('ended', () => {
+            console.log("HLS/MP4 video ended.");
+            playNextVideo();
+        });
 
-        // Debugging: Log initial mute state
-        console.log("Initial global isMuted state:", isMuted);
+        // Update Melbourne time every second
+        setInterval(updateMelbourneTime, 1000);
+
+        // Initial setup calls (executed once the script loads)
+        updateMelbourneTime(); // Initial time display
+        buildGuide(); // Initial guide build
+
+        // If YouTube API is already loaded (can happen if script is deferred or loaded dynamically),
+        // call onYouTubeIframeAPIReady directly. Otherwise, it will be called by the API.
+        if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
+            window.onYouTubeIframeAPIReady();
+        } else {
+            console.log("YouTube IFrame API not yet loaded. Waiting for onYouTubeIframeAPIReady...");
+        }
     </script>
 </body>
 </html>
