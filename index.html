@@ -322,13 +322,12 @@
         class LiveTVChannel {
             constructor() {
                 // Get current time for initial schedule setup
-                // Current time: Monday, June 23, 2025 at 7:08:24 AM AEST
-                const now = new Date(2025, 5, 23, 7, 8, 24); // Month is 0-indexed for Date object
+                const now = new Date();
                 const currentHour = now.getHours();
                 const currentMinute = now.getMinutes();
                 const currentTotalMinutes = currentHour * 60 + currentMinute;
 
-                let initialProgramStartTimeMinutes = currentTotalMinutes - 5; // Start 5 minutes before the current time
+                let initialProgramStartTimeMinutes = currentTotalMinutes - 5; 
                 if (initialProgramStartTimeMinutes < 0) {
                     initialProgramStartTimeMinutes = 0;
                 }
@@ -344,7 +343,7 @@
                         id: 1,
                         title: "Morning Music Show (Rick Astley)",
                         type: "youtube",
-                        url: "dQw4w9WgXcQ", // Rick Astley - Never Gonna Give You Up
+                        url: "dQw4w9WgXcQ",
                         startTime: formatTime(initialProgramStartTimeMinutes),
                         duration: 6
                     },
@@ -352,7 +351,7 @@
                         id: 2,
                         title: "Popular Hits (Gangnam Style)",
                         type: "youtube",
-                        url: "9bZkp7q19f0", // PSY - GANGNAM STYLE
+                        url: "9bZkp7q19f0",
                         startTime: formatTime(initialProgramStartTimeMinutes + 6),
                         duration: 8
                     },
@@ -368,7 +367,7 @@
                         id: 4,
                         title: "Classic Hits (All Star)",
                         type: "youtube",
-                        url: "L_jWHffIx5E", // Smash Mouth - All Star
+                        url: "L_jWHffIx5E",
                         startTime: formatTime(initialProgramStartTimeMinutes + 6 + 8 + 12),
                         duration: 10
                     },
@@ -376,7 +375,7 @@
                         id: 5,
                         title: "Latin Music (Despacito)",
                         type: "youtube",
-                        url: "kJQP7kiw5Fk", // Luis Fonsi - Despacito
+                        url: "kJQP7kiw5Fk",
                         startTime: formatTime(initialProgramStartTimeMinutes + 6 + 8 + 12 + 10),
                         duration: 15
                     },
@@ -384,7 +383,7 @@
                         id: 6,
                         title: "Retro Vibes (Me at the zoo)",
                         type: "youtube",
-                        url: "jNQXAC9IVRw", // Me at the zoo (shortest YouTube video)
+                        url: "jNQXAC9IVRw",
                         startTime: formatTime(initialProgramStartTimeMinutes + 6 + 8 + 12 + 10 + 15),
                         duration: 10
                     }
@@ -395,12 +394,14 @@
                 this.hls = null;
                 this.startTime = Date.now();
                 this.programStartTime = null;
-                this.isChannelPlaying = false; // New flag to control playback start
+                this.isChannelPlaying = false; 
+                this.youtubeApiReady = false; // New flag to track YouTube API readiness
+                this.schedulerInterval = null; // To hold the interval ID for clearing
 
                 this.initializeElements();
-                this.setupPlayOverlay(); // Setup the play overlay listener
-                this.updateClock(); // Clock starts immediately
-                console.log('LiveTVChannel initialized. Waiting for user interaction to start channel.');
+                this.setupPlayOverlay();
+                this.updateClock(); // This can run immediately as it only accesses display elements
+                console.log('LiveTVChannel initialized. Waiting for user interaction and YouTube API to be ready.');
             }
 
             initializeElements() {
@@ -416,7 +417,7 @@
                     loadingSpinner: document.getElementById('loadingSpinner'),
                     errorMessage: document.getElementById('errorMessage'),
                     connectionStatus: document.getElementById('connectionStatus'),
-                    playOverlay: document.getElementById('playOverlay') // New element
+                    playOverlay: document.getElementById('playOverlay')
                 };
 
                 this.renderSchedule();
@@ -424,11 +425,13 @@
 
             setupPlayOverlay() {
                 this.elements.playOverlay.addEventListener('click', () => {
-                    console.log('Play overlay clicked. Starting channel...');
-                    this.elements.playOverlay.style.display = 'none'; // Hide overlay
-                    this.isChannelPlaying = true; // Set flag
-                    this.startScheduler(); // Start the channel scheduler
-                }, { once: true }); // Only allow one click to start
+                    console.log('Play overlay clicked. User interaction registered.');
+                    this.elements.playOverlay.style.display = 'none';
+                    this.isChannelPlaying = true;
+                    // Now that user interaction is done, attempt to start the scheduler
+                    // This call might not immediately play if YouTube API isn't ready yet.
+                    this.attemptStartScheduler(); 
+                }, { once: true });
             }
 
             initializeYouTubePlayerInstance() {
@@ -442,51 +445,55 @@
                         'rel': 0,
                         'showinfo': 0,
                         'modestbranding': 1,
-                        'mute': 1 // <-- Mutes YouTube video by default for autoplay
+                        'mute': 1 
                     },
                     events: {
                         'onReady': (event) => {
                             console.log('YouTube player ready. Event:', event);
-                            // If a YouTube program is currently selected AND channel is meant to be playing,
-                            // play it once the player is ready.
-                            if (this.isChannelPlaying && this.currentProgram && this.currentProgram.type === 'youtube') {
-                                console.log('YouTube player ready, attempting to play current program:', this.currentProgram.title);
-                                this.playYouTubeVideo(this.currentProgram);
-                            } else {
-                                console.log('YouTube player ready, but channel not yet started by user or not a YouTube program.');
-                            }
+                            this.youtubeApiReady = true; // Set YouTube API ready flag
+                            // Now that YouTube API is ready, attempt to start the scheduler
+                            this.attemptStartScheduler();
                         },
                         'onStateChange': (event) => {
-                            console.log('YouTube player state changed:', event.data, ' (1:Playing, 2:Paused, 3:Buffering)');
+                            console.log('YouTube player state changed:', event.data, ' (1:Playing, 2:Paused, 3:Buffering, -1:Unstarted, 0:Ended)');
                             if (event.data === YT.PlayerState.PLAYING) {
                                 this.hideLoading();
                                 console.log('YouTube video is PLAYING, hiding spinner.');
                             } else if (event.data === YT.PlayerState.BUFFERING) {
                                 this.showLoading();
                                 console.log('YouTube video is BUFFERING, showing spinner.');
-                            } else if (event.data === YT.PlayerState.PAUSED) {
-                                console.log('YouTube video is PAUSED.');
-                                // Only show loading spinner on pause if it's not a user-initiated pause
-                                // or if we suspect buffering issues. For now, rely on BUFFERING state.
-                                // If you still see spinner on simple pause, uncomment this:
-                                // this.showLoading();
                             } else if (event.data === YT.PlayerState.ENDED) {
-                                console.log('YouTube video ENDED.');
-                                this.showLoading(); // Show spinner, expecting next program soon
-                                // Trigger scheduler immediately to transition to next program
-                                this.startScheduler(); 
-                            } else if (event.data === YT.PlayerState.UNSTARTED) {
-                                console.log('YouTube video UNSTARTED.');
+                                console.log('YouTube video ENDED. Forcing scheduler re-check.');
+                                this.showLoading(); 
+                                this.attemptStartScheduler(); // Try to get next program immediately
+                            } else {
+                                // For PAUSED, UNSTARTED, CUED, keep spinner or manage as needed
                                 this.showLoading();
+                                console.log('YouTube video is not playing, showing spinner.');
                             }
                         },
                         'onError': (event) => {
                             this.showError('YouTube video failed to load (Code: ' + event.data + '). This might be due to embedding restrictions or network issues.');
                             console.error('YouTube Error:', event.data, event);
-                            this.hideLoading(); // Ensure spinner is hidden on error
+                            this.hideLoading();
                         }
                     }
                 });
+            }
+
+            // New method to conditionally start the scheduler
+            attemptStartScheduler() {
+                // Only start the scheduler if both conditions are met:
+                // 1. User has clicked the play overlay (isChannelPlaying is true)
+                // 2. YouTube API is fully loaded and ready (youtubeApiReady is true)
+                if (this.isChannelPlaying && this.youtubeApiReady) {
+                    console.log('Both user interaction and YouTube API ready. Starting scheduler.');
+                    this.startScheduler();
+                } else {
+                    console.log('Waiting for both user interaction and YouTube API. isChannelPlaying:', this.isChannelPlaying, 'youtubeApiReady:', this.youtubeApiReady);
+                    // Keep loading spinner if we're waiting for either condition
+                    this.showLoading(); 
+                }
             }
 
             getCurrentProgram() {
@@ -508,8 +515,6 @@
                     }
                 }
                 
-                // If no program found (e.g., between schedule slots or after last program),
-                // return the next one or loop back to first program of the day.
                 let nextProgram = this.schedule.find(program => {
                     const [hours, minutes] = program.startTime.split(':').map(Number);
                     const startTimeMinutes = hours * 60 + minutes;
@@ -517,11 +522,8 @@
                 });
                 
                 if (!nextProgram) {
-                    // If all programs are in the past, loop back to the first program for the "next day" scenario.
-                    // For a continuous "live" feel, we'll assign its start time as if it just started.
                     const firstProgram = { ...this.schedule[0] };
-                    const [firstHours, firstMinutes] = firstProgram.startTime.split(':').map(Number);
-                    firstProgram.startTimeMinutes = currentTimeMinutes; // Assume it just started now
+                    firstProgram.startTimeMinutes = currentTimeMinutes; 
                     firstProgram.elapsedMinutes = 0;
                     return firstProgram;
                 }
@@ -532,7 +534,7 @@
             async playProgram(program) {
                 if (!this.isChannelPlaying) {
                     console.log('Channel not yet started by user. Deferring program playback.');
-                    this.showLoading(); // Keep spinner if waiting for user
+                    this.showLoading();
                     return;
                 }
 
@@ -570,8 +572,8 @@
                         if (this.youtubePlayer && typeof this.youtubePlayer.loadVideoById === 'function') {
                             await this.playYouTubeVideo(program);
                         } else {
-                            console.log('YouTube player not yet fully initialized, will play when ready.');
-                            // The onReady event will pick this up when the player is ready.
+                            // This path should ideally not be hit if attemptStartScheduler works correctly
+                            console.log('YouTube player not available, will wait for onReady or next scheduler check.');
                         }
                     } else if (program.type === 'm3u8') {
                         await this.playM3U8Stream(program);
@@ -606,10 +608,10 @@
                         startSeconds: startSeconds,
                         'mute': 1
                     });
-                    console.log(`Loading YouTube video: ${program.url} from ${startSeconds}s. Player state before load: ${this.youtubePlayer.getPlayerState()}`);
+                    console.log(`Loading YouTube video: ${program.url} from ${startSeconds}s.`);
                 } else {
-                    console.warn("YouTube player not ready or loadVideoById not available.");
-                    this.showError("YouTube player not fully initialized. Please ensure network is stable.");
+                    console.warn("YouTube player is null or its methods are not available at this point.");
+                    this.showError("YouTube player not ready to load video.");
                     this.hideLoading();
                 }
             }
@@ -694,7 +696,6 @@
 
             updateProgramInfo(program) {
                 this.elements.currentProgram.textContent = program.title;
-                
                 const endTime = this.addMinutesToTime(program.startTime, program.duration);
                 this.elements.programTime.textContent = `${program.startTime} - ${endTime}`;
             }
@@ -724,7 +725,7 @@
 
                     if (remaining <= 0 && this.currentProgram.duration > 0) {
                         console.log(`Program "${this.currentProgram.title}" expected to end. Forcing re-check.`);
-                        this.startScheduler();
+                        this.attemptStartScheduler(); 
                     }
                 }
 
@@ -733,55 +734,21 @@
                 setTimeout(() => this.updateClock(), 1000);
             }
 
-            renderSchedule() {
-                this.elements.scheduleList.innerHTML = '';
-                
-                this.schedule.forEach(program => {
-                    const item = document.createElement('div');
-                    item.className = 'schedule-item';
-                    
-                    const endTime = this.addMinutesToTime(program.startTime, program.duration);
-                    
-                    item.innerHTML = `
-                        <div>
-                            <div class="schedule-time">${program.startTime}</div>
-                            <div>${program.title}</div>
-                        </div>
-                        <div>${program.duration}min</div>
-                    `;
-                    
-                    this.elements.scheduleList.appendChild(item);
-                });
-            }
-
-            updateScheduleHighlight() {
-                const items = this.elements.scheduleList.children;
-                Array.from(items).forEach((item, index) => {
-                    item.classList.toggle('active', 
-                        this.currentProgram && this.schedule[index].id === this.currentProgram.id
-                    );
-                });
-            }
-
             startScheduler() {
+                // Clear any existing interval to prevent multiple running schedulers
+                if (this.schedulerInterval) {
+                    clearInterval(this.schedulerInterval);
+                }
+
                 const checkProgram = () => {
                     const program = this.getCurrentProgram();
                     this.playProgram(program);
                     this.updateScheduleHighlight();
                 };
 
-                // Only start the recurring check if the channel is meant to be playing
-                if (this.isChannelPlaying) {
-                    checkProgram();
-                    // Clear any existing interval to prevent multiple running schedulers
-                    if (this.schedulerInterval) {
-                        clearInterval(this.schedulerInterval);
-                    }
-                    this.schedulerInterval = setInterval(checkProgram, 10000); 
-                } else {
-                    console.log("Scheduler not started. Waiting for user interaction.");
-                    this.showLoading(); // Keep spinner while waiting for user click
-                }
+                checkProgram(); // Run immediately on starting scheduler
+                this.schedulerInterval = setInterval(checkProgram, 10000); 
+                console.log('Scheduler started.');
             }
 
             showLoading() {
@@ -826,12 +793,8 @@
             if (document.visibilityState === 'visible') {
                 console.log('Page became visible, re-syncing...');
                 setTimeout(() => {
-                    if (liveTVChannelInstance && liveTVChannelInstance.isChannelPlaying) {
-                        liveTVChannelInstance.startScheduler(); 
-                    } else if (liveTVChannelInstance && !liveTVChannelInstance.isChannelPlaying) {
-                        // If channel not yet playing, just keep the overlay visible
-                        console.log('Channel not playing, keeping overlay visible after visibility change.');
-                        liveTVChannelInstance.elements.playOverlay.style.display = 'flex';
+                    if (liveTVChannelInstance) {
+                        liveTVChannelInstance.attemptStartScheduler(); 
                     } else {
                         window.location.reload(); 
                     }
