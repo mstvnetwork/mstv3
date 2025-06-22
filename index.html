@@ -1,22 +1,406 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MSTV Real-Time Broadcast</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="hls.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Broadcast Player</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background-color: #2d3748; /* Slightly lighter dark background for container */
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 960px; /* Max width for content */
+            margin-bottom: 20px;
+        }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+            background-color: #000;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .video-wrapper iframe,
+        .video-wrapper video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            background-color: #4a5568;
+            border: 1px solid #636b6f;
+            color: #e2e8f0;
+            padding: 12px 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4299e1; /* Blue button */
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+            outline: none;
+        }
+        button:hover {
+            background-color: #3182ce; /* Darker blue on hover */
+            transform: translateY(-2px);
+        }
+        .message-box {
+            background-color: #38a169; /* Green for success */
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none; /* Hidden by default */
+        }
+        .message-box.error {
+            background-color: #e53e3e; /* Red for error */
+        }
+    </style>
 </head>
 <body>
-  <h1>📺 MSTV Real-Time Channel</h1>
-  <div id="player-container">
-    <div id="youtube-player"></div>
-    <video id="hls-player" controls></video>
-  </div>
-  <p id="now-playing">Now Playing: Loading...</p>
 
-  <script src="playlist.js"></script>
-  <script src="youtube-player.js"></script>
-  <script src="script.js"></script>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center mb-6">Custom Broadcast Player</h1>
+        <p class="text-center text-sm mb-6 text-gray-400">
+            Enter a YouTube video URL (single or live) or an M3U8 stream URL.
+            For on-demand videos, playback will resume from the last position.
+            Live streams will typically join the current live broadcast.
+        </p>
+
+        <div class="input-group">
+            <input type="text" id="videoUrlInput" placeholder="Enter YouTube or M3U8 URL (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ or https://example.com/live/stream.m3u8)">
+            <button id="loadVideoBtn">Load Video</button>
+        </div>
+
+        <div id="messageBox" class="message-box"></div>
+
+        <div class="video-wrapper">
+            <!-- YouTube player will be injected here -->
+            <div id="youtube-player"></div>
+            <!-- HLS.js video element will be used here -->
+            <video id="hls-video" controls style="display: none;"></video>
+        </div>
+    </div>
+
+    <!-- YouTube IFrame Player API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- HLS.js library for M3U8 streams -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <script>
+        let youtubePlayer;
+        let hlsPlayer;
+        let currentVideoType = null; // 'youtube' or 'hls'
+        let currentVideoIdentifier = null; // YouTube video ID or M3U8 URL
+
+        const videoUrlInput = document.getElementById('videoUrlInput');
+        const loadVideoBtn = document.getElementById('loadVideoBtn');
+        const youtubePlayerDiv = document.getElementById('youtube-player');
+        const hlsVideoElement = document.getElementById('hls-video');
+        const messageBox = document.getElementById('messageBox');
+
+        /**
+         * Displays a message in the message box.
+         * @param {string} message The message to display.
+         * @param {boolean} isError True if it's an error message, false otherwise.
+         */
+        function showMessage(message, isError = false) {
+            messageBox.textContent = message;
+            messageBox.style.display = 'block';
+            if (isError) {
+                messageBox.classList.remove('bg-green-600');
+                messageBox.classList.add('bg-red-600', 'error');
+            } else {
+                messageBox.classList.remove('bg-red-600', 'error');
+                messageBox.classList.add('bg-green-600');
+            }
+            // Hide after a few seconds
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 5000);
+        }
+
+        /**
+         * Extracts YouTube video ID from various YouTube URL formats.
+         * @param {string} url The YouTube video URL.
+         * @returns {string|null} The video ID or null if not found.
+         */
+        function getYouTubeVideoId(url) {
+            const regex = /(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|)([\w-]{11})(?:\S+)?/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
+        }
+
+        /**
+         * Saves the current playback time to localStorage.
+         * @param {string} identifier Unique identifier for the video (e.g., video ID or URL).
+         * @param {number} time The current playback time in seconds.
+         */
+        function savePlaybackTime(identifier, time) {
+            if (identifier && time > 0) { // Only save if time is positive
+                localStorage.setItem(`playbackTime_${identifier}`, time.toFixed(0)); // Store as integer
+                console.log(`Saved playback time for ${identifier}: ${time.toFixed(0)}s`);
+            }
+        }
+
+        /**
+         * Loads the last playback time from localStorage.
+         * @param {string} identifier Unique identifier for the video.
+         * @returns {number} The last playback time in seconds, or 0 if not found.
+         */
+        function loadPlaybackTime(identifier) {
+            const time = parseFloat(localStorage.getItem(`playbackTime_${identifier}`) || '0');
+            console.log(`Loaded playback time for ${identifier}: ${time}s`);
+            return time;
+        }
+
+        /**
+         * Called by the YouTube IFrame Player API when it's ready.
+         * Initializes a placeholder player.
+         */
+        function onYouTubeIframeAPIReady() {
+            youtubePlayer = new YT.Player('youtube-player', {
+                height: '360',
+                width: '640',
+                videoId: '', // Will be set dynamically
+                playerVars: {
+                    autoplay: 0,
+                    controls: 1,
+                    rel: 0, // Do not show related videos
+                    modestbranding: 1, // Less YouTube branding
+                },
+                events: {
+                    // This will be triggered on every state change (playing, paused, ended, etc.)
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+            console.log("YouTube Player API ready.");
+        }
+
+        /**
+         * Handles YouTube player state changes to save playback time.
+         * @param {Object} event The YouTube player event object.
+         */
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING && currentVideoIdentifier && currentVideoType === 'youtube') {
+                // Periodically save the current time while playing
+                // Set a timeout to save every few seconds to avoid excessive localStorage writes
+                // For live streams, current time constantly changes, so it makes less sense to save.
+                // We primarily want to save for on-demand videos.
+                setTimeout(() => {
+                    if (youtubePlayer && youtubePlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                        const duration = youtubePlayer.getDuration();
+                        const currentTime = youtubePlayer.getCurrentTime();
+                        // Only save if it's not a live stream (or if it's a live stream with DVR and user seeks back)
+                        // YouTube live streams typically have duration 0 or very large number
+                        if (duration > 0 && duration < 90000) { // Arbitrary large number to distinguish from live
+                             savePlaybackTime(currentVideoIdentifier, currentTime);
+                        } else {
+                            // For live streams, we generally just rejoin the live edge.
+                            // If YouTube live stream has DVR enabled and user manually seeks back,
+                            // their position might be relevant for a "resume" point within the DVR window.
+                            // However, on a fresh load, live stream will start at current live point.
+                        }
+                    }
+                }, 5000); // Save every 5 seconds
+            }
+        }
+
+        /**
+         * Loads and plays the video based on the URL.
+         */
+        async function loadVideo() {
+            const url = videoUrlInput.value.trim();
+            if (!url) {
+                showMessage("Please enter a video URL.", true);
+                return;
+            }
+
+            // Hide previous video elements
+            youtubePlayerDiv.style.display = 'none';
+            hlsVideoElement.style.display = 'none';
+            hlsVideoElement.src = ''; // Clear source
+
+            // Attempt to pause and destroy old players to prevent memory leaks
+            if (youtubePlayer && typeof youtubePlayer.pauseVideo === 'function') {
+                youtubePlayer.pauseVideo();
+            }
+            if (hlsPlayer) {
+                hlsPlayer.destroy();
+                hlsPlayer = null;
+            }
+
+            // Determine video type
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                const videoId = getYouTubeVideoId(url);
+                if (!videoId) {
+                    showMessage("Invalid YouTube URL.", true);
+                    return;
+                }
+                currentVideoType = 'youtube';
+                currentVideoIdentifier = videoId;
+                youtubePlayerDiv.style.display = 'block';
+
+                try {
+                    // Load the YouTube video
+                    // onYouTubeIframeAPIReady ensures youtubePlayer is available
+                    if (youtubePlayer && typeof youtubePlayer.loadVideoById === 'function') {
+                        youtubePlayer.loadVideoById(videoId);
+
+                        // Check if it's a live stream
+                        // Note: Determining if a YouTube video is live can be tricky client-side
+                        // without an API call. A common heuristic for live streams is duration = 0 or very large.
+                        // However, onStateChange will handle general playback.
+                        const startTime = loadPlaybackTime(videoId);
+                        if (startTime > 0) {
+                            // If it's a regular video, seek to the last saved time
+                            // For live streams, this might seek within the DVR window if available
+                            youtubePlayer.seekTo(startTime, true);
+                            showMessage(`Resuming YouTube video from ${startTime.toFixed(0)} seconds.`);
+                        } else {
+                            showMessage("Playing YouTube video.", false);
+                        }
+                        youtubePlayer.playVideo(); // Auto-play
+                    } else {
+                        // If player is not yet ready, try again or show error
+                        showMessage("YouTube player not ready. Please try again.", true);
+                        // This case should ideally not happen if onYouTubeIframeAPIReady has fired
+                    }
+                } catch (error) {
+                    console.error("Error loading YouTube video:", error);
+                    showMessage("Failed to load YouTube video. " + error.message, true);
+                }
+
+            } else if (url.endsWith('.m3u8')) {
+                currentVideoType = 'hls';
+                currentVideoIdentifier = url;
+                hlsVideoElement.style.display = 'block';
+
+                if (Hls.isSupported()) {
+                    hlsPlayer = new Hls();
+                    hlsPlayer.loadSource(url);
+                    hlsPlayer.attachMedia(hlsVideoElement);
+                    hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
+                        const startTime = loadPlaybackTime(url);
+                        // If it's a live stream (live.m3u8), it will naturally start at the live edge.
+                        // If it's a VOD (video-on-demand) m3u8, we can seek.
+                        if (hlsVideoElement.duration > 0 && hlsVideoElement.duration < Infinity && startTime > 0) {
+                            hlsVideoElement.currentTime = startTime;
+                            showMessage(`Resuming M3U8 stream from ${startTime.toFixed(0)} seconds.`, false);
+                        } else {
+                            showMessage("Playing M3U8 stream.", false);
+                        }
+                        hlsVideoElement.play().catch(e => {
+                            console.error("Autoplay prevented:", e);
+                            showMessage("Autoplay prevented. Please click play.", true);
+                        });
+                    });
+                    hlsPlayer.on(Hls.Events.ERROR, function (event, data) {
+                        if (data.fatal) {
+                            switch(data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    showMessage("M3U8 Network error: " + data.details, true);
+                                    hlsPlayer.destroy();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    showMessage("M3U8 Media error: " + data.details, true);
+                                    hlsPlayer.recoverMediaError();
+                                    break;
+                                default:
+                                    showMessage("M3U8 Fatal error: " + data.details, true);
+                                    hlsPlayer.destroy();
+                                    break;
+                            }
+                        }
+                    });
+                    // Save playback time for HLS VOD
+                    hlsVideoElement.addEventListener('timeupdate', () => {
+                        if (hlsVideoElement.duration > 0 && hlsVideoElement.duration < Infinity) {
+                            savePlaybackTime(currentVideoIdentifier, hlsVideoElement.currentTime);
+                        }
+                    });
+                } else if (hlsVideoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Native HLS support (mainly Safari)
+                    hlsVideoElement.src = url;
+                    hlsVideoElement.addEventListener('loadedmetadata', function() {
+                        const startTime = loadPlaybackTime(url);
+                         if (hlsVideoElement.duration > 0 && hlsVideoElement.duration < Infinity && startTime > 0) {
+                            hlsVideoElement.currentTime = startTime;
+                            showMessage(`Resuming M3U8 stream from ${startTime.toFixed(0)} seconds.`, false);
+                        } else {
+                            showMessage("Playing M3U8 stream.", false);
+                        }
+                        hlsVideoElement.play().catch(e => {
+                            console.error("Autoplay prevented:", e);
+                            showMessage("Autoplay prevented. Please click play.", true);
+                        });
+                    });
+                    hlsVideoElement.addEventListener('timeupdate', () => {
+                        if (hlsVideoElement.duration > 0 && hlsVideoElement.duration < Infinity) {
+                            savePlaybackTime(currentVideoIdentifier, hlsVideoElement.currentTime);
+                        }
+                    });
+                } else {
+                    showMessage("Your browser does not support HLS streams.", true);
+                }
+            } else {
+                showMessage("Unsupported video URL format. Please use a YouTube or M3U8 URL.", true);
+            }
+        }
+
+        // Add event listener for the load button
+        loadVideoBtn.addEventListener('click', loadVideo);
+
+        // Optional: Load video on Enter key press in the input field
+        videoUrlInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                loadVideo();
+            }
+        });
+
+        // Initialize with a default video or prompt user
+        document.addEventListener('DOMContentLoaded', () => {
+            // You can optionally set a default URL here
+            // videoUrlInput.value = "https://www.youtube.com/watch?v=your_video_id";
+            // loadVideo();
+            console.log("DOM Content Loaded.");
+        });
+
+    </script>
 </body>
 </html>
