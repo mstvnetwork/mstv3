@@ -322,7 +322,7 @@
         class LiveTVChannel {
             constructor() {
                 // Get current time for initial schedule setup
-                const now = new Date();
+                const now = new Date(); // Use actual current time
                 const currentHour = now.getHours();
                 const currentMinute = now.getMinutes();
                 const currentTotalMinutes = currentHour * 60 + currentMinute;
@@ -395,12 +395,12 @@
                 this.startTime = Date.now();
                 this.programStartTime = null;
                 this.isChannelPlaying = false; 
-                this.youtubeApiReady = false; // New flag to track YouTube API readiness
-                this.schedulerInterval = null; // To hold the interval ID for clearing
+                this.youtubeApiReady = false; 
+                this.schedulerInterval = null; 
 
                 this.initializeElements();
                 this.setupPlayOverlay();
-                this.updateClock(); // This can run immediately as it only accesses display elements
+                this.updateClock(); 
                 console.log('LiveTVChannel initialized. Waiting for user interaction and YouTube API to be ready.');
             }
 
@@ -420,7 +420,30 @@
                     playOverlay: document.getElementById('playOverlay')
                 };
 
-                this.renderSchedule();
+                // Moved renderSchedule() call here, after all elements are defined
+                this.renderSchedule(); 
+            }
+
+            // Moved renderSchedule method definition here
+            renderSchedule() {
+                this.elements.scheduleList.innerHTML = '';
+                
+                this.schedule.forEach(program => {
+                    const item = document.createElement('div');
+                    item.className = 'schedule-item';
+                    
+                    const endTime = this.addMinutesToTime(program.startTime, program.duration);
+                    
+                    item.innerHTML = `
+                        <div>
+                            <div class="schedule-time">${program.startTime}</div>
+                            <div>${program.title}</div>
+                        </div>
+                        <div>${program.duration}min</div>
+                    `;
+                    
+                    this.elements.scheduleList.appendChild(item);
+                });
             }
 
             setupPlayOverlay() {
@@ -428,8 +451,6 @@
                     console.log('Play overlay clicked. User interaction registered.');
                     this.elements.playOverlay.style.display = 'none';
                     this.isChannelPlaying = true;
-                    // Now that user interaction is done, attempt to start the scheduler
-                    // This call might not immediately play if YouTube API isn't ready yet.
                     this.attemptStartScheduler(); 
                 }, { once: true });
             }
@@ -450,8 +471,7 @@
                     events: {
                         'onReady': (event) => {
                             console.log('YouTube player ready. Event:', event);
-                            this.youtubeApiReady = true; // Set YouTube API ready flag
-                            // Now that YouTube API is ready, attempt to start the scheduler
+                            this.youtubeApiReady = true; 
                             this.attemptStartScheduler();
                         },
                         'onStateChange': (event) => {
@@ -465,9 +485,8 @@
                             } else if (event.data === YT.PlayerState.ENDED) {
                                 console.log('YouTube video ENDED. Forcing scheduler re-check.');
                                 this.showLoading(); 
-                                this.attemptStartScheduler(); // Try to get next program immediately
+                                this.attemptStartScheduler(); 
                             } else {
-                                // For PAUSED, UNSTARTED, CUED, keep spinner or manage as needed
                                 this.showLoading();
                                 console.log('YouTube video is not playing, showing spinner.');
                             }
@@ -481,17 +500,12 @@
                 });
             }
 
-            // New method to conditionally start the scheduler
             attemptStartScheduler() {
-                // Only start the scheduler if both conditions are met:
-                // 1. User has clicked the play overlay (isChannelPlaying is true)
-                // 2. YouTube API is fully loaded and ready (youtubeApiReady is true)
                 if (this.isChannelPlaying && this.youtubeApiReady) {
                     console.log('Both user interaction and YouTube API ready. Starting scheduler.');
                     this.startScheduler();
                 } else {
                     console.log('Waiting for both user interaction and YouTube API. isChannelPlaying:', this.isChannelPlaying, 'youtubeApiReady:', this.youtubeApiReady);
-                    // Keep loading spinner if we're waiting for either condition
                     this.showLoading(); 
                 }
             }
@@ -572,7 +586,6 @@
                         if (this.youtubePlayer && typeof this.youtubePlayer.loadVideoById === 'function') {
                             await this.playYouTubeVideo(program);
                         } else {
-                            // This path should ideally not be hit if attemptStartScheduler works correctly
                             console.log('YouTube player not available, will wait for onReady or next scheduler check.');
                         }
                     } else if (program.type === 'm3u8') {
@@ -735,7 +748,6 @@
             }
 
             startScheduler() {
-                // Clear any existing interval to prevent multiple running schedulers
                 if (this.schedulerInterval) {
                     clearInterval(this.schedulerInterval);
                 }
@@ -746,9 +758,18 @@
                     this.updateScheduleHighlight();
                 };
 
-                checkProgram(); // Run immediately on starting scheduler
+                checkProgram(); 
                 this.schedulerInterval = setInterval(checkProgram, 10000); 
                 console.log('Scheduler started.');
+            }
+
+            updateScheduleHighlight() {
+                const items = this.elements.scheduleList.children;
+                Array.from(items).forEach((item, index) => {
+                    item.classList.toggle('active', 
+                        this.currentProgram && this.schedule[index].id === this.currentProgram.id
+                    );
+                });
             }
 
             showLoading() {
