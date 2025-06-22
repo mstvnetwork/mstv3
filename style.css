@@ -1,19 +1,24 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #000;
-  color: #fff;
-  text-align: center;
-  padding: 20px;
-}
 #player-container {
   position: relative;
   width: 100%;
   max-width: 800px;
-  margin: 0 auto;
+  margin: auto;
+  z-index: 1;
 }
-video, #youtube-player {
+
+#youtube-player iframe,
+#youtube-player {
+  width: 100% !important;
+  height: 450px !important;
+  z-index: 2;
+  position: relative;
+  pointer-events: auto; /* 💡 Important: allows clicks */
+}
+
+video#hls-player {
   width: 100%;
   height: 450px;
   background: #111;
   display: none;
+  z-index: 2;
 }
