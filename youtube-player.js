@@ -25,11 +25,11 @@ function createPlayer(videoId, isLive, offset) {
     playerVars: {
       autoplay: 1,
       controls: 1,
+      mute: 0,         // <– try mute:1 if autoplay fails
       start: isLive ? undefined : offset,
     },
     events: {
       onReady: function (event) {
-        if (!isLive) event.target.seekTo(offset);
         event.target.playVideo();
       }
     }
