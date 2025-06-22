@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live TV Channel</title>
     <style>
+        /* CSS remains the same as your last version */
         * {
             margin: 0;
             padding: 0;
@@ -322,7 +323,7 @@
         class LiveTVChannel {
             constructor() {
                 // Get current time for initial schedule setup
-                const now = new Date(); // Use actual current time
+                const now = new Date(); 
                 const currentHour = now.getHours();
                 const currentMinute = now.getMinutes();
                 const currentTotalMinutes = currentHour * 60 + currentMinute;
@@ -399,33 +400,37 @@
                 this.schedulerInterval = null; 
 
                 this.initializeElements();
+                console.log('LiveTVChannel: Elements initialized. `this.elements`:', this.elements); // Debug log
                 this.setupPlayOverlay();
                 this.updateClock(); 
                 console.log('LiveTVChannel initialized. Waiting for user interaction and YouTube API to be ready.');
             }
 
             initializeElements() {
-                this.elements = {
-                    currentProgram: document.getElementById('currentProgram'),
-                    programTime: document.getElementById('programTime'),
-                    currentTime: document.getElementById('currentTime'),
-                    programProgress: document.getElementById('programProgress'),
-                    timeRemaining: document.getElementById('timeRemaining'),
-                    scheduleList: document.getElementById('scheduleList'),
-                    videoPlayer: document.getElementById('videoPlayer'),
-                    youtubePlayer: document.getElementById('youtubePlayer'),
-                    loadingSpinner: document.getElementById('loadingSpinner'),
-                    errorMessage: document.getElementById('errorMessage'),
-                    connectionStatus: document.getElementById('connectionStatus'),
-                    playOverlay: document.getElementById('playOverlay')
-                };
-
-                // Moved renderSchedule() call here, after all elements are defined
+                // Initialize elements as an empty object first to prevent `undefined` errors
+                this.elements = {}; 
+                
+                this.elements.currentProgram = document.getElementById('currentProgram');
+                this.elements.programTime = document.getElementById('programTime');
+                this.elements.currentTime = document.getElementById('currentTime');
+                this.elements.programProgress = document.getElementById('programProgress');
+                this.elements.timeRemaining = document.getElementById('timeRemaining');
+                this.elements.scheduleList = document.getElementById('scheduleList');
+                this.elements.videoPlayer = document.getElementById('videoPlayer');
+                this.elements.youtubePlayer = document.getElementById('youtubePlayer');
+                this.elements.loadingSpinner = document.getElementById('loadingSpinner');
+                this.elements.errorMessage = document.getElementById('errorMessage');
+                this.elements.connectionStatus = document.getElementById('connectionStatus');
+                this.elements.playOverlay = document.getElementById('playOverlay');
+                
                 this.renderSchedule(); 
             }
 
-            // Moved renderSchedule method definition here
             renderSchedule() {
+                if (!this.elements.scheduleList) {
+                    console.error("renderSchedule: scheduleList element not found.");
+                    return;
+                }
                 this.elements.scheduleList.innerHTML = '';
                 
                 this.schedule.forEach(program => {
@@ -447,6 +452,10 @@
             }
 
             setupPlayOverlay() {
+                if (!this.elements.playOverlay) {
+                    console.error("setupPlayOverlay: playOverlay element not found. Cannot attach listener.");
+                    return;
+                }
                 this.elements.playOverlay.addEventListener('click', () => {
                     console.log('Play overlay clicked. User interaction registered.');
                     this.elements.playOverlay.style.display = 'none';
@@ -457,6 +466,11 @@
 
             initializeYouTubePlayerInstance() {
                 console.log('onYouTubeIframeAPIReady fired, initializing YT.Player...');
+                if (!this.elements.youtubePlayer) {
+                    console.error("initializeYouTubePlayerInstance: youtubePlayer element not found. Cannot initialize YT.Player.");
+                    this.showError("Video player element missing. Please check HTML.");
+                    return;
+                }
                 this.youtubePlayer = new YT.Player('youtubePlayer', {
                     height: '100%',
                     width: '100%',
@@ -601,15 +615,18 @@
             }
 
             async playYouTubeVideo(program) {
-                this.elements.videoPlayer.style.display = 'none';
-                this.elements.youtubePlayer.style.display = 'block';
+                // Ensure elements exist before trying to style
+                if (this.elements.videoPlayer) this.elements.videoPlayer.style.display = 'none';
+                if (this.elements.youtubePlayer) this.elements.youtubePlayer.style.display = 'block';
 
                 if (this.hls) {
                     this.hls.destroy();
                     this.hls = null;
-                    this.elements.videoPlayer.pause();
-                    this.elements.videoPlayer.removeAttribute('src');
-                    this.elements.videoPlayer.load();
+                    if (this.elements.videoPlayer) {
+                        this.elements.videoPlayer.pause();
+                        this.elements.videoPlayer.removeAttribute('src');
+                        this.elements.videoPlayer.load();
+                    }
                     console.log('HLS player destroyed and video element reset.');
                 }
 
@@ -630,12 +647,19 @@
             }
 
             async playM3U8Stream(program) {
-                this.elements.youtubePlayer.style.display = 'none';
-                this.elements.videoPlayer.style.display = 'block';
+                if (this.elements.youtubePlayer) this.elements.youtubePlayer.style.display = 'none';
+                if (this.elements.videoPlayer) this.elements.videoPlayer.style.display = 'block';
 
                 if (this.youtubePlayer && typeof this.youtubePlayer.pauseVideo === 'function') {
                     this.youtubePlayer.pauseVideo();
                     console.log('YouTube player paused for M3U8 stream.');
+                }
+
+                if (!this.elements.videoPlayer) {
+                    console.error("playM3U8Stream: videoPlayer element not found.");
+                    this.showError("Video player element missing for HLS. Please check HTML.");
+                    this.hideLoading();
+                    return;
                 }
 
                 if (Hls.isSupported()) {
@@ -708,9 +732,17 @@
             }
 
             updateProgramInfo(program) {
-                this.elements.currentProgram.textContent = program.title;
-                const endTime = this.addMinutesToTime(program.startTime, program.duration);
-                this.elements.programTime.textContent = `${program.startTime} - ${endTime}`;
+                if (this.elements.currentProgram) {
+                    this.elements.currentProgram.textContent = program.title;
+                } else {
+                    console.warn("updateProgramInfo: currentProgram element not found.");
+                }
+                if (this.elements.programTime) {
+                    const endTime = this.addMinutesToTime(program.startTime, program.duration);
+                    this.elements.programTime.textContent = `${program.startTime} - ${endTime}`;
+                } else {
+                    console.warn("updateProgramInfo: programTime element not found.");
+                }
             }
 
             addMinutesToTime(timeStr, minutes) {
@@ -723,7 +755,11 @@
 
             updateClock() {
                 const now = new Date();
-                this.elements.currentTime.textContent = now.toLocaleTimeString();
+                if (this.elements.currentTime) { // Defensive check
+                    this.elements.currentTime.textContent = now.toLocaleTimeString();
+                } else {
+                    console.warn("updateClock: currentTime element not found.");
+                }
 
                 if (this.currentProgram) {
                     const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
@@ -733,8 +769,17 @@
                     const elapsed = currentTimeMinutes - programStartTimeInMinutes;
                     const remaining = this.currentProgram.duration - elapsed;
 
-                    this.elements.programProgress.textContent = `${Math.max(0, elapsed)}min`;
-                    this.elements.timeRemaining.textContent = `${Math.max(0, remaining)}min`;
+                    if (this.elements.programProgress) { // Defensive check
+                        this.elements.programProgress.textContent = `${Math.max(0, elapsed)}min`;
+                    } else {
+                        console.warn("updateClock: programProgress element not found.");
+                    }
+                    if (this.elements.timeRemaining) { // Defensive check
+                        this.elements.timeRemaining.textContent = `${Math.max(0, remaining)}min`;
+                    } else {
+                        console.warn("updateClock: timeRemaining element not found.");
+                    }
+
 
                     if (remaining <= 0 && this.currentProgram.duration > 0) {
                         console.log(`Program "${this.currentProgram.title}" expected to end. Forcing re-check.`);
@@ -742,7 +787,11 @@
                     }
                 }
 
-                this.elements.viewerCount.textContent = `Viewers: ${Math.floor(Math.random() * 50) + 50}`;
+                if (this.elements.viewerCount) { // Defensive check
+                    this.elements.viewerCount.textContent = `Viewers: ${Math.floor(Math.random() * 50) + 50}`;
+                } else {
+                    console.warn("updateClock: viewerCount element not found.");
+                }
 
                 setTimeout(() => this.updateClock(), 1000);
             }
@@ -764,6 +813,10 @@
             }
 
             updateScheduleHighlight() {
+                if (!this.elements.scheduleList) {
+                    console.warn("updateScheduleHighlight: scheduleList element not found.");
+                    return;
+                }
                 const items = this.elements.scheduleList.children;
                 Array.from(items).forEach((item, index) => {
                     item.classList.toggle('active', 
@@ -773,26 +826,50 @@
             }
 
             showLoading() {
-                this.elements.loadingSpinner.style.display = 'block';
+                if (this.elements.loadingSpinner) {
+                    this.elements.loadingSpinner.style.display = 'block';
+                } else {
+                    console.warn("showLoading: loadingSpinner element not found.");
+                }
             }
 
             hideLoading() {
-                this.elements.loadingSpinner.style.display = 'none';
+                if (this.elements.loadingSpinner) {
+                    this.elements.loadingSpinner.style.display = 'none';
+                } else {
+                    console.warn("hideLoading: loadingSpinner element not found.");
+                }
             }
 
             showError(message) {
-                this.elements.errorMessage.textContent = message;
-                this.elements.errorMessage.style.display = 'block';
-                this.hideLoading();
-                this.elements.connectionStatus.textContent = 'Disconnected';
-                this.elements.connectionStatus.style.color = '#ff4444';
+                if (this.elements.errorMessage) {
+                    this.elements.errorMessage.textContent = message;
+                    this.elements.errorMessage.style.display = 'block';
+                } else {
+                    console.error("showError: errorMessage element not found. Error:", message);
+                }
+                this.hideLoading(); // Still try to hide spinner
+                if (this.elements.connectionStatus) {
+                    this.elements.connectionStatus.textContent = 'Disconnected';
+                    this.elements.connectionStatus.style.color = '#ff4444';
+                } else {
+                    console.warn("showError: connectionStatus element not found.");
+                }
                 console.error('Error displayed:', message);
             }
 
             hideError() {
-                this.elements.errorMessage.style.display = 'none';
-                this.elements.connectionStatus.textContent = 'Connected';
-                this.elements.connectionStatus.style.color = 'white';
+                if (this.elements.errorMessage) {
+                    this.elements.errorMessage.style.display = 'none';
+                } else {
+                    console.warn("hideError: errorMessage element not found.");
+                }
+                if (this.elements.connectionStatus) {
+                    this.elements.connectionStatus.textContent = 'Connected';
+                    this.elements.connectionStatus.style.color = 'white';
+                } else {
+                    console.warn("hideError: connectionStatus element not found.");
+                }
             }
         }
 
