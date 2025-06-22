@@ -881,6 +881,7 @@
             liveTVChannelInstance = new LiveTVChannel();
         });
 
+        // Ensure this is a global function
         function onYouTubeIframeAPIReady() {
             if (liveTVChannelInstance) {
                 liveTVChannelInstance.initializeYouTubePlayerInstance();
