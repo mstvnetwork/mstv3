@@ -63,12 +63,15 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
             display: flex;
+            flex-direction: column; /* Allow text and spinner to stack */
             justify-content: center;
             align-items: center;
             color: white;
             font-size: 1.5rem;
             z-index: 10;
             border-radius: 0.75rem;
+            text-align: center;
+            cursor: pointer; /* Indicate it's clickable */
         }
         .spinner {
             border: 4px solid rgba(255, 255, 255, 0.3);
@@ -110,7 +113,7 @@
                 <video id="hls-video" controls style="display: none;"></video>
                 <div id="loading-overlay" class="loading-overlay hidden">
                     <div class="spinner"></div>
-                    <span class="ml-4">Loading...</span>
+                    <span id="loading-text" class="mt-4">Loading...</span>
                 </div>
             </div>
             <div id="status-message" class="text-center text-red-400 mb-4 hidden"></div>
@@ -143,7 +146,6 @@
         // Each object represents a segment in the broadcast.
         // `duration` is in seconds. For 'live' types, it dictates how long the live stream occupies its slot.
         const playlist = [
-            // Only these three URLs are in the playlist, each for a 5-minute slot (300 seconds)
             { id: 'yt-test-1', title: 'YouTube Song Test', type: 'youtube-video', url: 'tA3MjemMkgg', duration: 300 }, // 5 minutes
             { id: 'yt-test-2', title: 'YouTube Live Stream Test', type: 'youtube-live', url: 'wlYSami-7xY', duration: 300 }, // 5 minutes slot for live
             { id: 'm3u8-test-1', title: 'M3U8 Test Stream', type: 'm3u8', url: 'http://playertest.longtailvideo.com/adaptive/wowzaid3/playlist.m3u8', duration: 300 } // 5 minutes
@@ -157,11 +159,13 @@
         let timerInterval; // Interval for updating remaining time
         let currentVideoDuration = 0; // Actual duration of the currently loaded video (from player API)
         let segmentDurationOffset = 0; // How much into the current segment the broadcast began
+        let autoplayBlocked = false; // Flag to track if autoplay was blocked
 
         // DOM Elements
         const youtubePlayerDiv = document.getElementById('youtube-player');
         const hlsVideoElement = document.getElementById('hls-video');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
         const nowPlayingTitle = document.getElementById('now-playing-title');
         const nowPlayingType = document.getElementById('now-playing-type');
         const nowPlayingTimeRemaining = document.getElementById('now-playing-time-remaining');
@@ -187,35 +191,46 @@
         }
 
         /**
-         * Displays a loading spinner.
+         * Displays a loading spinner and message.
+         * @param {string} message - The message to display.
          */
-        function showLoading() {
+        function showLoading(message = "Loading...") {
             loadingOverlay.classList.remove('hidden');
+            loadingText.textContent = message;
             youtubePlayerDiv.style.display = 'none';
             hlsVideoElement.style.display = 'none';
             statusMessage.classList.add('hidden'); // Hide any previous error messages
+            autoplayBlocked = false; // Reset autoplay blocked state on new load attempt
         }
 
         /**
-         * Hides the loading spinner and shows the video player.
+         * Hides the loading spinner.
          */
         function hideLoading() {
             loadingOverlay.classList.add('hidden');
+            loadingText.textContent = 'Loading...'; // Reset text
         }
 
         /**
-         * Displays an error message to the user.
-         * @param {string} message - The error message to display.
+         * Displays an error or info message to the user.
+         * @param {string} message - The message to display.
+         * @param {boolean} isError - True if it's an error, false for info.
          */
         function showStatusMessage(message, isError = true) {
             statusMessage.textContent = message;
-            statusMessage.classList.remove('hidden');
+            statusMessage.classList.remove('hidden', 'text-red-400', 'text-green-400');
             if (isError) {
                 statusMessage.classList.add('text-red-400');
             } else {
-                statusMessage.classList.remove('text-red-400');
                 statusMessage.classList.add('text-green-400');
             }
+        }
+
+        /**
+         * Hides the status message.
+         */
+        function hideStatusMessage() {
+            statusMessage.classList.add('hidden');
         }
 
         // --- Core Channel Logic ---
@@ -264,7 +279,7 @@
          * @param {number} seekTime - The time (in seconds) to start playback within the video.
          */
         function loadSegment(segmentIndex, seekTime = 0) {
-            showLoading(); // Always show loading before trying to play
+            showLoading("Loading content..."); // Show loading before trying to play
 
             // Ensure index is within bounds (for looping playlist)
             currentSegmentIndex = segmentIndex % playlist.length;
@@ -332,24 +347,31 @@
                         // For M3U8, especially live, seeking behavior can vary.
                         // For VOD M3U8, seekTime will apply directly.
                         // For live M3U8, it will likely start at the live edge regardless of seekTime.
-                        if (seekTime > 0 && !hlsPlayer.currentLevel.live) { // Only seek VOD HLS streams
+                        if (seekTime > 0 && !hlsPlayer.currentLevel.live) {
                             hlsVideoElement.currentTime = seekTime;
                         }
-                        hlsVideoElement.play().catch(e => {
-                            console.error("HLS video play failed (user gesture required?):", e);
-                            showStatusMessage("Click anywhere to play the HLS stream.");
+                        hlsVideoElement.play().then(() => {
+                            console.log("HLS video started playing.");
+                            hideLoading();
+                            hideStatusMessage();
+                        }).catch(e => {
+                            console.warn("HLS video play failed (autoplay blocked):", e);
+                            autoplayBlocked = true;
+                            showLoading("Click anywhere to play."); // Update loading text to prompt user
+                            showStatusMessage("Click anywhere on the screen to play the stream.", false);
                         });
-                        hideLoading();
                     });
                     hlsPlayer.on(Hls.Events.ERROR, function(event, data) {
                         console.error("HLS.js error:", data);
                         showStatusMessage(`HLS Error: ${data.details}. Trying next segment.`);
+                        hideLoading(); // Hide loading on error
                         setTimeout(() => playNextSegment(), 3000); // Try next segment after a delay
                     });
                     hlsVideoElement.onended = playNextSegment;
                     hlsVideoElement.onerror = (e) => {
                         console.error("HTML5 video error:", e);
                         showStatusMessage("Video playback error. Trying next segment.");
+                        hideLoading(); // Hide loading on error
                         setTimeout(() => playNextSegment(), 3000);
                     };
                 } else if (hlsVideoElement.canPlayType('application/vnd.apple.mpegurl')) {
@@ -361,16 +383,22 @@
                         if (seekTime > 0) {
                             hlsVideoElement.currentTime = seekTime;
                         }
-                        hlsVideoElement.play().catch(e => {
-                            console.error("Native HLS video play failed:", e);
-                            showStatusMessage("Click anywhere to play the HLS stream.");
+                        hlsVideoElement.play().then(() => {
+                            console.log("Native HLS video started playing.");
+                            hideLoading();
+                            hideStatusMessage();
+                        }).catch(e => {
+                            console.warn("Native HLS video play failed (autoplay blocked):", e);
+                            autoplayBlocked = true;
+                            showLoading("Click anywhere to play."); // Update loading text to prompt user
+                            showStatusMessage("Click anywhere on the screen to play the stream.", false);
                         });
-                        hideLoading();
                     });
                     hlsVideoElement.onended = playNextSegment;
                     hlsVideoElement.onerror = (e) => {
                         console.error("Native HTML5 video error:", e);
                         showStatusMessage("Video playback error. Trying next segment.");
+                        hideLoading(); // Hide loading on error
                         setTimeout(() => playNextSegment(), 3000);
                     };
                 } else {
@@ -388,12 +416,18 @@
         function onYouTubePlayerReady(event) {
             console.log("YouTube player ready.");
             currentVideoDuration = youtubePlayer.getDuration(); // Get actual video duration
-            event.target.playVideo().catch(e => {
-                console.error("YouTube play failed (user gesture required?):", e);
-                showStatusMessage("Click anywhere to play the YouTube video.", false);
+            event.target.playVideo().then(() => {
+                console.log("YouTube video started playing.");
+                hideLoading();
+                hideStatusMessage();
+                startRemainingTimeTimer(); // Start updating remaining time
+            }).catch(e => {
+                console.warn("YouTube play failed (autoplay blocked):", e);
+                autoplayBlocked = true;
+                showLoading("Click anywhere to play."); // Update loading text to prompt user
+                showStatusMessage("Click anywhere on the screen to play the video.", false);
+                // Keep the spinner visible but change text to prompt user action
             });
-            hideLoading();
-            startRemainingTimeTimer(); // Start updating remaining time
         }
 
         /**
@@ -412,10 +446,10 @@
                 playNextSegment();
             } else if (event.data === YT.PlayerState.PLAYING) {
                 hideLoading();
-                statusMessage.classList.add('hidden'); // Clear any play messages
+                hideStatusMessage(); // Clear any play messages
                 startRemainingTimeTimer(); // Ensure timer is running when playing
             } else if (event.data === YT.PlayerState.BUFFERING) {
-                showLoading(); // Show loading when buffering
+                showLoading("Buffering..."); // Show loading when buffering
             } else if (event.data === YT.PlayerState.PAUSED) {
                 clearInterval(timerInterval); // Stop timer when paused
             }
@@ -436,6 +470,7 @@
             if (event.data === 100) errorMessage = "YouTube Video not found. Trying next segment.";
             else if (event.data === 101 || event.data === 150) errorMessage = "YouTube Video cannot be played in embedded player. Trying next segment.";
             showStatusMessage(errorMessage);
+            hideLoading(); // Hide loading on error
             setTimeout(() => playNextSegment(), 3000); // Try next segment after a delay
         }
 
@@ -484,43 +519,43 @@
                 const segment = playlist[currentSegmentIndex];
                 let elapsedInSegment = 0;
 
+                // For YouTube live, current time can be very large.
+                // For HLS live, current time indicates playback from stream start.
+                // We use the segment.duration (slot duration) for "time remaining" on live content.
                 if (segment.type === 'youtube-video' && youtubePlayer && typeof youtubePlayer.getCurrentTime === 'function') {
                     elapsedInSegment = youtubePlayer.getCurrentTime();
                 } else if (segment.type === 'm3u8' && hlsVideoElement) {
                     elapsedInSegment = hlsVideoElement.currentTime;
                 }
-                // For live streams, remaining time is just the slot duration minus elapsed time.
-                // For VOD, it's the actual video duration minus elapsed playback.
-                // If currentVideoDuration is known (e.g., from YouTube API or HLS metadata), use that,
-                // otherwise fall back to the playlist slot duration.
 
-                const actualDurationForCalc = currentVideoDuration > 0 && segment.type !== 'youtube-live' && segment.type !== 'm3u8' ? currentVideoDuration : segment.duration;
+                // If it's a live stream (YouTube Live or HLS live), calculate remaining time based on its slot duration
+                const isLive = segment.type === 'youtube-live' || (segment.type === 'm3u8' && hlsPlayer && hlsPlayer.currentLevel.live);
+                let remainingTime;
 
-                const remainingTime = Math.max(0, actualDurationForCalc - elapsedInSegment);
+                if (isLive) {
+                    // Calculate elapsed time within the current segment's allocated slot
+                    const now = Date.now();
+                    const segmentStartTimeInBroadcast = playlist.slice(0, currentSegmentIndex).reduce((sum, s) => sum + s.duration, 0);
+                    const currentBroadcastTimeSeconds = (now - broadcastStartTime) / 1000;
+                    const elapsedInCurrentSlot = currentBroadcastTimeSeconds - segmentStartTimeInBroadcast;
+                    remainingTime = Math.max(0, segment.duration - elapsedInCurrentSlot);
+
+                    // If the live slot duration has passed, transition to the next segment
+                    if (remainingTime <= 0.1) { // A small buffer
+                        console.log(`Live segment slot ended for "${segment.title}". Transitioning.`);
+                        playNextSegment();
+                        return; // Prevent further execution for this interval tick
+                    }
+                } else {
+                    // For VOD (youtube-video, m3u8 VOD), use the actual video duration or playlist duration if unknown
+                    const actualDurationForCalc = currentVideoDuration > 0 ? currentVideoDuration : segment.duration;
+                    remainingTime = Math.max(0, actualDurationForCalc - elapsedInSegment);
+
+                    // If VOD, player's 'ended' event will trigger playNextSegment, so no need for timer-based transition here.
+                }
 
                 if (nowPlayingTimeRemaining) {
                     nowPlayingTimeRemaining.textContent = `Remaining: ${formatTime(remainingTime)}`;
-                }
-
-                // If this is a VOD segment, and it's close to its end, prepare to transition
-                // We also check against segment.duration for the playlist's defined slot.
-                if (elapsedInSegment >= actualDurationForCalc - 1 && actualDurationForCalc > 0) {
-                     // If the *actual video* is about to end, or the *playlist slot* is about to end, transition.
-                     // The player's 'ended' event is the primary trigger, but this provides a fallback for live.
-                    if (segment.type === 'youtube-live' || (segment.type === 'm3u8' && hlsPlayer && hlsPlayer.currentLevel.live)) {
-                        // For live streams, we strictly transition based on the allocated slot duration.
-                        // Calculate elapsed time relative to the broadcast start
-                        const now = Date.now();
-                        const segmentStartTimeInBroadcast = playlist.slice(0, currentSegmentIndex).reduce((sum, s) => sum + s.duration, 0);
-                        const segmentEndTimeInBroadcast = segmentStartTimeInBroadcast + segment.duration;
-                        const broadcastElapsedAtCurrentSegmentEnd = (broadcastStartTime / 1000) + segmentEndTimeInBroadcast;
-
-                        if (now / 1000 >= broadcastElapsedAtCurrentSegmentEnd) {
-                            console.log(`Live segment slot ended for "${segment.title}". Transitioning.`);
-                            playNextSegment();
-                        }
-                    }
-                    // For VOD, player's 'ended' event will trigger playNextSegment, so no need here.
                 }
 
             }, 1000); // Update every second
@@ -528,6 +563,23 @@
 
 
         // --- Initialization ---
+
+        /**
+         * Attempts to play the current video if autoplay was blocked.
+         * Called on user interaction (e.g., click).
+         */
+        function attemptPlaybackIfBlocked() {
+            if (autoplayBlocked) {
+                console.log("Attempting to play after user interaction.");
+                if (youtubePlayer && typeof youtubePlayer.playVideo === 'function') {
+                    youtubePlayer.playVideo();
+                }
+                if (hlsVideoElement && hlsVideoElement.paused) {
+                    hlsVideoElement.play().catch(e => console.error("Could not play HLS on click:", e));
+                }
+                // AutoplayBlocked flag will be reset when a player successfully starts playing
+            }
+        }
 
         /**
          * Initializes the channel on page load.
@@ -565,28 +617,10 @@
         // Make sure `onYouTubeIframeAPIReady` is a global function for the YouTube API to call it.
         window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
 
-        // If for some reason the YouTube API script takes too long, or for direct test.
-        // It's safer to wait for `onYouTubeIframeAPIReady` for production use.
-        // If YouTube API is already loaded or not needed, call initializeChannel directly.
-        if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined' && window.onYouTubeIframeAPIReadyLoaded) {
-            initializeChannel();
-        } else {
-            // Mark that the onYouTubeIframeAPIReady function is ready to be called by the API.
-            window.onYouTubeIframeAPIReadyLoaded = true;
-        }
-
         // Add a general click listener to try to resume playback if blocked by autoplay policies
-        document.addEventListener('click', () => {
-            // Check if YouTube player exists and is paused
-            if (youtubePlayer && typeof youtubePlayer.getPlayerState === 'function' &&
-                youtubePlayer.getPlayerState() === YT.PlayerState.PAUSED) {
-                youtubePlayer.playVideo();
-            }
-            // Check if HLS video exists and is paused
-            if (hlsVideoElement && hlsVideoElement.paused) {
-                hlsVideoElement.play().catch(e => console.error("Could not play HLS on click:", e));
-            }
-        });
+        // This listener is crucial for ensuring playback starts after user interaction.
+        document.addEventListener('click', attemptPlaybackIfBlocked);
+        loadingOverlay.addEventListener('click', attemptPlaybackIfBlocked); // Make the loading overlay clickable too
 
     </script>
 </body>
