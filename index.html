@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live TV Channel</title>
     <style>
-        /* CSS remains the same */
+        /* CSS remains exactly the same */
         * {
             margin: 0;
             padding: 0;
@@ -406,14 +406,13 @@
             }
 
             initializeElements() {
-                // Initialize elements as an empty object first to prevent `undefined` errors
                 this.elements = {}; 
                 
                 const elementIds = [
                     'currentProgram', 'programTime', 'currentTime', 'programProgress', 
                     'timeRemaining', 'scheduleList', 'videoPlayer', 'youtubePlayer', 
                     'loadingSpinner', 'errorMessage', 'connectionStatus', 'playOverlay',
-                    'viewerCount' // Added viewerCount to this list for explicit check
+                    'viewerCount' 
                 ];
 
                 elementIds.forEach(id => {
@@ -422,9 +421,8 @@
                         this.elements[id] = element;
                         console.log(`Element found: #${id}`);
                     } else {
-                        console.error(`Element NOT FOUND: #${id}`); // This will specifically tell us if any ID is missing
-                        // Optionally, create a dummy element to prevent further errors, or handle gracefully
-                        this.elements[id] = null; // Set to null if not found
+                        console.error(`Element NOT FOUND: #${id}`); 
+                        this.elements[id] = null; 
                     }
                 });
                 
