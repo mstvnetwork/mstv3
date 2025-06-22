@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live TV Channel</title>
     <style>
-        /* CSS remains the same as your last version */
+        /* CSS remains the same */
         * {
             margin: 0;
             padding: 0;
@@ -322,7 +322,6 @@
     <script>
         class LiveTVChannel {
             constructor() {
-                // Get current time for initial schedule setup
                 const now = new Date(); 
                 const currentHour = now.getHours();
                 const currentMinute = now.getMinutes();
@@ -400,7 +399,7 @@
                 this.schedulerInterval = null; 
 
                 this.initializeElements();
-                console.log('LiveTVChannel: Elements initialized. `this.elements`:', this.elements); // Debug log
+                console.log('LiveTVChannel: Elements initialized. `this.elements` contents (should not be empty):', this.elements); 
                 this.setupPlayOverlay();
                 this.updateClock(); 
                 console.log('LiveTVChannel initialized. Waiting for user interaction and YouTube API to be ready.');
@@ -410,25 +409,31 @@
                 // Initialize elements as an empty object first to prevent `undefined` errors
                 this.elements = {}; 
                 
-                this.elements.currentProgram = document.getElementById('currentProgram');
-                this.elements.programTime = document.getElementById('programTime');
-                this.elements.currentTime = document.getElementById('currentTime');
-                this.elements.programProgress = document.getElementById('programProgress');
-                this.elements.timeRemaining = document.getElementById('timeRemaining');
-                this.elements.scheduleList = document.getElementById('scheduleList');
-                this.elements.videoPlayer = document.getElementById('videoPlayer');
-                this.elements.youtubePlayer = document.getElementById('youtubePlayer');
-                this.elements.loadingSpinner = document.getElementById('loadingSpinner');
-                this.elements.errorMessage = document.getElementById('errorMessage');
-                this.elements.connectionStatus = document.getElementById('connectionStatus');
-                this.elements.playOverlay = document.getElementById('playOverlay');
+                const elementIds = [
+                    'currentProgram', 'programTime', 'currentTime', 'programProgress', 
+                    'timeRemaining', 'scheduleList', 'videoPlayer', 'youtubePlayer', 
+                    'loadingSpinner', 'errorMessage', 'connectionStatus', 'playOverlay',
+                    'viewerCount' // Added viewerCount to this list for explicit check
+                ];
+
+                elementIds.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        this.elements[id] = element;
+                        console.log(`Element found: #${id}`);
+                    } else {
+                        console.error(`Element NOT FOUND: #${id}`); // This will specifically tell us if any ID is missing
+                        // Optionally, create a dummy element to prevent further errors, or handle gracefully
+                        this.elements[id] = null; // Set to null if not found
+                    }
+                });
                 
                 this.renderSchedule(); 
             }
 
             renderSchedule() {
                 if (!this.elements.scheduleList) {
-                    console.error("renderSchedule: scheduleList element not found.");
+                    console.error("renderSchedule: scheduleList element not found, cannot render schedule.");
                     return;
                 }
                 this.elements.scheduleList.innerHTML = '';
@@ -615,7 +620,6 @@
             }
 
             async playYouTubeVideo(program) {
-                // Ensure elements exist before trying to style
                 if (this.elements.videoPlayer) this.elements.videoPlayer.style.display = 'none';
                 if (this.elements.youtubePlayer) this.elements.youtubePlayer.style.display = 'block';
 
@@ -755,8 +759,8 @@
 
             updateClock() {
                 const now = new Date();
-                if (this.elements.currentTime) { // Defensive check
-                    this.elements.currentTime.textContent = now.toLocaleTimeString();
+                if (this.elements.currentTime) { 
+                    this.elements.currentTime.textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
                 } else {
                     console.warn("updateClock: currentTime element not found.");
                 }
@@ -769,17 +773,16 @@
                     const elapsed = currentTimeMinutes - programStartTimeInMinutes;
                     const remaining = this.currentProgram.duration - elapsed;
 
-                    if (this.elements.programProgress) { // Defensive check
+                    if (this.elements.programProgress) { 
                         this.elements.programProgress.textContent = `${Math.max(0, elapsed)}min`;
                     } else {
                         console.warn("updateClock: programProgress element not found.");
                     }
-                    if (this.elements.timeRemaining) { // Defensive check
+                    if (this.elements.timeRemaining) { 
                         this.elements.timeRemaining.textContent = `${Math.max(0, remaining)}min`;
                     } else {
                         console.warn("updateClock: timeRemaining element not found.");
                     }
-
 
                     if (remaining <= 0 && this.currentProgram.duration > 0) {
                         console.log(`Program "${this.currentProgram.title}" expected to end. Forcing re-check.`);
@@ -787,7 +790,7 @@
                     }
                 }
 
-                if (this.elements.viewerCount) { // Defensive check
+                if (this.elements.viewerCount) { 
                     this.elements.viewerCount.textContent = `Viewers: ${Math.floor(Math.random() * 50) + 50}`;
                 } else {
                     console.warn("updateClock: viewerCount element not found.");
@@ -848,7 +851,7 @@
                 } else {
                     console.error("showError: errorMessage element not found. Error:", message);
                 }
-                this.hideLoading(); // Still try to hide spinner
+                this.hideLoading(); 
                 if (this.elements.connectionStatus) {
                     this.elements.connectionStatus.textContent = 'Disconnected';
                     this.elements.connectionStatus.style.color = '#ff4444';
@@ -876,6 +879,7 @@
         let liveTVChannelInstance;
 
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM Content Loaded. Initializing LiveTVChannel...');
             liveTVChannelInstance = new LiveTVChannel();
         });
 
