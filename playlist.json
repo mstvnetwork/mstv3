@@ -2,21 +2,15 @@
     "playlist": [
         {
             "id": 1,
-            "url": "https://www.youtube.com/watch?v=LIVE_STREAM_1",
-            "title": "Live Stream 1",
-            "start_time": "2025-06-25T14:00:00Z"
+            "url": "https://www.youtube.com/watch?v=21X5lGlDOfg",
+            "title": "NASA Live Stream",
+            "start_time": "2025-06-23T05:42:00Z"
         },
         {
             "id": 2,
-            "url": "https://www.youtube.com/watch?v=SINGLE_VIDEO_1",
-            "title": "Video Stream 1",
-            "start_time": "2025-06-25T16:00:00Z"
-        },
-        {
-            "id": 3,
-            "url": "https://www.youtube.com/watch?v=LIVE_STREAM_2",
-            "title": "Live Stream 2",
-            "start_time": "2025-06-25T18:00:00Z"
+            "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "title": "Sample Video",
+            "start_time": "2025-06-23T05:44:00Z"
         }
     ]
 }
