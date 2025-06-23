@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Live TV Playlist (Local Time Support)</title>
+  <title>Live TV Playlist (AEST Local Time Support)</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; }
@@ -17,7 +17,8 @@
 <div id="current-title">Loading playlist...</div>
 
 <script>
-  const playlistUrl = 'https://raw.githubusercontent.com/your-username/your-repo/main/playlist.json';
+  // Correct raw URL for your public playlist.json
+  const playlistUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json';
   let playlist = [];
   let currentPlayer = null;
   let currentVideo = null;
@@ -38,7 +39,8 @@
     const now = new Date();
 
     for (const video of playlist) {
-      const start = new Date(video.startTime); // automatically parsed with timezone
+      // Parse ISO times with timezone info (AEST +10:00 in JSON)
+      const start = new Date(video.startTime);
       const end = new Date(video.endTime);
 
       if (now >= start && now < end) {
@@ -50,6 +52,7 @@
       }
     }
 
+    // No video to play now
     document.getElementById('current-title').innerText = 'No broadcast right now.';
     clearPlayer();
   }
