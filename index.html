@@ -1,47 +1,63 @@
-# Live Stream Player
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream Player</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Live TV Broadcast</title>
+    <script src="https://cdn.jsdelivr.net/npm/video.js/dist/video.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/video.js/dist/video-js.min.css" rel="stylesheet" />
+    <style>
+        #video-player {
+            width: 100%;
+            height: auto;
+        }
+    </style>
 </head>
 <body>
-    <h1>Live Stream Player</h1>
-    <div id="player"></div>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <video id="video-player" class="video-js vjs-default-skin" controls preload="auto" data-setup="{}">
+        <source id="video-source" src="" type="application/x-mpegURL">
+        Your browser does not support HTML5 video.
+    </video>
+
     <script>
-        const playlistUrl = 'https://raw.githubusercontent.com/yourusername/yourrepo/main/playlist.json';
+        const videoPlayer = videojs('video-player');
+        let currentIndex = 0;
+        let playlist = [];
+        const jsonUrl = 'path/to/your/playlist.json'; // Update with your JSON file URL
 
-        fetch(playlistUrl)
-            .then(response => response.json())
-            .then(data => {
-                const player = document.getElementById('player');
-                data.urls.forEach(url => {
-                    const video = document.createElement('video');
-                    video.controls = true;
-                    video.width = 640;
-                    video.height = 360;
-                    player.appendChild(video);
+        function fetchPlaylist() {
+            fetch(jsonUrl)
+                .then(response => response.json())
+                .then(data => {
+                    playlist = data.urls; // Assuming your JSON has a structure like { "urls": ["url1", "url2", ...] }
+                    loadVideo();
+                })
+                .catch(error => console.error('Error fetching playlist:', error));
+        }
 
-                    if (Hls.isSupported()) {
-                        const hls = new Hls();
-                        hls.loadSource(url);
-                        hls.attachMedia(video);
-                        hls.on(Hls.Events.MANIFEST_PARSED, function () {
-                            video.play();
-                        });
-                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                        video.src = url;
-                        video.addEventListener('loadedmetadata', function () {
-                            video.play();
-                        });
-                    }
-                });
-            })
-            .catch(error => console.error('Error fetching playlist:', error));
+        function loadVideo() {
+            if (playlist.length > 0) {
+                const savedIndex = localStorage.getItem('currentIndex');
+                currentIndex = savedIndex ? parseInt(savedIndex) : 0;
+                videoPlayer.src(playlist[currentIndex]);
+                videoPlayer.play();
+                videoPlayer.on('ended', nextVideo);
+            }
+        }
+
+        function nextVideo() {
+            currentIndex = (currentIndex + 1) % playlist.length;
+            localStorage.setItem('currentIndex', currentIndex);
+            loadVideo();
+        }
+
+        window.addEventListener('beforeunload', () => {
+            localStorage.setItem('currentIndex', currentIndex);
+        });
+
+        window.addEventListener('load', () => {
+            fetchPlaylist();
+        });
     </script>
 </body>
 </html>
