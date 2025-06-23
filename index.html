@@ -3,25 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Broadcast Channel</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Live TV Channel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        #video-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        video {
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Live Broadcast Channel</h1>
-        <div id="player-container">
-            <!-- Video Player -->
-            <iframe id="video-player" width="560" height="315" src="" frameborder="0" allowfullscreen></iframe>
-        </div>
-        <div id="time-sync-container">
-            <p>Next Broadcast Start Time: <span id="next-broadcast-time"></span></p>
-        </div>
-        <div id="playlist-container">
-            <h2>Playlist</h2>
-            <ul id="playlist"></ul>
-        </div>
+    <h1>Live TV Channel</h1>
+    <div id="video-container">
+        <video id="live-video" controls autoplay></video>
+        <div id="playlist"></div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        async function fetchPlaylist() {
+            const response = await fetch('https://raw.githubusercontent.com/yourusername/yourrepo/main/playlist.json');
+            const data = await response.json();
+            return data;
+        }
+
+        function playVideo(url) {
+            const video = document.getElementById('live-video');
+            video.src = url;
+            video.play();
+        }
+
+        async function init() {
+            const playlist = await fetchPlaylist();
+            const videoUrls = playlist.urls; // Assuming your JSON has a 'urls' array
+
+            let currentIndex = 0;
+
+            function playNext() {
+                if (currentIndex < videoUrls.length) {
+                    playVideo(videoUrls[currentIndex]);
+                    currentIndex++;
+                } else {
+                    currentIndex = 0; // Loop back to the start
+                }
+            }
+
+            playNext();
+            setInterval(playNext, 60000); // Change video every minute
+        }
+
+        window.onload = init;
+    </script>
 </body>
 </html>
