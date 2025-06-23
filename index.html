@@ -320,24 +320,23 @@
     <script>
         class LiveTVChannel {
             constructor() {
-                // Schedule based on your previous input, adjusted to make current time fall within a video
-                // Current time: Monday, June 23, 2025 at 10:33 AM AEST (Mildura, VIC, Australia)
-                // This schedule ensures the 10:33 AM time falls within the "Morning Chill Out" program.
+                // Schedule adjusted for 10:55 AM start to ensure "Morning Chill Out" is the current video.
+                // Current time: Monday, June 23, 2025 at 10:57 AM AEST (Mildura, VIC, Australia)
                 this.schedule = [
                     {
                         id: 1,
                         title: "Morning Chill Out",
                         type: "youtube",
-                        url: "5qap5aO4i9A", // Lo-fi Hip Hop Radio - beats to relax/study to
-                        startTime: "09:00", // Starts at 9:00 AM
-                        duration: 7200 // 2 hours (enough to cover 10:33 AM)
+                        url: "5qap5aO4i9A", // Lo-fi Hip Hop Radio - beats to relax/study to (Long video)
+                        startTime: "10:55", // Starts at 10:55 AM
+                        duration: 7200 // 2 hours (more than enough to cover the next few minutes)
                     },
                     {
                         id: 2,
                         title: "Mid-Morning Motivation (Gangnam Style)",
                         type: "youtube",
                         url: "9bZkp7q19f0", // PSY - GANGNAM STYLE
-                        startTime: "11:00", // Starts at 11:00 AM
+                        startTime: "12:55", // Starts 2 hours after previous
                         duration: 480 // 8 minutes
                     },
                     {
@@ -345,7 +344,7 @@
                         title: "News Update (Tears of Steel Demo)",
                         type: "m3u8",
                         url: "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
-                        startTime: "11:08", // Starts at 11:08 AM
+                        startTime: "13:03", // Starts after Gangnam Style
                         duration: 720 // 12 minutes
                     },
                     {
@@ -353,7 +352,7 @@
                         title: "Afternoon Rock (All Star)",
                         type: "youtube",
                         url: "L_jWHffIx5E", // Smash Mouth - All Star
-                        startTime: "11:20", // Starts at 11:20 AM
+                        startTime: "13:15", // Starts after News Update
                         duration: 600 // 10 minutes
                     },
                     {
@@ -361,7 +360,7 @@
                         title: "Evening Unwind (Despacito)",
                         type: "youtube",
                         url: "kJQP7kiw5Fk", // Luis Fonsi - Despacito
-                        startTime: "11:30",
+                        startTime: "13:25",
                         duration: 900 // 15 minutes
                     },
                     {
@@ -369,7 +368,7 @@
                         title: "Late Night Classic (Me at the zoo)",
                         type: "youtube",
                         url: "jNQXAC9IVRw", // Me at the zoo (first YouTube video)
-                        startTime: "11:45",
+                        startTime: "13:40",
                         duration: 600 // 10 minutes
                     }
                 ];
@@ -446,7 +445,6 @@
                 this.youtubePlayer = new YT.Player('youtubePlayer', {
                     height: '100%',
                     width: '100%',
-                    // Pass the API key here
                     playerVars: {
                         'autoplay': 1,
                         'controls': 1,
@@ -454,7 +452,7 @@
                         'showinfo': 0,
                         'modestbranding': 1,
                         'mute': 1, // Start muted to enable autoplay on most browsers
-                        'key': 'AIzaSyAaefSqCygh22DA6TD9tYt7pAvNq55l0YU' // Your API Key HERE
+                        'key': 'AIzaSyBirFuQl7U8Efiv04n_jWU2K_3deswjgf8' // Your API Key HERE
                     },
                     events: {
                         'onReady': (event) => {
@@ -542,7 +540,7 @@
                 }
                 
                 if (currentProgram) {
-                    console.log(`Calculated program: ${currentProgram.title}, Elapsed: ${elapsedSeconds}s`);
+                    console.log(`Calculated program: ${currentProgram.title}, Elapsed: ${elapsedSeconds}s.`);
                     return { ...currentProgram, elapsedSeconds };
                 }
                 
@@ -759,7 +757,7 @@
                 if (this.currentProgram) {
                     const totalSecondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
                     const scheduleTotalDuration = this.schedule.reduce((sum, p) => sum + p.duration, 0);
-                    const timeInScheduleCycle = totalSecondsToday % totalScheduleDurationSeconds;
+                    const timeInScheduleCycle = totalSecondsToday % scheduleTotalDuration;
 
                     let elapsedInCurrentProgram = 0;
                     let remainingInCurrentProgram = 0;
@@ -879,8 +877,6 @@
 
         let liveTVChannelInstance;
 
-        // This function name is specific to the YouTube IFrame Player API
-        // It MUST be named onYouTubeIframeAPIReady for the API to call it.
         function onYouTubeIframeAPIReady() {
             if (liveTVChannelInstance) {
                 liveTVChannelInstance.initializeYouTubePlayerInstance();
