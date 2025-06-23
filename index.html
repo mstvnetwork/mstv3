@@ -2,288 +2,243 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MSTV Live TV Channel</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom, #0f0f0f, #1a1a1a);
+      background: #111;
       color: white;
+      font-family: 'Segoe UI', sans-serif;
     }
-
-    .container {
-      max-width: 960px;
-      margin: auto;
-      padding: 20px;
-    }
-
-    h1 {
-      font-size: 2.5em;
+    .header {
       text-align: center;
-      background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientShift 4s ease infinite;
+      padding: 20px;
+      background: linear-gradient(to right, #1a1a1a, #222);
+      border-bottom: 2px solid #444;
     }
-
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+    .header h1 {
+      margin: 0;
+      font-size: 2em;
+      color: #4ecdc4;
     }
-
+    .header p {
+      margin: 5px 0;
+      font-size: 1em;
+      color: #ccc;
+    }
     .player-container {
       position: relative;
-      background: black;
-      border-radius: 12px;
+      max-width: 960px;
+      margin: 20px auto;
+      border: 3px solid #4ecdc4;
+      border-radius: 15px;
       overflow: hidden;
+      background: #000;
+    }
+    .video-player {
+      width: 100%;
       height: 540px;
     }
-
-    iframe, video {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
-
-    .overlay-logo {
+    .logo-overlay {
       position: absolute;
       top: 10px;
-      left: 10px;
-      z-index: 2;
+      right: 10px;
+      font-size: 18px;
       background: rgba(0,0,0,0.5);
-      padding: 5px 10px;
+      padding: 6px 12px;
       border-radius: 5px;
-      font-weight: bold;
+      z-index: 2;
     }
-
     .mute-overlay {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 3;
-      background: rgba(0,0,0,0.6);
-      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.7);
       padding: 20px;
+      border-radius: 50%;
+      z-index: 3;
       cursor: pointer;
-      display: none;
     }
-
     .mute-overlay img {
-      width: 50px;
+      width: 48px;
+      height: 48px;
     }
-
     .info-bar {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 10px 15px;
+      background: #1d1d1d;
       display: flex;
       justify-content: space-between;
-      margin: 10px 0;
-      font-size: 0.9em;
-      background: rgba(255,255,255,0.05);
-      padding: 10px;
-      border-radius: 8px;
+      flex-wrap: wrap;
+      border-top: 2px solid #333;
+      font-size: 14px;
     }
-
     .guide {
-      margin-top: 20px;
+      max-width: 960px;
+      margin: 20px auto;
+      padding: 10px 15px;
+      background: #1d1d1d;
+      border-radius: 10px;
     }
-
-    .guide h2 {
-      font-size: 1.2em;
+    .guide h3 {
       margin-bottom: 10px;
+      color: #4ecdc4;
     }
-
-    .guide-item {
-      padding: 5px 10px;
-      background: rgba(255,255,255,0.05);
-      margin-bottom: 5px;
-      border-radius: 5px;
+    .guide ul {
+      list-style: none;
+      padding: 0;
     }
-
-    .off-air {
-      color: #ff4757;
-      text-align: center;
-      padding: 100px 20px;
-      font-size: 1.5em;
+    .guide li {
+      margin: 5px 0;
+      border-bottom: 1px dashed #333;
+      padding-bottom: 4px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="header">
     <h1>MSTV Live TV Channel</h1>
-    <p style="text-align:center;">Broadcasting your curated content 24/7</p>
+    <p>Broadcasting your curated content 24/7</p>
+  </div>
 
-    <div class="player-container">
-      <div class="overlay-logo">MSTV</div>
-      <div id="muteIcon" class="mute-overlay">
-        <img src="https://img.icons8.com/ios-filled/50/ffffff/mute.png" alt="Click to unmute" />
-      </div>
-      <div id="player"></div>
+  <div class="player-container">
+    <div class="logo-overlay">MSTV</div>
+    <div id="muteOverlay" class="mute-overlay" onclick="unmutePlayer()">
+      <img src="https://cdn-icons-png.flaticon.com/512/727/727240.png" alt="Unmute" />
     </div>
-
-    <div class="info-bar">
-      <span id="statusText">Loading...</span>
-      <span id="clock"></span>
-      <span id="nowPlaying">Now Playing: -</span>
-      <span id="nextUp">Next: -</span>
-    </div>
-
-    <div class="guide">
-      <h2>Today's TV Guide</h2>
-      <div id="tvGuide"></div>
+    <div id="player" class="video-player">
+      <p style="text-align:center; padding: 20px;">Loading player...</p>
     </div>
   </div>
 
+  <div class="info-bar">
+    <span id="statusText">Loading...</span>
+    <span id="clock">--:--:--</span>
+    <span id="nowPlaying">Now Playing: -</span>
+    <span id="nextUp">Next: -</span>
+  </div>
+
+  <div class="guide">
+    <h3>Today's TV Guide</h3>
+    <ul id="tvGuideList"></ul>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    const PLAYLIST_URL = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json';
-    const playerDiv = document.getElementById('player');
+    const playlistUrl = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json";
+    let playlist = [], currentIndex = 0, totalDuration = 0, muted = true;
+
+    const playerContainer = document.getElementById('player');
+    const muteOverlay = document.getElementById('muteOverlay');
+    const nowPlayingEl = document.getElementById('nowPlaying');
+    const nextUpEl = document.getElementById('nextUp');
+    const tvGuideList = document.getElementById('tvGuideList');
     const statusText = document.getElementById('statusText');
-    const nowPlaying = document.getElementById('nowPlaying');
-    const nextUp = document.getElementById('nextUp');
-    const tvGuide = document.getElementById('tvGuide');
-    const muteIcon = document.getElementById('muteIcon');
 
-    let playlist = [];
-    let currentIndex = -1;
-
-    function formatTime(seconds) {
-      const date = new Date(seconds * 1000);
-      return date.toISOString().substr(11, 5);
+    function formatTime(secs) {
+      const h = Math.floor(secs / 3600);
+      const m = Math.floor((secs % 3600) / 60);
+      const s = secs % 60;
+      return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
     }
 
     function parseDuration(d) {
-      const parts = d.split(':').map(Number);
-      return parts.length === 3
-        ? parts[0] * 3600 + parts[1] * 60 + parts[2]
-        : parts[0] * 60 + parts[1];
+      const parts = d.split(":").map(Number);
+      return parts.length === 3 ? parts[0]*3600 + parts[1]*60 + parts[2] : parts[0]*60 + parts[1];
     }
 
-    function updateClock() {
+    async function loadPlaylist() {
+      const res = await fetch(playlistUrl);
+      playlist = await res.json();
+      playlist.forEach((item, i) => item.start = i === 0 ? 0 : playlist[i - 1].start + parseDuration(playlist[i - 1].duration));
+      totalDuration = playlist.reduce((sum, item) => sum + parseDuration(item.duration), 0);
+      buildTVGuide();
+      playCurrent();
+    }
+
+    function buildTVGuide() {
+      tvGuideList.innerHTML = "";
+      playlist.forEach(item => {
+        const start = item.start;
+        const end = start + parseDuration(item.duration);
+        tvGuideList.innerHTML += `<li>${formatTime(start)} - ${formatTime(end)} :: ${item.title}</li>`;
+      });
+    }
+
+    function getCurrentIndex() {
       const now = new Date();
-      document.getElementById('clock').textContent = now.toLocaleTimeString();
-    }
-
-    function isYouTube(url) {
-      return url.includes('youtube.com') || url.includes('youtu.be');
-    }
-
-    function isHLS(url) {
-      return url.includes('.m3u8');
-    }
-
-    function getYouTubeId(url) {
-      const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})(?:\?|&|$)/);
-      return match ? match[1] : null;
-    }
-
-    function showMuteOverlay(video) {
-      muteIcon.style.display = 'block';
-      muteIcon.onclick = () => {
-        video.muted = false;
-        muteIcon.style.display = 'none';
-      };
-    }
-
-    function playItem(index, offset = 0) {
-      const item = playlist[index];
-      if (!item) {
-        playerDiv.innerHTML = `<div class="off-air">Off Air</div>`;
-        return;
+      const seconds = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) % totalDuration;
+      for (let i = 0; i < playlist.length; i++) {
+        const start = playlist[i].start;
+        const end = start + parseDuration(playlist[i].duration);
+        if (seconds >= start && seconds < end) return { index: i, offset: seconds - start };
       }
+      return { index: 0, offset: 0 };
+    }
 
-      const { title, url, duration } = item;
-      nowPlaying.textContent = `Now Playing: ${title}`;
+    function playCurrent() {
+      const { index, offset } = getCurrentIndex();
+      currentIndex = index;
+      const item = playlist[index];
+      const url = item.url;
+      nowPlayingEl.textContent = `Now Playing: ${item.title}`;
       const next = playlist[(index + 1) % playlist.length];
-      nextUp.textContent = next ? `Next: ${next.title}` : `Next: -`;
+      nextUpEl.textContent = `Next: ${next.title}`;
 
-      if (isYouTube(url)) {
-        const id = getYouTubeId(url);
-        if (!id) return;
-        playerDiv.innerHTML = `
-          <iframe src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&start=${offset}" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-        `;
-        statusText.textContent = 'Live Broadcasting';
-      } else if (isHLS(url)) {
-        playerDiv.innerHTML = `<video id="videoPlayer" autoplay muted controls></video>`;
-        const video = document.getElementById('videoPlayer');
-        showMuteOverlay(video);
-
+      if (url.includes("youtube")) {
+        const videoId = url.match(/(?:youtu\.be\/|v=|live\/)([\w-]{11})/i)?.[1];
+        const start = Math.floor(offset);
+        const embed = `https://www.youtube.com/embed/${videoId}?autoplay=1&start=${start}&mute=1&rel=0&controls=1`;
+        playerContainer.innerHTML = `<iframe width="100%" height="100%" src="${embed}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+      } else if (url.includes(".m3u8")) {
+        playerContainer.innerHTML = `<video id="hlsPlayer" width="100%" height="100%" autoplay muted playsinline controls></video>`;
+        const video = document.getElementById("hlsPlayer");
         if (Hls.isSupported()) {
           const hls = new Hls();
           hls.loadSource(url);
           hls.attachMedia(video);
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = url;
         }
-        statusText.textContent = 'Live Broadcasting';
       } else {
-        playerDiv.innerHTML = `<video src="${url}" autoplay muted controls style="width:100%; height:100%"></video>`;
-        const video = playerDiv.querySelector('video');
-        showMuteOverlay(video);
-        statusText.textContent = 'Live Broadcasting';
+        playerContainer.innerHTML = `<video width="100%" height="100%" src="${url}" autoplay muted controls></video>`;
       }
+
+      statusText.textContent = "Live Broadcasting";
+      const timeLeft = parseDuration(item.duration) - offset;
+      setTimeout(playCurrent, timeLeft * 1000);
     }
 
-    function syncPlayback() {
-      const now = new Date();
-      const todaySeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-      let elapsed = 0;
-      let found = false;
+    function unmutePlayer() {
+      const video = document.querySelector("video");
+      const iframe = document.querySelector("iframe");
 
-      for (let i = 0; i < playlist.length; i++) {
-        const item = playlist[i];
-        const dur = parseDuration(item.duration || '00:05:00');
-        if (elapsed + dur > todaySeconds) {
-          currentIndex = i;
-          playItem(i, todaySeconds - elapsed);
-          found = true;
-          break;
-        }
-        elapsed += dur;
+      if (video) {
+        video.muted = false;
+        video.volume = 1;
       }
 
-      if (!found) {
-        playerDiv.innerHTML = `<div class="off-air">Off Air</div>`;
-        nowPlaying.textContent = `Now Playing: -`;
-        nextUp.textContent = `Next: -`;
-        statusText.textContent = 'Off Air';
+      if (iframe && iframe.src.includes("mute=1")) {
+        iframe.src = iframe.src.replace("mute=1", "mute=0");
       }
 
-      const nextDur = parseDuration(playlist[currentIndex]?.duration || '00:05:00');
-      setTimeout(syncPlayback, (nextDur - (todaySeconds - elapsed)) * 1000);
+      muteOverlay.style.display = "none";
     }
 
-    function loadGuide() {
-      let html = '';
-      let seconds = 0;
-      for (const item of playlist) {
-        const dur = parseDuration(item.duration || '00:05:00');
-        const start = formatTime(seconds);
-        const end = formatTime(seconds + dur);
-        html += `<div class="guide-item">${start} - ${end} :: ${item.title}</div>`;
-        seconds += dur;
-      }
-      tvGuide.innerHTML = html;
+    function startClock() {
+      setInterval(() => {
+        const now = new Date();
+        document.getElementById("clock").textContent = now.toLocaleTimeString();
+      }, 1000);
     }
 
-    async function loadPlaylist() {
-      try {
-        const res = await fetch(PLAYLIST_URL);
-        playlist = await res.json();
-        loadGuide();
-        syncPlayback();
-      } catch (err) {
-        statusText.textContent = 'Failed to load playlist';
-        playerDiv.innerHTML = `<div class="off-air">Error loading playlist</div>`;
-      }
-    }
-
-    setInterval(updateClock, 1000);
-    updateClock();
-    loadPlaylist();
+    window.addEventListener("DOMContentLoaded", () => {
+      loadPlaylist();
+      startClock();
+    });
   </script>
 </body>
 </html>
