@@ -1,0 +1,5 @@
+[
+  { "type": "youtube", "url": "https://www.youtube.com/watch?v=Gnef-jGl2zM&list=PLYIexFLR0T0mkUsnZ1jK08Lt8--owBp6g" },
+  { "type": "youtube", "url": "https://www.youtube.com/watch?v=CRFZq2xJKCE" },
+  { "type": "hls", "url": "https://path-to-your-hls-stream.m3u8" }
+]
