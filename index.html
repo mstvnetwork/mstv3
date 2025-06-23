@@ -131,150 +131,152 @@
     <div id="error" class="error"></div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script>
-    const playlistUrl = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json";
+ <!-- keep your head, body, and style the same, below is updated script -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+  const playlistUrl = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json";
 
-    let playlist = [];
-    let totalDuration = 0;
-    let currentIndex = -1;
+  let playlist = [];
+  let totalDuration = 0;
+  let currentIndex = -1;
 
-    const playerDiv = document.getElementById("player");
-    const statusText = document.getElementById("statusText");
-    const nowTitle = document.getElementById("nowTitle");
-    const nowProgress = document.getElementById("nowProgress");
-    const nextTitle = document.getElementById("nextTitle");
-    const viewerCount = document.getElementById("viewerCount");
-    const tvGuide = document.getElementById("tvGuide");
-    const errorBox = document.getElementById("error");
+  const playerDiv = document.getElementById("player");
+  const statusText = document.getElementById("statusText");
+  const nowTitle = document.getElementById("nowTitle");
+  const nowProgress = document.getElementById("nowProgress");
+  const nextTitle = document.getElementById("nextTitle");
+  const viewerCount = document.getElementById("viewerCount");
+  const tvGuide = document.getElementById("tvGuide");
+  const errorBox = document.getElementById("error");
 
-    function parseDuration(duration) {
-      if (typeof duration === "number") return duration;
-      const parts = duration.split(":").map(Number);
-      return parts.reduce((acc, val, idx) => acc + val * Math.pow(60, parts.length - 1 - idx), 0);
-    }
+  function parseDuration(duration) {
+    if (typeof duration === "number") return duration;
+    const parts = duration.split(":").map(Number);
+    return parts.reduce((acc, val, idx) => acc + val * Math.pow(60, parts.length - 1 - idx), 0);
+  }
 
-    function formatTime(seconds) {
-      const d = new Date(seconds * 1000);
-      return d.toISOString().substr(11, 5);
-    }
+  function formatTime(seconds) {
+    const d = new Date(seconds * 1000);
+    return d.toISOString().substr(11, 5);
+  }
 
-    function formatClockTime(date) {
-      return date.toLocaleTimeString();
-    }
+  function formatClockTime(date) {
+    return date.toLocaleTimeString();
+  }
 
-    function updateClock() {
-      document.getElementById("currentTime").textContent = formatClockTime(new Date());
-    }
+  function updateClock() {
+    document.getElementById("currentTime").textContent = formatClockTime(new Date());
+  }
 
-    function updateViewers() {
-      viewerCount.textContent = 50 + Math.floor(Math.random() * 150);
-      setTimeout(updateViewers, 30000 + Math.random() * 15000);
-    }
+  function updateViewers() {
+    viewerCount.textContent = 50 + Math.floor(Math.random() * 150);
+    setTimeout(updateViewers, 30000 + Math.random() * 15000);
+  }
 
-    function createTVGuide(playlist) {
-      let html = "";
-      let cursor = 0;
-      playlist.forEach(item => {
-        const duration = parseDuration(item.duration);
-        const start = formatTime(cursor);
-        const end = formatTime(cursor + duration);
-        html += `<div class="guide-entry">${start} - ${end} :: <span class="highlight">${item.title || "Untitled"}</span></div>`;
-        cursor += duration;
-      });
-      tvGuide.innerHTML = html;
-    }
+  function createTVGuide(playlist) {
+    let html = "";
+    let cursor = 0;
+    playlist.forEach(item => {
+      const duration = parseDuration(item.duration);
+      const start = formatTime(cursor);
+      const end = formatTime(cursor + duration);
+      html += `<div class="guide-entry">${start} - ${end} :: <span class="highlight">${item.title || "Untitled"}</span></div>`;
+      cursor += duration;
+    });
+    tvGuide.innerHTML = html;
+  }
 
-    function playItem(item, offset = 0) {
-      try {
-        const url = item.url;
-        const title = item.title || "Untitled";
-        const isHLS = url.includes(".m3u8");
-        const isYT = /youtu(?:\.be|be\.com)/.test(url);
+  function playItem(item, offset = 0) {
+    try {
+      const url = item.url;
+      const title = item.title || "Untitled";
+      const isHLS = url.includes(".m3u8");
+      const isYT = /youtu(?:\.be|be\.com)/.test(url);
 
-        nowTitle.textContent = title;
-        statusText.textContent = "Live Broadcasting";
+      nowTitle.textContent = title;
+      statusText.textContent = "Live Broadcasting";
 
-        if (isYT) {
-          const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-          if (!idMatch) throw new Error("Invalid YouTube URL");
-          const id = idMatch[1];
-          playerDiv.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&start=${Math.floor(offset)}&mute=0" frameborder="0" allowfullscreen></iframe>`;
-        } else if (isHLS) {
-          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" controls autoplay muted data-src="${url}"></video>`;
-          const video = document.getElementById("m3u8Player");
-          const src = video.getAttribute("data-src");
+      if (isYT) {
+        const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+        if (!idMatch) throw new Error("Invalid YouTube URL");
+        const id = idMatch[1];
+        playerDiv.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&start=${Math.floor(offset)}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+      } else if (isHLS) {
+        playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" controls muted autoplay playsinline></video>`;
+        const video = document.getElementById("m3u8Player");
 
-          if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(src);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-          } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            video.src = src;
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
             video.play();
-          } else {
-            throw new Error("Unsupported video format.");
-          }
+          });
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = url;
+          video.play();
         } else {
-          playerDiv.innerHTML = `<video width="100%" height="100%" controls autoplay><source src="${url}"></video>`;
+          throw new Error("Unsupported video format.");
         }
-      } catch (err) {
-        showOffAir(err.message);
+      } else {
+        playerDiv.innerHTML = `<video width="100%" height="100%" autoplay muted controls playsinline><source src="${url}"></video>`;
       }
+    } catch (err) {
+      showOffAir(err.message);
     }
+  }
 
-    function showOffAir(msg = "Off Air") {
-      playerDiv.innerHTML = `<div class="off-air">${msg}</div>`;
-      statusText.textContent = "Off Air";
-      nowTitle.textContent = "-";
-      nowProgress.textContent = "-";
-      nextTitle.textContent = "-";
+  function showOffAir(msg = "Off Air") {
+    playerDiv.innerHTML = `<div class="off-air">${msg}</div>`;
+    statusText.textContent = "Off Air";
+    nowTitle.textContent = "-";
+    nowProgress.textContent = "-";
+    nextTitle.textContent = "-";
+  }
+
+  async function loadPlaylist() {
+    try {
+      const res = await fetch(playlistUrl);
+      if (!res.ok) throw new Error("Failed to load playlist");
+      playlist = await res.json();
+      if (Array.isArray(playlist.items)) playlist = playlist.items;
+
+      totalDuration = playlist.reduce((sum, item) => sum + parseDuration(item.duration), 0);
+      createTVGuide(playlist);
+      syncToRealTime();
+    } catch (e) {
+      showOffAir("Failed to load playlist");
+      errorBox.textContent = e.message;
     }
+  }
 
-    async function loadPlaylist() {
-      try {
-        const res = await fetch(playlistUrl);
-        if (!res.ok) throw new Error("Failed to load playlist");
-        playlist = await res.json();
-        if (Array.isArray(playlist.items)) playlist = playlist.items;
+  function syncToRealTime() {
+    const now = new Date();
+    const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const timeInLoop = secondsSinceMidnight % totalDuration;
 
-        totalDuration = playlist.reduce((sum, item) => sum + parseDuration(item.duration), 0);
-        createTVGuide(playlist);
-        syncToRealTime();
-      } catch (e) {
-        showOffAir("Failed to load playlist");
-        errorBox.textContent = e.message;
+    let cursor = 0;
+    for (let i = 0; i < playlist.length; i++) {
+      const dur = parseDuration(playlist[i].duration);
+      if (cursor + dur > timeInLoop) {
+        currentIndex = i;
+        const progress = ((timeInLoop - cursor) / dur) * 100;
+        nowProgress.textContent = `${Math.floor(progress)}%`;
+        nextTitle.textContent = playlist[(i + 1) % playlist.length].title || "End";
+        playItem(playlist[i], timeInLoop - cursor);
+        break;
       }
+      cursor += dur;
     }
 
-    function syncToRealTime() {
-      const now = new Date();
-      const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-      const timeInLoop = secondsSinceMidnight % totalDuration;
+    const secondsToNext = parseDuration(playlist[currentIndex].duration) - (timeInLoop - cursor);
+    setTimeout(syncToRealTime, secondsToNext * 1000 + 100);
+  }
 
-      let cursor = 0;
-      for (let i = 0; i < playlist.length; i++) {
-        const dur = parseDuration(playlist[i].duration);
-        if (cursor + dur > timeInLoop) {
-          currentIndex = i;
-          const progress = ((timeInLoop - cursor) / dur) * 100;
-          nowProgress.textContent = `${Math.floor(progress)}%`;
-          nextTitle.textContent = playlist[(i + 1) % playlist.length].title || "End";
-          playItem(playlist[i], timeInLoop - cursor);
-          break;
-        }
-        cursor += dur;
-      }
-
-      const secondsToNext = parseDuration(playlist[currentIndex].duration) - (timeInLoop - cursor);
-      setTimeout(syncToRealTime, secondsToNext * 1000 + 100);
-    }
-
-    updateClock();
-    updateViewers();
-    setInterval(updateClock, 1000);
-    loadPlaylist();
-  </script>
+  updateClock();
+  updateViewers();
+  setInterval(updateClock, 1000);
+  loadPlaylist();
+</script>
 </body>
 </html>
