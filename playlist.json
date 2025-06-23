@@ -2,12 +2,12 @@
   {
     "title": "Sample YouTube Video",
     "duration": "00:04:00",
-    "url": "https://youtu.be/2-HuLX0CbT8?si=-JhezUSxF6Gtegga"
+    "url": "https://youtu.be/2-HuLX0CbT8?si=-JhezUSxF6Gtegga&autoplay=1"
   },
   {
     "title": "Live News (YouTube Live)",
     "duration": "00:06:00",
-    "url": "https://www.youtube.com/live/biuyKchLhOU?si=vpgAFbpLMrN0I2Tj"
+    "url": "https://www.youtube.com/live/biuyKchLhOU?si=vpgAFbpLMrN0I2Tj&autoplay=1"
   },
   {
     "title": "Sample HLS Stream",
