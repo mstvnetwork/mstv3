@@ -262,7 +262,7 @@
       <div class="scrolling-text">
         This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
                             
-        Breaking News: Today is Tuesday, June 24, 2025. Current time is 9:14:44 AM AEST.
+        Breaking News: Today is Tuesday, June 24, 2025. Current time is 9:21:17 AM AEST.
                             
         Visit our social media for updates!
       </div>
@@ -316,7 +316,8 @@
     const muteButton = document.getElementById("muteButton");
     const speakerIcon = document.getElementById("speakerIcon");
 
-    let hlsInstance = null; // To keep track of the HLS.js instance
+    let hlsInstance = null;
+    let youtubePlayerInstance = null; // Global variable for YouTube player
 
     function parseDuration(duration) {
       if (typeof duration === "number") return duration;
@@ -330,22 +331,24 @@
     }
 
     function formatClockTime(date) {
-      // Use "en-AU" locale for AEST format if needed, or keep default
-      return date.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      // Formats time in AEST (e.g., 09:21:17 AM)
+      return date.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Australia/Melbourne' });
     }
 
     function updateClock() {
       const now = new Date();
       document.getElementById("currentTime").textContent = formatClockTime(now);
-      // Update scrolling text with current time
       const scrollingTextDiv = document.querySelector('.scrolling-text');
       if (scrollingTextDiv) {
-        const originalText = scrollingTextDiv.dataset.originalText || scrollingTextDiv.innerHTML;
-        if (!scrollingTextDiv.dataset.originalText) {
-          scrollingTextDiv.dataset.originalText = originalText;
+        // Store original text without the time, or update if it exists
+        const originalTextBase = scrollingTextDiv.dataset.originalTextBase ||
+                                 scrollingTextDiv.innerHTML.replace(/Current time is \d{1,2}:\d{2}:\d{2} [AP]M AEST\./, 'Current time is TIME_PLACEHOLDER AEST.');
+        if (!scrollingTextDiv.dataset.originalTextBase) {
+          scrollingTextDiv.dataset.originalTextBase = originalTextBase;
         }
-        // Replace the time part in the scrolling text
-        const updatedText = originalText.replace(/Current time is \d{1,2}:\d{2}:\d{2} [AP]M AEST\./, `Current time is ${formatClockTime(now)} AEST.`);
+        
+        // Update the placeholder with current time
+        const updatedText = originalTextBase.replace('TIME_PLACEHOLDER', formatClockTime(now));
         scrollingTextDiv.innerHTML = updatedText;
       }
     }
@@ -383,29 +386,43 @@
           hlsInstance.destroy();
           hlsInstance = null;
         }
+        // Destroy previous YouTube player instance if it exists
+        if (youtubePlayerInstance) {
+          youtubePlayerInstance.destroy();
+          youtubePlayerInstance = null;
+        }
 
         if (isYT) {
-          const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-          if (!idMatch) throw new Error("Invalid YouTube URL");
-          const id = idMatch[1];
-          playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-          // For YouTube, we'll control mute via its API
-          muteButton.style.display = 'flex'; // Show mute button for YouTube
-          if (playerDiv.querySelector('#youtubePlayer')) {
-            playerDiv.querySelector('#youtubePlayer').onload = function() {
-              const iframe = playerDiv.querySelector('#youtubePlayer');
-              // Ensure YT is loaded before creating player
-              if (typeof YT !== 'undefined' && YT.Player) {
-                const player = new YT.Player(iframe, {
-                  events: {
-                    'onReady': onYouTubePlayerReady
-                  }
-                });
-              } else {
-                console.warn("YouTube API not yet loaded, retrying on next tick.");
-                setTimeout(() => playerDiv.querySelector('#youtubePlayer').onload(), 100); // Retry
+          // YouTube videos: Create a div that the YouTube API will replace with an iframe
+          playerDiv.innerHTML = `<div id="youtube-iframe-container" style="width:100%; height:100%;"></div>`;
+          
+          // Show mute button for YouTube
+          muteButton.style.display = 'flex';
+          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png"; // Always show muted icon initially for autoplay
+          
+          // Ensure YT (YouTube API) is loaded before creating player
+          if (typeof YT !== 'undefined' && YT.Player) {
+            youtubePlayerInstance = new YT.Player('youtube-iframe-container', {
+              videoId: idMatch[1], // Use the extracted video ID
+              playerVars: {
+                autoplay: 1,
+                start: Math.floor(offset),
+                controls: 0,        // Hide native controls (including seek bar)
+                modestbranding: 1,  // Reduce YouTube logo
+                rel: 0,             // No related videos
+                showinfo: 0,        // No video title/uploader info
+                loop: 1,
+                enablejsapi: 1,
+                mute: 1             // Start muted to comply with autoplay policies
+              },
+              events: {
+                'onReady': onYouTubePlayerReady,
+                'onStateChange': onYouTubePlayerStateChange
               }
-            };
+            });
+          } else {
+            console.warn("YouTube API not yet loaded, retrying YouTube player initialization.");
+            setTimeout(() => playItem(item, offset), 100); // Retry after a short delay
           }
 
         } else if (isHLS) {
@@ -413,9 +430,9 @@
           const video = document.getElementById("m3u8Player");
           const src = video.getAttribute("data-src");
 
-          // Hide controls for HLS video and show mute button
-          video.removeAttribute('controls');
+          video.removeAttribute('controls'); // Remove native controls (including seek bar)
           muteButton.style.display = 'flex';
+          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png"; // Always show muted icon initially for autoplay
 
           if (Hls.isSupported()) {
             hlsInstance = new Hls();
@@ -424,8 +441,7 @@
             hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
               video.play().catch(error => {
                 if (error.name === "NotAllowedError") {
-                  console.warn("Autoplay was prevented. User needs to interact to play.");
-                  muteButton.style.display = 'flex'; // Show mute button if autoplay fails
+                  console.warn("Autoplay was prevented (sound). User needs to interact.");
                 }
               });
             });
@@ -433,8 +449,7 @@
             video.src = src;
             video.play().catch(error => {
               if (error.name === "NotAllowedError") {
-                console.warn("Autoplay was prevented. User needs to interact to play.");
-                muteButton.style.display = 'flex'; // Show mute button if autoplay fails
+                console.warn("Autoplay was prevented (sound). User needs to interact.");
               }
             });
           } else {
@@ -446,8 +461,9 @@
               speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
               muteButton.style.display = 'flex'; // Ensure button is visible if muted
             } else {
-              // Once unmuted, hide the button
-              muteButton.style.display = 'none';
+              // Icon changes to "up", but button disappears (as per requirement)
+              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
+              muteButton.style.display = 'none'; 
             }
           };
           // Set initial mute state for HLS
@@ -455,37 +471,38 @@
             speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
             muteButton.style.display = 'flex';
           } else {
-            muteButton.style.display = 'none';
+            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
+            muteButton.style.display = 'none'; // Should be hidden if already unmuted (unlikely due to autoplay muted)
           }
 
         } else {
-          // For other video formats (e.g., MP4), hide controls and show mute button
+          // For other video formats (e.g., MP4)
           playerDiv.innerHTML = `<video id="otherPlayer" width="100%" height="100%" autoplay muted><source src="${url}"></video>`;
           const video = document.getElementById("otherPlayer");
-          video.removeAttribute('controls');
+          video.removeAttribute('controls'); // Remove native controls (including seek bar)
           muteButton.style.display = 'flex';
+          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png"; // Always show muted icon initially for autoplay
 
           video.play().catch(error => {
             if (error.name === "NotAllowedError") {
-              console.warn("Autoplay was prevented. User needs to interact to play.");
-              muteButton.style.display = 'flex'; // Show mute button if autoplay fails
+              console.warn("Autoplay was prevented (sound). User needs to interact.");
             }
           });
 
           video.onvolumechange = () => {
             if (video.muted) {
               speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-              muteButton.style.display = 'flex'; // Ensure button is visible if muted
+              muteButton.style.display = 'flex';
             } else {
-              // Once unmuted, hide the button
+              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
               muteButton.style.display = 'none';
             }
           };
-          // Set initial mute state for other videos
           if (video.muted) {
             speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
             muteButton.style.display = 'flex';
           } else {
+            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
             muteButton.style.display = 'none';
           }
         }
@@ -494,36 +511,55 @@
       }
     }
 
-    let youtubePlayerInstance; // Declare a global variable to hold the YouTube player
-
     function onYouTubePlayerReady(event) {
-      youtubePlayerInstance = event.target;
-      // Ensure the YouTube player is muted initially
-      youtubePlayerInstance.mute();
-      // Hide the mute button if already unmuted, though we expect it to be muted
-      if (!youtubePlayerInstance.isMuted()) {
+      youtubePlayerInstance = event.target; // Store the instance for later use
+      youtubePlayerInstance.mute(); // Ensure it's muted on ready (browser might have unmuted if interacted with)
+
+      // Initial UI update based on actual player state
+      if (youtubePlayerInstance.isMuted()) {
+        speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+        muteButton.style.display = 'flex';
+      } else {
+        speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
         muteButton.style.display = 'none';
       }
     }
 
-    // Function to handle mute/unmute
+    function onYouTubePlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        // When playing, update the button/icon based on current mute state
+        if (youtubePlayerInstance && !youtubePlayerInstance.isMuted()) {
+          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
+          muteButton.style.display = 'none'; // Hide if unmuted
+        } else if (youtubePlayerInstance && youtubePlayerInstance.isMuted()) {
+          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+          muteButton.style.display = 'flex'; // Show if muted
+        }
+      }
+    }
+
+    // Function to handle mute/unmute button click
     muteButton.addEventListener('click', () => {
       const videoElement = playerDiv.querySelector('video');
       
-      if (videoElement) {
+      if (videoElement) { // Handle HTML5 video (HLS, MP4)
         videoElement.muted = !videoElement.muted;
         if (!videoElement.muted) {
+          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
           muteButton.style.display = 'none'; // Hide button if unmuted
         } else {
           speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+          muteButton.style.display = 'flex'; // Ensure button is visible if muted
         }
-      } else if (youtubePlayerInstance) { // Use the stored instance
+      } else if (youtubePlayerInstance) { // Handle YouTube video
         if (youtubePlayerInstance.isMuted()) {
           youtubePlayerInstance.unMute();
-          muteButton.style.display = 'none'; // Hide button if unmuted
+          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
+          muteButton.style.display = 'none'; // Hide button after attempting to unmute
         } else {
           youtubePlayerInstance.mute();
           speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+          muteButton.style.display = 'flex'; // Show button if muted
         }
       }
     });
@@ -535,6 +571,11 @@
       nowProgress.textContent = "-";
       nextTitle.textContent = "-";
       muteButton.style.display = 'none'; // Hide mute button when off air
+      if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+      if (youtubePlayerInstance) { // Destroy YouTube player if it exists
+        youtubePlayerInstance.destroy();
+        youtubePlayerInstance = null;
+      }
     }
 
     async function loadPlaylist() {
@@ -577,10 +618,10 @@
       setTimeout(syncToRealTime, secondsToNext * 1000 + 100);
     }
 
-    // Load YouTube Iframe API
+    // Load YouTube Iframe API script
     function loadYouTubeAPI() {
       const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
+      tag.src = "http://www.youtube.com/iframe_api"; // Official and correct YouTube API URL
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     }
@@ -588,14 +629,14 @@
     // This function will be called by the YouTube Iframe API when it's ready
     window.onYouTubeIframeAPIReady = function() {
       console.log("YouTube Iframe API is ready.");
-      // The playItem function will now create the YT.Player instance when a YouTube video is played.
+      // No direct player creation here, `playItem` will handle it when a YouTube video is scheduled.
     };
 
     updateClock();
     updateViewers();
-    setInterval(updateClock, 1000);
-    loadPlaylist();
-    loadYouTubeAPI(); // Load YouTube API when script starts
+    setInterval(updateClock, 1000); // Update clock every second
+    loadPlaylist(); // Start loading playlist and playing content
+    loadYouTubeAPI(); // Load YouTube API when the page loads
   </script>
 </body>
 </html>
