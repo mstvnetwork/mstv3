@@ -2,44 +2,89 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MSTV NETWORK</title>
   <style>
     body {
-      background-color: #000;
+      background: #000;
       color: #fff;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
     }
     h1 {
-      font-size: 2rem;
-      margin-bottom: 20px;
+      font-size: 1.8rem;
+      margin-bottom: 10px;
     }
-    #player-container {
-      max-width: 90vw;
-      margin: 0 auto;
-      background: #111;
-      padding: 10px;
-      border: 2px solid gold;
-      border-radius: 16px;
+    .live-label {
+      background: red;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: white;
+      font-weight: bold;
+      margin-right: 10px;
+      font-size: 1rem;
+      vertical-align: middle;
+    }
+    #loading {
+      font-style: italic;
+      margin-bottom: 10px;
     }
     video {
       width: 100%;
-      border-radius: 12px;
+      max-height: 300px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      background: #111;
     }
-    #now-playing {
-      margin-top: 10px;
+    .info p {
+      margin: 4px 0;
+      font-size: 1rem;
+    }
+    .schedule {
+      margin-top: 30px;
+    }
+    .schedule h2 {
       font-size: 1.2rem;
+      margin-bottom: 10px;
+    }
+    .schedule-item {
+      margin: 2px 0;
+      font-size: 0.95rem;
+    }
+    .schedule-time {
+      display: inline-block;
+      width: 50px;
+    }
+    .schedule-title {
+      display: inline-block;
+      width: 250px;
+    }
+    .schedule-duration {
+      display: inline-block;
+      width: 50px;
     }
   </style>
 </head>
 <body>
-  <h1>MSTV NETWORK</h1>
-  <div id="player-container">
-    <video id="video" controls autoplay muted></video>
-    <div id="now-playing">Loading current segment...</div>
+  <h1><span class="live-label">LIVE</span>MSTV NETWORK</h1>
+  <div id="loading">Loading current segment...</div>
+
+  <video id="video" controls autoplay muted></video>
+
+  <div class="info">
+    <p>Program: <span id="program-name">--</span></p>
+    <p>Time: <span id="program-time">--</span></p>
+    <p>Current Time: <span id="current-time">--</span></p>
+    <p>Progress: <span id="progress">--</span></p>
+    <p>Remaining: <span id="remaining">--</span></p>
+    <p>Status: Connected</p>
+    <p>Viewers: 63</p>
+  </div>
+
+  <div class="schedule">
+    <h2>Today's Schedule</h2>
+    <div id="schedule-list"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
