@@ -57,9 +57,7 @@
       padding: 20px;
       border-radius: 50%;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: none;
       z-index: 10;
     }
     .status-bar, .tv-guide {
@@ -101,7 +99,7 @@
 
   <div class="player-container">
     <div class="overlay-logo">MSTV</div>
-    <video id="videoPlayer" muted autoplay playsinline></video>
+    <div id="playerArea"></div>
     <div id="speakerIcon" class="speaker-icon">🔊</div>
   </div>
 
@@ -123,12 +121,12 @@
       {
         title: "Sample YouTube Video",
         duration: 240,
-        url: "https://www.youtube.com/embed/2-HuLX0CbT8?si=-JhezUSxF6Gtegga&autoplay=1&mute=1"
+        url: "https://www.youtube.com/embed/2-HuLX0CbT8?autoplay=1&mute=1"
       },
       {
         title: "Live News (YouTube Live)",
         duration: 360,
-        url: "https://www.youtube.com/embed/biuyKchLhOU?si=vpgAFbpLMrN0I2Tj&autoplay=1&mute=1"
+        url: "https://www.youtube.com/embed/biuyKchLhOU?autoplay=1&mute=1"
       },
       {
         title: "Sample HLS Stream",
@@ -137,15 +135,15 @@
       }
     ];
 
-    const player = document.getElementById('videoPlayer');
     const speakerIcon = document.getElementById('speakerIcon');
+    const playerArea = document.getElementById('playerArea');
+
     const now = new Date();
     const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-
     let cumulativeTime = 0;
     let currentIndex = 0;
 
-    // Build TV Guide + calculate current item
+    // Build TV Guide
     const guideList = document.getElementById('tvGuideList');
     playlistItems.forEach((item, i) => {
       const startSec = cumulativeTime;
@@ -160,53 +158,57 @@
       if (secondsSinceMidnight >= startSec && secondsSinceMidnight < endSec) {
         currentIndex = i;
       }
+
       cumulativeTime += item.duration;
     });
 
     const nowItem = playlistItems[currentIndex];
     const nextItem = playlistItems[(currentIndex + 1) % playlistItems.length];
-
     document.getElementById('nowPlaying').textContent = "Now Playing: " + nowItem.title;
     document.getElementById('nextUp').textContent = "Next: " + nextItem.title;
 
-    // Display current time live
+    // Live clock
     setInterval(() => {
       const now = new Date();
       document.getElementById('currentTime').textContent = `Time: ${now.toLocaleTimeString()}`;
     }, 1000);
-
-    // Play media
-    function playItem(item) {
-      if (item.url.includes('.m3u8')) {
-        if (Hls.isSupported()) {
-          const hls = new Hls();
-          hls.loadSource(item.url);
-          hls.attachMedia(player);
-        } else if (player.canPlayType('application/vnd.apple.mpegurl')) {
-          player.src = item.url;
-        }
-      } else {
-        player.outerHTML = `<iframe id="videoPlayer" width="100%" height="450" src="${item.url}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-      }
-      document.getElementById('statusText').textContent = "Live Broadcasting";
-    }
-
-    playItem(nowItem);
-
-    // Speaker toggle
-    speakerIcon.addEventListener('click', () => {
-      const videoEl = document.getElementById('videoPlayer');
-      if (videoEl && videoEl.muted !== undefined) {
-        videoEl.muted = false;
-        speakerIcon.style.display = 'none';
-      }
-    });
 
     function formatTime(totalSeconds) {
       const hrs = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
       const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
       return `${hrs}:${mins}`;
     }
+
+    function playItem(item) {
+      if (item.url.includes(".m3u8")) {
+        playerArea.innerHTML = `<video id="videoPlayer" autoplay muted playsinline controls style="width:100%;height:450px;background:#000;"></video>`;
+        const video = document.getElementById('videoPlayer');
+        speakerIcon.style.display = 'flex';
+
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(item.url);
+          hls.attachMedia(video);
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = item.url;
+        }
+
+        speakerIcon.onclick = () => {
+          video.muted = false;
+          speakerIcon.style.display = 'none';
+        };
+
+      } else {
+        speakerIcon.style.display = 'none';
+        playerArea.innerHTML = `
+          <iframe width="100%" height="450" src="${item.url}" frameborder="0"
+            allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+      }
+
+      document.getElementById('statusText').textContent = "Live Broadcasting";
+    }
+
+    playItem(nowItem);
   </script>
 </body>
 </html>
