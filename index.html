@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live TV Channel</title>
+    <title>Time-Synced Live TV Channel</title>
     <style>
-        /* CSS remains exactly the same */
+        /* CSS remains exactly the same as previous versions */
         * {
             margin: 0;
             padding: 0;
@@ -135,7 +135,6 @@
             border-left: 15px solid white;
             margin-left: -3px; /* Adjust triangle position */
         }
-
 
         .loading-spinner {
             position: absolute;
@@ -270,14 +269,14 @@
                 <div class="live-dot"></div>
                 LIVE
             </div>
-            <h1>Live TV Channel</h1>
-            <p>Synchronized Streaming Experience</p>
+            <h1>Time-Synced Live Channel</h1>
+            <p>Always on the right program at the right time.</p>
         </div>
 
         <div id="errorMessage" class="error-message" style="display: none;"></div>
 
         <div class="program-info">
-            <div class="current-program" id="currentProgram">Loading...</div>
+            <div class="current-program" id="currentProgram">Loading Program...</div>
             <div class="program-time" id="programTime">--:-- - --:--</div>
         </div>
 
@@ -288,12 +287,11 @@
                 <div id="youtubePlayer" style="display: none;"></div>
 
                 <div id="playOverlay" class="play-overlay">
-                    <p>Click to start your Live TV experience!</p>
+                    <p>Click to start the Time-Synced Live Channel!</p>
                     <button class="play-button">
                         <span class="play-icon"></span> Play Channel
                     </button>
                 </div>
-
             </div>
         </div>
 
@@ -315,170 +313,136 @@
         </div>
     </div>
 
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://www.youtube.com1"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
 
     <script>
         class LiveTVChannel {
             constructor() {
-                // Adjust initial program start time to be based on the current time
-                const now = new Date(); 
-                const currentHour = now.getHours();
-                const currentMinute = now.getMinutes();
-                const currentTotalMinutes = currentHour * 60 + currentMinute;
-
-                // Start initial program 5 minutes before current time for better testing
-                let initialProgramStartTimeMinutes = currentTotalMinutes - 5; 
-                // Ensure it doesn't go negative if current time is very early
-                if (initialProgramStartTimeMinutes < 0) {
-                    initialProgramStartTimeMinutes = 0;
-                }
-
-                const formatTime = (totalMins) => {
-                    const h = Math.floor(totalMins / 60) % 24; // Ensure hours wrap around 24
-                    const m = totalMins % 60;
-                    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                };
-
+                // Schedule based on your previous input, adjusted to make current time fall within a video
+                // Current time: Monday, June 23, 2025 at 10:27 AM Mildura, VIC, Australia
+                // Let's create a schedule that makes sense for this time.
+                // If you want a different "current" video, adjust the startTimes.
                 this.schedule = [
                     {
                         id: 1,
-                        title: "Morning Music Show (Rick Astley)",
+                        title: "Morning Chill Out",
                         type: "youtube",
-                        url: "dQw4w9WgXcQ", // Rick Astley - Never Gonna Give You Up
-                        startTime: formatTime(initialProgramStartTimeMinutes),
-                        duration: 6 // minutes
+                        url: "5qap5aO4i9A", // Lo-fi Hip Hop Radio - beats to relax/study to
+                        startTime: "09:00", // Starts at 9:00 AM
+                        duration: 7200 // 2 hours (enough to cover 10:27 AM)
                     },
                     {
                         id: 2,
-                        title: "Popular Hits (Gangnam Style)",
+                        title: "Mid-Morning Motivation (Gangnam Style)",
                         type: "youtube",
                         url: "9bZkp7q19f0", // PSY - GANGNAM STYLE
-                        startTime: formatTime(initialProgramStartTimeMinutes + 6),
-                        duration: 8
+                        startTime: "11:00", // Starts at 11:00 AM
+                        duration: 480 // 8 minutes
                     },
                     {
                         id: 3,
-                        title: "Live Stream Test (Tears of Steel)",
+                        title: "News Update (Tears of Steel Demo)",
                         type: "m3u8",
                         url: "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8",
-                        startTime: formatTime(initialProgramStartTimeMinutes + 6 + 8),
-                        duration: 12
+                        startTime: "11:08", // Starts at 11:08 AM
+                        duration: 720 // 12 minutes
                     },
                     {
                         id: 4,
-                        title: "Classic Hits (All Star)",
+                        title: "Afternoon Rock (All Star)",
                         type: "youtube",
                         url: "L_jWHffIx5E", // Smash Mouth - All Star
-                        startTime: formatTime(initialProgramStartTimeMinutes + 6 + 8 + 12),
-                        duration: 10
+                        startTime: "11:20", // Starts at 11:20 AM
+                        duration: 600 // 10 minutes
                     },
                     {
                         id: 5,
-                        title: "Latin Music (Despacito)",
+                        title: "Evening Unwind (Despacito)",
                         type: "youtube",
                         url: "kJQP7kiw5Fk", // Luis Fonsi - Despacito
-                        startTime: formatTime(initialProgramStartTimeMinutes + 6 + 8 + 12 + 10),
-                        duration: 15
+                        startTime: "11:30",
+                        duration: 900 // 15 minutes
                     },
                     {
                         id: 6,
-                        title: "Retro Vibes (Me at the zoo)",
+                        title: "Late Night Classic (Me at the zoo)",
                         type: "youtube",
                         url: "jNQXAC9IVRw", // Me at the zoo (first YouTube video)
-                        startTime: formatTime(initialProgramStartTimeMinutes + 6 + 8 + 12 + 10 + 15),
-                        duration: 10
+                        startTime: "11:45",
+                        duration: 600 // 10 minutes
                     }
                 ];
 
                 this.currentProgram = null;
                 this.youtubePlayer = null;
                 this.hls = null;
-                this.startTime = Date.now(); // When the page loaded
-                this.programStartTime = null; // When the current program actually started playing
-                this.isChannelPlaying = false; // Controls if video playback should occur
-                this.youtubeApiReady = false; // Flag for YouTube API readiness
-                this.schedulerInterval = null; // To hold the interval ID for the program scheduler
+                this.isChannelPlaying = false; 
+                this.youtubeApiReady = false; 
+                this.schedulerInterval = null; 
 
                 this.initializeElements();
-                console.log('LiveTVChannel: Elements initialized. `this.elements` contents (should not be empty):', this.elements); 
                 this.setupPlayOverlay();
-                this.updateClock(); // Start the clock immediately
+                this.updateClock();
                 console.log('LiveTVChannel initialized. Waiting for user interaction and YouTube API to be ready.');
             }
 
             initializeElements() {
-                this.elements = {}; // Initialize as an empty object
-                
-                // List of all element IDs we need to get
+                this.elements = {};
                 const elementIds = [
-                    'currentProgram', 'programTime', 'currentTime', 'programProgress', 
-                    'timeRemaining', 'scheduleList', 'videoPlayer', 'youtubePlayer', 
+                    'currentProgram', 'programTime', 'currentTime', 'programProgress',
+                    'timeRemaining', 'scheduleList', 'videoPlayer', 'youtubePlayer',
                     'loadingSpinner', 'errorMessage', 'connectionStatus', 'playOverlay',
-                    'viewerCount' // Make sure viewerCount is included
+                    'viewerCount'
                 ];
-
-                // Loop through IDs and store references
                 elementIds.forEach(id => {
-                    const element = document.getElementById(id);
-                    if (element) {
-                        this.elements[id] = element;
-                        console.log(`Element found: #${id}`);
-                    } else {
-                        console.error(`Element NOT FOUND: #${id}`); 
-                        // Assign null if not found to prevent future TypeError on this specific element
-                        this.elements[id] = null; 
+                    this.elements[id] = document.getElementById(id);
+                    if (!this.elements[id]) {
+                        console.error(`Element NOT FOUND: #${id}`);
                     }
                 });
-                
-                this.renderSchedule(); // Render the schedule once elements are found
+                this.renderSchedule();
             }
 
             renderSchedule() {
-                if (!this.elements.scheduleList) {
-                    console.error("renderSchedule: scheduleList element not found, cannot render schedule.");
-                    return;
-                }
-                this.elements.scheduleList.innerHTML = ''; // Clear previous content
-                
+                if (!this.elements.scheduleList) return;
+                this.elements.scheduleList.innerHTML = '';
                 this.schedule.forEach(program => {
                     const item = document.createElement('div');
                     item.className = 'schedule-item';
-                    
-                    const endTime = this.addMinutesToTime(program.startTime, program.duration);
-                    
+                    const endTime = this.addSecondsToTime(program.startTime, program.duration);
                     item.innerHTML = `
                         <div>
                             <div class="schedule-time">${program.startTime}</div>
                             <div>${program.title}</div>
                         </div>
-                        <div>${program.duration}min</div>
+                        <div>${this.formatDuration(program.duration)}</div>
                     `;
-                    
                     this.elements.scheduleList.appendChild(item);
                 });
             }
 
             setupPlayOverlay() {
-                if (!this.elements.playOverlay) {
-                    console.error("setupPlayOverlay: playOverlay element not found. Cannot attach listener.");
-                    return;
+                if (!this.elements.playOverlay) return;
+                // Add event listener to the button instead of the entire overlay
+                const playButton = this.elements.playOverlay.querySelector('.play-button');
+                if (playButton) {
+                    playButton.addEventListener('click', () => {
+                        console.log('Play button clicked. User interaction registered.');
+                        this.elements.playOverlay.style.display = 'none';
+                        this.isChannelPlaying = true;
+                        this.attemptStartScheduler();
+                    }, { once: true });
+                } else {
+                    console.error('Play button not found in overlay!');
                 }
-                this.elements.playOverlay.addEventListener('click', () => {
-                    console.log('Play overlay clicked. User interaction registered.');
-                    this.elements.playOverlay.style.display = 'none'; // Hide the overlay
-                    this.isChannelPlaying = true; // Set flag to true
-                    this.attemptStartScheduler(); // Try to start playback now
-                }, { once: true }); // Only allow clicking once
             }
 
-            // This function is called by the YouTube API itself, globally
             initializeYouTubePlayerInstance() {
                 console.log('onYouTubeIframeAPIReady fired, initializing YT.Player...');
                 if (!this.elements.youtubePlayer) {
-                    console.error("initializeYouTubePlayerInstance: youtubePlayer element not found. Cannot initialize YT.Player.");
-                    this.showError("Video player element missing. Please check HTML.");
+                    this.showError("YouTube player element missing. Please check HTML.");
                     return;
                 }
                 this.youtubePlayer = new YT.Player('youtubePlayer', {
@@ -487,37 +451,46 @@
                     playerVars: {
                         'autoplay': 1,
                         'controls': 1,
-                        'rel': 0, // Do not show related videos
-                        'showinfo': 0, // Hide video title and uploader info
-                        'modestbranding': 1, // Hide YouTube logo
+                        'rel': 0,
+                        'showinfo': 0,
+                        'modestbranding': 1,
                         'mute': 1 // Start muted to enable autoplay on most browsers
                     },
                     events: {
                         'onReady': (event) => {
                             console.log('YouTube player ready. Event:', event);
-                            this.youtubeApiReady = true; // Mark API as ready
-                            this.attemptStartScheduler(); // Try to start playback now
+                            this.youtubeApiReady = true;
+                            // Attempt to play only if channel is supposed to be playing
+                            if (this.isChannelPlaying) {
+                                this.attemptStartScheduler();
+                            } else {
+                                // If not playing yet, keep muted and don't try to play immediately
+                                event.target.mute();
+                            }
                         },
                         'onStateChange': (event) => {
-                            console.log('YouTube player state changed:', event.data, ' (1:Playing, 2:Paused, 3:Buffering, -1:Unstarted, 0:Ended)');
                             if (event.data === YT.PlayerState.PLAYING) {
                                 this.hideLoading();
-                                console.log('YouTube video is PLAYING, hiding spinner.');
+                                this.hideError(); // Clear error once playing
                             } else if (event.data === YT.PlayerState.BUFFERING) {
                                 this.showLoading();
-                                console.log('YouTube video is BUFFERING, showing spinner.');
                             } else if (event.data === YT.PlayerState.ENDED) {
                                 console.log('YouTube video ENDED. Forcing scheduler re-check.');
-                                this.showLoading(); // Show spinner until next program starts
-                                this.attemptStartScheduler(); // Immediately check for next program
-                            } else {
-                                // For other states (paused, unstarted), show loading
                                 this.showLoading();
-                                console.log('YouTube video is not playing, showing spinner.');
+                                this.attemptStartScheduler();
+                            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.CUED) {
+                                // Keep spinner if paused/cued, unless it's the play overlay waiting
+                                if (this.elements.playOverlay.style.display !== 'none') {
+                                    this.hideLoading(); // Hide if waiting for play click
+                                } else {
+                                    this.showLoading(); // Otherwise, show spinner
+                                }
+                            } else {
+                                this.showLoading();
                             }
                         },
                         'onError': (event) => {
-                            this.showError('YouTube video failed to load (Code: ' + event.data + '). This might be due to embedding restrictions or network issues.');
+                            this.showError('YouTube video failed to load (Code: ' + event.data + '). This might be due to embedding restrictions or network issues. **Check your API key and its restrictions!**');
                             console.error('YouTube Error:', event.data, event);
                             this.hideLoading();
                         }
@@ -525,109 +498,128 @@
                 });
             }
 
-            // Central function to decide if scheduler should start
             attemptStartScheduler() {
                 if (this.isChannelPlaying && this.youtubeApiReady) {
                     console.log('Both user interaction and YouTube API ready. Starting scheduler.');
                     this.startScheduler();
                 } else {
                     console.log('Waiting for both user interaction and YouTube API. isChannelPlaying:', this.isChannelPlaying, 'youtubeApiReady:', this.youtubeApiReady);
-                    this.showLoading(); // Keep showing loading spinner while waiting
+                    this.showLoading();
                 }
             }
 
-            // Determines which program should be playing right now
-            getCurrentProgram() {
+            getProgramAtCurrentTime() {
+                // Adjusting to account for Mildura, VIC, Australia timezone (AEST is UTC+10)
+                // For a more robust solution, especially across timezones, you would use a library
+                // like Moment.js or Luxon, or explicitly manage UTC offsets.
+                // For this example, we assume the server time (or user's browser time) is roughly in sync
+                // with the desired local timezone for the schedule.
+
                 const now = new Date();
-                const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+                // Get hours and minutes in 24-hour format
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                const currentSecond = now.getSeconds();
                 
-                for (let program of this.schedule) {
-                    const [hours, minutes] = program.startTime.split(':').map(Number);
-                    const startTimeMinutes = hours * 60 + minutes;
-                    const endTimeMinutes = startTimeMinutes + program.duration;
-                    
-                    if (currentTimeMinutes >= startTimeMinutes && currentTimeMinutes < endTimeMinutes) {
-                        return {
-                            ...program,
-                            startTimeMinutes, // Add calculated start and end times for easier use
-                            endTimeMinutes,
-                            elapsedMinutes: currentTimeMinutes - startTimeMinutes
-                        };
-                    }
-                }
+                const totalSecondsToday = currentHour * 3600 + currentMinute * 60 + currentSecond;
+
+                let currentProgram = null;
+                let elapsedSeconds = 0;
+
+                const totalScheduleDurationSeconds = this.schedule.reduce((sum, p) => sum + p.duration, 0);
                 
-                // If no program is currently active, find the next one
-                let nextProgram = this.schedule.find(program => {
-                    const [hours, minutes] = program.startTime.split(':').map(Number);
-                    const startTimeMinutes = hours * 60 + minutes;
-                    return currentTimeMinutes < startTimeMinutes;
-                });
-                
-                // If no next program (i.e., we've passed all scheduled programs for the day),
-                // default to the first program and assume it should start now (for continuous play)
-                if (!nextProgram) {
-                    // Loop back to the start of the schedule
-                    const firstProgram = { ...this.schedule[0] };
-                    // For display, treat its start time as the current time
-                    firstProgram.startTimeMinutes = currentTimeMinutes; 
-                    firstProgram.elapsedMinutes = 0; // It's just starting relative to now
-                    return firstProgram;
+                if (totalScheduleDurationSeconds === 0) {
+                    this.showError('No programs defined in the schedule!');
+                    return null;
                 }
 
-                return nextProgram;
+                // This logic ensures the schedule loops if current time is outside the defined range
+                const timeInScheduleCycle = totalSecondsToday % totalScheduleDurationSeconds;
+
+                let accumulatedDuration = 0;
+                for (let i = 0; i < this.schedule.length; i++) {
+                    const program = this.schedule[i];
+                    if (timeInScheduleCycle >= accumulatedDuration && timeInScheduleCycle < accumulatedDuration + program.duration) {
+                        currentProgram = program;
+                        elapsedSeconds = timeInScheduleCycle - accumulatedDuration;
+                        break;
+                    }
+                    accumulatedDuration += program.duration;
+                }
+                
+                // Fallback: If for some reason no program matched (e.g., schedule misconfiguration),
+                // default to the first program at 0 seconds.
+                if (!currentProgram && this.schedule.length > 0) {
+                    currentProgram = this.schedule[0];
+                    elapsedSeconds = 0;
+                }
+                
+                if (currentProgram) {
+                    console.log(`Calculated program: ${currentProgram.title}, Elapsed: ${elapsedSeconds}s`);
+                    return { ...currentProgram, elapsedSeconds };
+                }
+                
+                return null;
             }
 
             async playProgram(program) {
-                // Do not attempt to play if user hasn't interacted yet
                 if (!this.isChannelPlaying) {
                     console.log('Channel not yet started by user. Deferring program playback.');
-                    this.showLoading(); // Keep spinner visible
+                    this.showLoading();
                     return;
                 }
 
                 if (!program) {
-                    this.showError('No program available to play.');
+                    this.showError('No program available to play. Check schedule configuration.');
                     console.error('No program to play!');
                     this.hideLoading();
                     return;
                 }
 
-                // Check if the current program is already playing to avoid unnecessary reloads
-                let isPlaying = false;
-                if (program.id === this.currentProgram?.id) {
-                    if (program.type === 'youtube' && this.youtubePlayer && typeof this.youtubePlayer.getPlayerState === 'function') {
-                        const state = this.youtubePlayer.getPlayerState();
-                        isPlaying = (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING);
+                // Check if this program is already playing and at a reasonable sync point
+                if (this.currentProgram && program.id === this.currentProgram.id) {
+                    let currentPlayerTime = 0;
+                    if (program.type === 'youtube' && this.youtubePlayer && typeof this.youtubePlayer.getCurrentTime === 'function') {
+                        currentPlayerTime = this.youtubePlayer.getCurrentTime();
                     } else if (program.type === 'm3u8' && this.elements.videoPlayer) {
-                        isPlaying = !this.elements.videoPlayer.paused && !this.elements.videoPlayer.ended;
+                        currentPlayerTime = this.elements.videoPlayer.currentTime;
+                    }
+
+                    // If player is within 5 seconds of the target sync time, don't re-load unless paused/ended
+                    if (Math.abs(currentPlayerTime - program.elapsedSeconds) < 5) {
+                        if (program.type === 'youtube' && this.youtubePlayer && typeof this.youtubePlayer.getPlayerState === 'function') {
+                             const state = this.youtubePlayer.getPlayerState();
+                             if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.BUFFERING) {
+                                console.log(`Program "${program.title}" already playing and synced. Skipping reload.`);
+                                this.hideLoading();
+                                return;
+                             }
+                        } else if (program.type === 'm3u8' && this.elements.videoPlayer && !this.elements.videoPlayer.paused) {
+                            console.log(`Program "${program.title}" already playing and synced. Skipping reload.`);
+                            this.hideLoading();
+                            return;
+                        }
                     }
                 }
                 
-                if (isPlaying) {
-                    console.log(`Program "${program.title}" is already playing. Skipping reload.`);
-                    this.hideLoading(); // Hide loading if content is already playing
-                    return;
-                }
-                
-                this.currentProgram = program; // Set the new current program
-                this.showLoading(); // Always show loading when switching programs
-                this.hideError(); // Clear any previous error messages
+                this.currentProgram = program;
+                this.showLoading();
+                this.hideError();
 
-                console.log(`Attempting to play: ${program.title} (Type: ${program.type}) at ${program.startTime}. Current Program ID: ${this.currentProgram?.id}`);
+                console.log(`Attempting to play: ${program.title} (Type: ${program.type}) from ${program.elapsedSeconds}s.`);
 
                 try {
                     if (program.type === 'youtube') {
-                        // Ensure youtubePlayer is ready before trying to play
                         if (this.youtubePlayer && typeof this.youtubePlayer.loadVideoById === 'function') {
                             await this.playYouTubeVideo(program);
                         } else {
-                            // This might happen if API is still loading
-                            console.log('YouTube player not available, will wait for onReady or next scheduler check.');
+                            console.warn('YouTube player not available, will wait for onReady or next scheduler check.');
+                            this.showError("YouTube player not ready. Ensure API is loaded and initialized.");
+                            this.hideLoading();
                         }
                     } else if (program.type === 'm3u8') {
                         await this.playM3U8Stream(program);
                     }
-
                     this.updateProgramInfo(program);
                 } catch (error) {
                     this.showError('Failed to load program: ' + error.message);
@@ -637,53 +629,41 @@
             }
 
             async playYouTubeVideo(program) {
-                // Ensure correct player is visible
                 if (this.elements.videoPlayer) this.elements.videoPlayer.style.display = 'none';
                 if (this.elements.youtubePlayer) this.elements.youtubePlayer.style.display = 'block';
 
-                // If HLS was playing, destroy it first
                 if (this.hls) {
                     this.hls.destroy();
                     this.hls = null;
                     if (this.elements.videoPlayer) {
                         this.elements.videoPlayer.pause();
-                        this.elements.videoPlayer.removeAttribute('src'); // Clear source
-                        this.elements.videoPlayer.load(); // Reload video element
+                        this.elements.videoPlayer.removeAttribute('src');
+                        this.elements.videoPlayer.load();
                     }
-                    console.log('HLS player destroyed and video element reset.');
                 }
-
-                // Calculate the start time within the video based on elapsed program time
-                const startSeconds = Math.max(0, (program.elapsedMinutes || 0) * 60);
                 
-                // Load and play the YouTube video
                 if (this.youtubePlayer && typeof this.youtubePlayer.loadVideoById === 'function') {
                     this.youtubePlayer.loadVideoById({
                         videoId: program.url,
-                        startSeconds: startSeconds,
-                        'mute': 1 // Ensure it remains muted
+                        startSeconds: program.elapsedSeconds,
+                        'mute': 1
                     });
-                    console.log(`Loading YouTube video: ${program.url} from ${startSeconds}s.`);
+                    this.youtubePlayer.playVideo(); // Force play after load
                 } else {
-                    console.warn("YouTube player is null or its methods are not available at this point.");
                     this.showError("YouTube player not ready to load video.");
                     this.hideLoading();
                 }
             }
 
             async playM3U8Stream(program) {
-                // Ensure correct player is visible
                 if (this.elements.youtubePlayer) this.elements.youtubePlayer.style.display = 'none';
                 if (this.elements.videoPlayer) this.elements.videoPlayer.style.display = 'block';
 
-                // Pause YouTube player if it was active
                 if (this.youtubePlayer && typeof this.youtubePlayer.pauseVideo === 'function') {
                     this.youtubePlayer.pauseVideo();
-                    console.log('YouTube player paused for M3U8 stream.');
                 }
 
                 if (!this.elements.videoPlayer) {
-                    console.error("playM3U8Stream: videoPlayer element not found.");
                     this.showError("Video player element missing for HLS. Please check HTML.");
                     this.hideLoading();
                     return;
@@ -691,70 +671,55 @@
 
                 if (Hls.isSupported()) {
                     if (this.hls) {
-                        this.hls.destroy(); // Destroy existing HLS instance if any
-                        console.log('Existing HLS instance destroyed.');
+                        this.hls.destroy();
                     }
-                    
                     this.hls = new Hls();
                     this.hls.loadSource(program.url);
                     this.hls.attachMedia(this.elements.videoPlayer);
                     
                     this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                        console.log('HLS Manifest Parsed. Attempting to play...');
-                        this.elements.videoPlayer.muted = true; // Keep muted for autoplay
+                        this.elements.videoPlayer.muted = true;
+                        this.elements.videoPlayer.currentTime = program.elapsedSeconds;
                         this.elements.videoPlayer.play().then(() => {
                             this.hideLoading();
-                            console.log('M3U8 video is PLAYING, hiding spinner.');
                         }).catch(error => {
                             this.showError('Autoplay prevented for M3U8. Please click play or unmute the video.');
-                            console.error('M3U8 Autoplay error:', error);
                             this.hideLoading();
                         });
                     });
 
                     this.hls.on(Hls.Events.ERROR, (event, data) => {
-                        const errorMsg = `HLS Error: ${data.details} (Fatal: ${data.fatal})`;
-                        this.showError(errorMsg);
-                        console.error('HLS Error:', event, data);
+                        this.showError(`HLS Error: ${data.details} (Fatal: ${data.fatal})`);
                         this.hideLoading();
                         if (data.fatal) {
                             if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                                this.hls.recoverMediaError(); // Try to recover
+                                this.hls.recoverMediaError();
                             } else if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                                console.warn('HLS Network Error, attempting to retry load...');
-                                this.hls.startLoad(); // Try to re-load
+                                this.hls.startLoad();
                             } else {
-                                this.hls.destroy(); // Destroy for other fatal errors
-                                console.error('Fatal HLS error, HLS instance destroyed.');
+                                this.hls.destroy();
                             }
                         }
                     });
                 } else if (this.elements.videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                    // Fallback for browsers that natively support HLS (like Safari)
-                    console.log('Using native HLS playback for Safari.');
                     this.elements.videoPlayer.src = program.url;
                     this.elements.videoPlayer.addEventListener('loadedmetadata', () => {
-                        console.log('Native HLS loadedmetadata. Attempting to play...');
-                        this.elements.videoPlayer.muted = true; // Keep muted for autoplay
+                        this.elements.videoPlayer.muted = true;
+                        this.elements.videoPlayer.currentTime = program.elapsedSeconds;
                         this.elements.videoPlayer.play().then(() => {
                             this.hideLoading();
-                            console.log('Native HLS video is PLAYING, hiding spinner.');
                         }).catch(error => {
                             this.showError('Autoplay prevented for M3U8. Please click play or unmute the video.');
-                            console.error('Native HLS Autoplay error:', error);
                             this.hideLoading();
                         });
-                    }, { once: true }); // Listen once for loadedmetadata
+                    }, { once: true });
                     this.elements.videoPlayer.addEventListener('error', (e) => {
                         this.showError('Native HLS playback error: ' + (e.message || e.type));
-                        console.error('Native HLS video element error:', e);
                         this.hideLoading();
                     });
-                    this.elements.videoPlayer.load(); // Load the video
+                    this.elements.videoPlayer.load();
                 } else {
-                    const msg = 'HLS not supported in this browser. Please use a modern browser like Chrome, Firefox, Edge, or Safari.';
-                    this.showError(msg);
-                    console.error(msg);
+                    this.showError('HLS not supported in this browser. Please use a modern browser.');
                     this.hideLoading();
                 }
             }
@@ -762,116 +727,145 @@
             updateProgramInfo(program) {
                 if (this.elements.currentProgram) {
                     this.elements.currentProgram.textContent = program.title;
-                } else {
-                    console.warn("updateProgramInfo: currentProgram element not found.");
                 }
+                const [h, m] = program.startTime.split(':').map(Number);
+                const programStartTotalMinutes = h * 60 + m;
+                const programEndTotalMinutes = programStartTotalMinutes + (program.duration / 60);
+
+                const formatTime = (totalMins) => {
+                    const hours = Math.floor(totalMins / 60) % 24;
+                    const minutes = totalMins % 60;
+                    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                };
+
                 if (this.elements.programTime) {
-                    const endTime = this.addMinutesToTime(program.startTime, program.duration);
-                    this.elements.programTime.textContent = `${program.startTime} - ${endTime}`;
-                } else {
-                    console.warn("updateProgramInfo: programTime element not found.");
+                    this.elements.programTime.textContent = `${program.startTime} - ${formatTime(programEndTotalMinutes)}`;
                 }
             }
 
-            // Helper to add minutes to a "HH:MM" time string
-            addMinutesToTime(timeStr, minutes) {
+            formatDuration(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = seconds % 60;
+                let text = '';
+                if (minutes > 0) {
+                    text += `${minutes}min`;
+                }
+                if (remainingSeconds > 0) {
+                    if (text) text += ' ';
+                    text += `${remainingSeconds}s`;
+                }
+                return text || '0s';
+            }
+
+            addSecondsToTime(timeStr, seconds) {
                 const [hours, mins] = timeStr.split(':').map(Number);
-                const totalMinutes = hours * 60 + mins + minutes;
-                const newHours = Math.floor(totalMinutes / 60) % 24; // Ensure hours wrap around 24
-                const newMins = totalMinutes % 60;
+                const totalSeconds = hours * 3600 + mins * 60 + seconds;
+                const newHours = Math.floor(totalSeconds / 3600) % 24;
+                const newMins = Math.floor((totalSeconds % 3600) / 60);
                 return `${String(newHours).padStart(2, '0')}:${String(newMins).padStart(2, '0')}`;
             }
 
             updateClock() {
                 const now = new Date();
-                if (this.elements.currentTime) { 
-                    this.elements.currentTime.textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-                } else {
-                    console.warn("updateClock: currentTime element not found.");
+                if (this.elements.currentTime) {
+                    this.elements.currentTime.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 }
 
                 if (this.currentProgram) {
-                    const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
-                    const [programStartH, programStartM] = this.currentProgram.startTime.split(':').map(Number);
-                    const programStartTimeInMinutes = programStartH * 60 + programStartM;
+                    const totalSecondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                    const scheduleTotalDuration = this.schedule.reduce((sum, p) => sum + p.duration, 0);
+                    const timeInScheduleCycle = totalSecondsToday % scheduleTotalDuration;
 
-                    const elapsed = currentTimeMinutes - programStartTimeInMinutes;
-                    const remaining = this.currentProgram.duration - elapsed;
+                    let elapsedInCurrentProgram = 0;
+                    let remainingInCurrentProgram = 0;
+                    let accumulatedCycleDuration = 0;
 
-                    if (this.elements.programProgress) { 
-                        this.elements.programProgress.textContent = `${Math.max(0, elapsed)}min`;
-                    } else {
-                        console.warn("updateClock: programProgress element not found.");
+                    for (const program of this.schedule) {
+                        if (timeInScheduleCycle >= accumulatedCycleDuration && timeInScheduleCycle < accumulatedCycleDuration + program.duration) {
+                            elapsedInCurrentProgram = timeInScheduleCycle - accumulatedCycleDuration;
+                            remainingInCurrentProgram = program.duration - elapsedInCurrentProgram;
+                            break;
+                        }
+                        accumulatedCycleDuration += program.duration;
                     }
-                    if (this.elements.timeRemaining) { 
-                        this.elements.timeRemaining.textContent = `${Math.max(0, remaining)}min`;
-                    } else {
-                        console.warn("updateClock: timeRemaining element not found.");
+
+                    if (this.elements.programProgress) {
+                        this.elements.programProgress.textContent = `${this.formatTimeFromSeconds(elapsedInCurrentProgram)}`;
+                    }
+                    if (this.elements.timeRemaining) {
+                        this.elements.timeRemaining.textContent = `${this.formatTimeFromSeconds(remainingInCurrentProgram)}`;
                     }
 
-                    // If a program has ended, force a re-check for the next one
-                    if (remaining <= 0 && this.currentProgram.duration > 0) {
-                        console.log(`Program "${this.currentProgram.title}" expected to end. Forcing re-check.`);
-                        this.attemptStartScheduler(); // Trigger a re-evaluation
+                    if (remainingInCurrentProgram <= 5 && remainingInCurrentProgram > 0) {
+                        console.log(`Program "${this.currentProgram.title}" is about to end. Forcing re-check.`);
+                        this.attemptStartScheduler();
                     }
                 }
 
-                // Update viewer count (example dynamic number)
-                if (this.elements.viewerCount) { 
+                if (this.elements.viewerCount) {
                     this.elements.viewerCount.textContent = `Viewers: ${Math.floor(Math.random() * 50) + 50}`;
-                } else {
-                    console.warn("updateClock: viewerCount element not found.");
                 }
 
-                // Schedule next update
                 setTimeout(() => this.updateClock(), 1000);
             }
 
-            // Starts the main scheduling loop
+            formatTimeFromSeconds(totalSeconds) {
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                let parts = [];
+                if (hours > 0) parts.push(`${hours}h`);
+                if (minutes > 0) parts.push(`${minutes}m`);
+                parts.push(`${seconds}s`);
+                return parts.join(' ');
+            }
+
             startScheduler() {
-                // Clear any existing interval to prevent duplicates
                 if (this.schedulerInterval) {
                     clearInterval(this.schedulerInterval);
                 }
 
                 const checkProgram = () => {
-                    const program = this.getCurrentProgram();
-                    this.playProgram(program);
-                    this.updateScheduleHighlight();
+                    const program = this.getProgramAtCurrentTime();
+                    if (program) {
+                        this.playProgram(program);
+                        this.updateScheduleHighlight(program.id);
+                    }
                 };
 
-                // Run immediately and then every 10 seconds
-                checkProgram(); 
-                this.schedulerInterval = setInterval(checkProgram, 10000); 
-                console.log('Scheduler started.');
+                checkProgram();
+                this.schedulerInterval = setInterval(checkProgram, 5000); // Check every 5 seconds
+                console.log('Scheduler started, checking every 5 seconds.');
             }
 
-            updateScheduleHighlight() {
-                if (!this.elements.scheduleList) {
-                    console.warn("updateScheduleHighlight: scheduleList element not found.");
-                    return;
-                }
+            updateScheduleHighlight(currentProgramId) {
+                if (!this.elements.scheduleList) return;
                 const items = this.elements.scheduleList.children;
-                Array.from(items).forEach((item, index) => {
-                    item.classList.toggle('active', 
-                        this.currentProgram && this.schedule[index].id === this.currentProgram.id
-                    );
+                Array.from(items).forEach(item => {
+                    item.classList.remove('active');
                 });
+
+                for (let i = 0; i < this.schedule.length; i++) {
+                    if (this.schedule[i].id === currentProgramId) {
+                        if (items[i]) {
+                            items[i].classList.add('active');
+                            // Scroll to highlight (optional)
+                            items[i].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        }
+                        break;
+                    }
+                }
             }
 
             showLoading() {
                 if (this.elements.loadingSpinner) {
                     this.elements.loadingSpinner.style.display = 'block';
-                } else {
-                    console.warn("showLoading: loadingSpinner element not found.");
                 }
             }
 
             hideLoading() {
                 if (this.elements.loadingSpinner) {
                     this.elements.loadingSpinner.style.display = 'none';
-                } else {
-                    console.warn("hideLoading: loadingSpinner element not found.");
                 }
             }
 
@@ -879,15 +873,11 @@
                 if (this.elements.errorMessage) {
                     this.elements.errorMessage.textContent = message;
                     this.elements.errorMessage.style.display = 'block';
-                } else {
-                    console.error("showError: errorMessage element not found. Error:", message);
                 }
-                this.hideLoading(); // Hide loading spinner if error occurs
+                this.hideLoading();
                 if (this.elements.connectionStatus) {
                     this.elements.connectionStatus.textContent = 'Disconnected';
                     this.elements.connectionStatus.style.color = '#ff4444';
-                } else {
-                    console.warn("showError: connectionStatus element not found.");
                 }
                 console.error('Error displayed:', message);
             }
@@ -895,48 +885,39 @@
             hideError() {
                 if (this.elements.errorMessage) {
                     this.elements.errorMessage.style.display = 'none';
-                } else {
-                    console.warn("hideError: errorMessage element not found.");
                 }
                 if (this.elements.connectionStatus) {
                     this.elements.connectionStatus.textContent = 'Connected';
                     this.elements.connectionStatus.style.color = 'white';
-                } else {
-                    console.warn("hideError: connectionStatus element not found.");
                 }
             }
         }
 
         let liveTVChannelInstance;
 
-        // Global function required by YouTube IFrame Player API
-        // It's called by the API script once it has loaded
         function onYouTubeIframeAPIReady() {
             if (liveTVChannelInstance) {
                 liveTVChannelInstance.initializeYouTubePlayerInstance();
             } else {
-                console.warn("LiveTVChannel instance not yet available when onYouTubeIframeAPIReady fired. This is OK, it will initialize when instance is ready.");
+                console.warn("LiveTVChannel instance not yet available when onYouTubeIframeAPIReady fired.");
             }
         }
 
-        // Initialize the app after the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM Content Loaded. Initializing LiveTVChannel...');
             liveTVChannelInstance = new LiveTVChannel();
         });
 
-        // Optional: Re-sync when the page becomes visible again (e.g., tab switch)
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
                 console.log('Page became visible, re-syncing...');
                 setTimeout(() => {
                     if (liveTVChannelInstance) {
-                        liveTVChannelInstance.attemptStartScheduler(); // Force a re-check for the current program
+                        liveTVChannelInstance.attemptStartScheduler();
                     } else {
-                        // If instance is somehow not there, a full reload might be best
-                        window.location.reload(); 
+                        window.location.reload();
                     }
-                }, 1000); // Give it a moment
+                }, 1000);
             }
         });
     </script>
