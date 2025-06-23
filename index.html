@@ -313,7 +313,7 @@
         </div>
     </div>
 
-    <script src="https://www.youtube.com1"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.4.12/hls.min.js"></script>
 
@@ -321,9 +321,8 @@
         class LiveTVChannel {
             constructor() {
                 // Schedule based on your previous input, adjusted to make current time fall within a video
-                // Current time: Monday, June 23, 2025 at 10:27 AM Mildura, VIC, Australia
-                // Let's create a schedule that makes sense for this time.
-                // If you want a different "current" video, adjust the startTimes.
+                // Current time: Monday, June 23, 2025 at 10:33 AM AEST (Mildura, VIC, Australia)
+                // This schedule ensures the 10:33 AM time falls within the "Morning Chill Out" program.
                 this.schedule = [
                     {
                         id: 1,
@@ -331,7 +330,7 @@
                         type: "youtube",
                         url: "5qap5aO4i9A", // Lo-fi Hip Hop Radio - beats to relax/study to
                         startTime: "09:00", // Starts at 9:00 AM
-                        duration: 7200 // 2 hours (enough to cover 10:27 AM)
+                        duration: 7200 // 2 hours (enough to cover 10:33 AM)
                     },
                     {
                         id: 2,
@@ -425,7 +424,6 @@
 
             setupPlayOverlay() {
                 if (!this.elements.playOverlay) return;
-                // Add event listener to the button instead of the entire overlay
                 const playButton = this.elements.playOverlay.querySelector('.play-button');
                 if (playButton) {
                     playButton.addEventListener('click', () => {
@@ -448,30 +446,30 @@
                 this.youtubePlayer = new YT.Player('youtubePlayer', {
                     height: '100%',
                     width: '100%',
+                    // Pass the API key here
                     playerVars: {
                         'autoplay': 1,
                         'controls': 1,
                         'rel': 0,
                         'showinfo': 0,
                         'modestbranding': 1,
-                        'mute': 1 // Start muted to enable autoplay on most browsers
+                        'mute': 1, // Start muted to enable autoplay on most browsers
+                        'key': 'AIzaSyAaefSqCygh22DA6TD9tYt7pAvNq55l0YU' // Your API Key HERE
                     },
                     events: {
                         'onReady': (event) => {
                             console.log('YouTube player ready. Event:', event);
                             this.youtubeApiReady = true;
-                            // Attempt to play only if channel is supposed to be playing
                             if (this.isChannelPlaying) {
                                 this.attemptStartScheduler();
                             } else {
-                                // If not playing yet, keep muted and don't try to play immediately
                                 event.target.mute();
                             }
                         },
                         'onStateChange': (event) => {
                             if (event.data === YT.PlayerState.PLAYING) {
                                 this.hideLoading();
-                                this.hideError(); // Clear error once playing
+                                this.hideError();
                             } else if (event.data === YT.PlayerState.BUFFERING) {
                                 this.showLoading();
                             } else if (event.data === YT.PlayerState.ENDED) {
@@ -479,11 +477,10 @@
                                 this.showLoading();
                                 this.attemptStartScheduler();
                             } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.CUED) {
-                                // Keep spinner if paused/cued, unless it's the play overlay waiting
                                 if (this.elements.playOverlay.style.display !== 'none') {
-                                    this.hideLoading(); // Hide if waiting for play click
+                                    this.hideLoading();
                                 } else {
-                                    this.showLoading(); // Otherwise, show spinner
+                                    this.showLoading();
                                 }
                             } else {
                                 this.showLoading();
@@ -509,14 +506,7 @@
             }
 
             getProgramAtCurrentTime() {
-                // Adjusting to account for Mildura, VIC, Australia timezone (AEST is UTC+10)
-                // For a more robust solution, especially across timezones, you would use a library
-                // like Moment.js or Luxon, or explicitly manage UTC offsets.
-                // For this example, we assume the server time (or user's browser time) is roughly in sync
-                // with the desired local timezone for the schedule.
-
                 const now = new Date();
-                // Get hours and minutes in 24-hour format
                 const currentHour = now.getHours();
                 const currentMinute = now.getMinutes();
                 const currentSecond = now.getSeconds();
@@ -533,7 +523,6 @@
                     return null;
                 }
 
-                // This logic ensures the schedule loops if current time is outside the defined range
                 const timeInScheduleCycle = totalSecondsToday % totalScheduleDurationSeconds;
 
                 let accumulatedDuration = 0;
@@ -547,8 +536,6 @@
                     accumulatedDuration += program.duration;
                 }
                 
-                // Fallback: If for some reason no program matched (e.g., schedule misconfiguration),
-                // default to the first program at 0 seconds.
                 if (!currentProgram && this.schedule.length > 0) {
                     currentProgram = this.schedule[0];
                     elapsedSeconds = 0;
@@ -576,7 +563,6 @@
                     return;
                 }
 
-                // Check if this program is already playing and at a reasonable sync point
                 if (this.currentProgram && program.id === this.currentProgram.id) {
                     let currentPlayerTime = 0;
                     if (program.type === 'youtube' && this.youtubePlayer && typeof this.youtubePlayer.getCurrentTime === 'function') {
@@ -585,7 +571,6 @@
                         currentPlayerTime = this.elements.videoPlayer.currentTime;
                     }
 
-                    // If player is within 5 seconds of the target sync time, don't re-load unless paused/ended
                     if (Math.abs(currentPlayerTime - program.elapsedSeconds) < 5) {
                         if (program.type === 'youtube' && this.youtubePlayer && typeof this.youtubePlayer.getPlayerState === 'function') {
                              const state = this.youtubePlayer.getPlayerState();
@@ -648,7 +633,7 @@
                         startSeconds: program.elapsedSeconds,
                         'mute': 1
                     });
-                    this.youtubePlayer.playVideo(); // Force play after load
+                    this.youtubePlayer.playVideo();
                 } else {
                     this.showError("YouTube player not ready to load video.");
                     this.hideLoading();
@@ -774,7 +759,7 @@
                 if (this.currentProgram) {
                     const totalSecondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
                     const scheduleTotalDuration = this.schedule.reduce((sum, p) => sum + p.duration, 0);
-                    const timeInScheduleCycle = totalSecondsToday % scheduleTotalDuration;
+                    const timeInScheduleCycle = totalSecondsToday % totalScheduleDurationSeconds;
 
                     let elapsedInCurrentProgram = 0;
                     let remainingInCurrentProgram = 0;
@@ -834,7 +819,7 @@
                 };
 
                 checkProgram();
-                this.schedulerInterval = setInterval(checkProgram, 5000); // Check every 5 seconds
+                this.schedulerInterval = setInterval(checkProgram, 5000);
                 console.log('Scheduler started, checking every 5 seconds.');
             }
 
@@ -849,7 +834,6 @@
                     if (this.schedule[i].id === currentProgramId) {
                         if (items[i]) {
                             items[i].classList.add('active');
-                            // Scroll to highlight (optional)
                             items[i].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                         }
                         break;
@@ -895,6 +879,8 @@
 
         let liveTVChannelInstance;
 
+        // This function name is specific to the YouTube IFrame Player API
+        // It MUST be named onYouTubeIframeAPIReady for the API to call it.
         function onYouTubeIframeAPIReady() {
             if (liveTVChannelInstance) {
                 liveTVChannelInstance.initializeYouTubePlayerInstance();
