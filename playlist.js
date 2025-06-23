@@ -9,6 +9,6 @@ const playlist = [
     title: "Next Segment: After 14:45",
     start: "14:45",
     duration: 15, // ends at 15:00
-    url: "https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8"
+    url: "https://www.youtube.com/watch?v=wlYSami-7xY"
   }
 ];
