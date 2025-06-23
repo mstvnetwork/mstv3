@@ -1,16 +1,22 @@
-[
-  {
-    "title": "Evening News",
-    "startTime": "2025-06-23T16:00:00+10:00",
-    "endTime": "2025-06-23T17:00:00+10:00",
-    "type": "youtube",
-    "url": "https://www.youtube.com/watch?v=abc123xyz"
-  },
-  {
-    "title": "HLS Sports Feed",
-    "startTime": "2025-06-23T17:00:00+10:00",
-    "endTime": "2025-06-23T18:30:00+10:00",
-    "type": "hls",
-    "url": "https://example.com/stream.m3u8"
-  }
-]
+{
+    "playlist": [
+        {
+            "id": 1,
+            "url": "https://www.youtube.com/watch?v=LIVE_STREAM_1",
+            "title": "Live Stream 1",
+            "start_time": "2025-06-25T14:00:00Z"
+        },
+        {
+            "id": 2,
+            "url": "https://www.youtube.com/watch?v=SINGLE_VIDEO_1",
+            "title": "Video Stream 1",
+            "start_time": "2025-06-25T16:00:00Z"
+        },
+        {
+            "id": 3,
+            "url": "https://www.youtube.com/watch?v=LIVE_STREAM_2",
+            "title": "Live Stream 2",
+            "start_time": "2025-06-25T18:00:00Z"
+        }
+    ]
+}
