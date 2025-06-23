@@ -58,11 +58,11 @@
     }
 
     .player-container {
-      position: relative;
+      position: relative; /* Crucial for positioning children absolutely */
       background: #000;
       border-radius: 15px;
-      overflow: hidden;
-      margin-bottom: 20px;
+      overflow: hidden; /* Important to clip scrolling text if it goes outside */
+      margin-bottom: 20px; /* This margin is now for the entire player container */
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); /* Stronger shadow for dark background */
       flex-grow: 1; /* Allows player to take available space */
       /* Aspect Ratio 16:9 for the container */
@@ -81,17 +81,19 @@
 
     /* Marquee/Scrolling Text styles */
     .scrolling-text-container {
-      background: #cc0000; /* Red background */
+      position: absolute; /* Position it relative to .player-container */
+      bottom: 0; /* Align to the bottom of the player container */
+      left: 0;
+      width: 100%; /* Take full width of the player container */
+      background: rgba(204, 0, 0, 0.8); /* Red background, slightly transparent */
       color: #fff; /* White text */
-      padding: 8px 0;
-      /* margin-top: -20px; Removed this margin to place it outside the player container */
-      border-bottom-left-radius: 15px;
-      border-bottom-right-radius: 15px;
-      font-size: 1.1em;
+      padding: 5px 0; /* Slightly reduced padding */
+      font-size: 1em; /* Slightly reduced font size */
       white-space: nowrap; /* Keep text on one line */
       overflow: hidden; /* Hide overflowing text */
-      position: relative; /* For absolute positioning of actual marquee */
-      z-index: 10; /* Ensure it's above other elements if needed */
+      z-index: 15; /* Ensure it's above the video, below mute button */
+      box-sizing: border-box; /* Include padding in width calculation */
+      /* No border-radius on its own, it inherits from player-container due to overflow: hidden */
     }
 
     .scrolling-text {
@@ -169,7 +171,7 @@
     /* Mute/Unmute Button Styles */
     #muteButton {
       position: absolute;
-      bottom: 20px; /* Adjust as needed */
+      bottom: 20px; /* Adjust as needed, relative to the bottom of player-container */
       left: 50%;
       transform: translateX(-50%);
       background-color: rgba(0, 0, 0, 0.6);
@@ -181,7 +183,7 @@
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      z-index: 20; /* Ensure it's above other elements */
+      z-index: 20; /* Ensure it's above scrolling text and video */
       transition: opacity 0.3s ease;
     }
 
@@ -256,15 +258,14 @@
     <div id="muteButton" style="display: none;">
       <img id="speakerIcon" src="https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png" alt="Mute">
     </div>
-  </div>
-
-  <div class="scrolling-text-container">
-    <div class="scrolling-text">
-      This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
-                          
-      Breaking News: Today is Tuesday, June 24, 2025. Current time is 8:53:04 AM AEST.
-                          
-      Visit our social media for updates!
+    <div class="scrolling-text-container">
+      <div class="scrolling-text">
+        This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
+                            
+        Breaking News: Today is Tuesday, June 24, 2025. Current time is 9:14:44 AM AEST.
+                            
+        Visit our social media for updates!
+      </div>
     </div>
   </div>
 
@@ -329,11 +330,24 @@
     }
 
     function formatClockTime(date) {
-      return date.toLocaleTimeString();
+      // Use "en-AU" locale for AEST format if needed, or keep default
+      return date.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
     function updateClock() {
-      document.getElementById("currentTime").textContent = formatClockTime(new Date());
+      const now = new Date();
+      document.getElementById("currentTime").textContent = formatClockTime(now);
+      // Update scrolling text with current time
+      const scrollingTextDiv = document.querySelector('.scrolling-text');
+      if (scrollingTextDiv) {
+        const originalText = scrollingTextDiv.dataset.originalText || scrollingTextDiv.innerHTML;
+        if (!scrollingTextDiv.dataset.originalText) {
+          scrollingTextDiv.dataset.originalText = originalText;
+        }
+        // Replace the time part in the scrolling text
+        const updatedText = originalText.replace(/Current time is \d{1,2}:\d{2}:\d{2} [AP]M AEST\./, `Current time is ${formatClockTime(now)} AEST.`);
+        scrollingTextDiv.innerHTML = updatedText;
+      }
     }
 
     function updateViewers() {
@@ -380,11 +394,17 @@
           if (playerDiv.querySelector('#youtubePlayer')) {
             playerDiv.querySelector('#youtubePlayer').onload = function() {
               const iframe = playerDiv.querySelector('#youtubePlayer');
-              const player = new YT.Player(iframe, {
-                events: {
-                  'onReady': onYouTubePlayerReady
-                }
-              });
+              // Ensure YT is loaded before creating player
+              if (typeof YT !== 'undefined' && YT.Player) {
+                const player = new YT.Player(iframe, {
+                  events: {
+                    'onReady': onYouTubePlayerReady
+                  }
+                });
+              } else {
+                console.warn("YouTube API not yet loaded, retrying on next tick.");
+                setTimeout(() => playerDiv.querySelector('#youtubePlayer').onload(), 100); // Retry
+              }
             };
           }
 
@@ -424,6 +444,7 @@
           video.onvolumechange = () => {
             if (video.muted) {
               speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+              muteButton.style.display = 'flex'; // Ensure button is visible if muted
             } else {
               // Once unmuted, hide the button
               muteButton.style.display = 'none';
@@ -454,6 +475,7 @@
           video.onvolumechange = () => {
             if (video.muted) {
               speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+              muteButton.style.display = 'flex'; // Ensure button is visible if muted
             } else {
               // Once unmuted, hide the button
               muteButton.style.display = 'none';
@@ -472,11 +494,14 @@
       }
     }
 
+    let youtubePlayerInstance; // Declare a global variable to hold the YouTube player
+
     function onYouTubePlayerReady(event) {
+      youtubePlayerInstance = event.target;
       // Ensure the YouTube player is muted initially
-      event.target.mute();
+      youtubePlayerInstance.mute();
       // Hide the mute button if already unmuted, though we expect it to be muted
-      if (!event.target.isMuted()) {
+      if (!youtubePlayerInstance.isMuted()) {
         muteButton.style.display = 'none';
       }
     }
@@ -484,8 +509,7 @@
     // Function to handle mute/unmute
     muteButton.addEventListener('click', () => {
       const videoElement = playerDiv.querySelector('video');
-      const youtubeIframe = playerDiv.querySelector('#youtubePlayer');
-
+      
       if (videoElement) {
         videoElement.muted = !videoElement.muted;
         if (!videoElement.muted) {
@@ -493,14 +517,12 @@
         } else {
           speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
         }
-      } else if (youtubeIframe) {
-        // For YouTube, we need the YT Player API
-        const youtubePlayer = new YT.Player(youtubeIframe);
-        if (youtubePlayer.isMuted()) {
-          youtubePlayer.unMute();
+      } else if (youtubePlayerInstance) { // Use the stored instance
+        if (youtubePlayerInstance.isMuted()) {
+          youtubePlayerInstance.unMute();
           muteButton.style.display = 'none'; // Hide button if unmuted
         } else {
-          youtubePlayer.mute();
+          youtubePlayerInstance.mute();
           speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
         }
       }
@@ -566,7 +588,7 @@
     // This function will be called by the YouTube Iframe API when it's ready
     window.onYouTubeIframeAPIReady = function() {
       console.log("YouTube Iframe API is ready.");
-      // If a YouTube video is already being played, its player will be initialized here
+      // The playItem function will now create the YT.Player instance when a YouTube video is played.
     };
 
     updateClock();
