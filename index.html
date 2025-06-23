@@ -1,49 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MSTV NETWORK</title>
+  <title>Multi-Source Playlist Player</title>
   <style>
-    body { background: black; color: white; font-family: Arial, sans-serif; padding: 20px; }
-    h1 { font-size: 2rem; }
-    .live { background: red; padding: 3px 10px; border-radius: 5px; margin-right: 10px; }
-    #loading { font-style: italic; margin-bottom: 10px; }
-    #video-container iframe, #video-container video {
-      width: 100%; max-height: 360px; border: none; border-radius: 8px;
-      background: black;
-    }
-    .info p { margin: 6px 0; }
-    #schedule-list { margin-top: 20px; }
-    .schedule-item {
-      display: flex; justify-content: space-between; border-bottom: 1px solid #444; padding: 4px 0;
-    }
-    .schedule-time { width: 80px; }
-    .schedule-title { flex: 1; }
-    .schedule-duration { width: 60px; text-align: right; }
+    body { background: #000; color: white; text-align: center; font-family: sans-serif; }
+    #playerContainer, video { width: 90%; max-width: 800px; margin: auto; border: 3px solid gold; border-radius: 16px; }
+    #nextBtn { margin-top: 15px; padding: 10px 20px; font-size: 16px; }
   </style>
 </head>
 <body>
-  <h1><span class="live">LIVE</span>MSTV NETWORK</h1>
-  <div id="loading">Loading current segment...</div>
 
-  <div id="video-container"></div>
+<h2>MSTV Playlist Player</h2>
+<div id="playerContainer">
+  <div id="ytPlayer"></div>
+  <video id="hlsPlayer" controls style="display:none;"></video>
+</div>
+<button id="nextBtn">Next</button>
 
-  <div class="info">
-    <p>Program: <span id="program-name">--</span></p>
-    <p>Time: <span id="program-time">--</span></p>
-    <p>Current Time: <span id="current-time">--</span></p>
-    <p>Progress: <span id="progress">--</span></p>
-    <p>Remaining: <span id="remaining">--</span></p>
-    <p>Status: Connected</p>
-    <p>Viewers: 63</p>
-  </div>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-  <h2>Today's Schedule</h2>
-  <div id="schedule-list"></div>
+<script>
+const playlist = [
+  { type: "youtube", url: "https://www.youtube.com/watch?v=Gnef-jGl2zM&list=PLYIexFLR0T0mkUsnZ1jK08Lt8--owBp6g" },
+  { type: "youtube", url: "https://www.youtube.com/watch?v=CRFZq2xJKCE" },
+  { type: "hls", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" }
+];
 
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="playlist.js"></script>
-  <script src="script.js"></script>
+let currentIndex = 0;
+let ytPlayer;
+let hls;
+let videoEl = document.getElementById('hlsPlayer');
+
+function loadVideo(index) {
+  const item = playlist[index];
+  if (!item) return;
+
+  if (item.type === 'youtube') {
+    videoEl.style.display = 'none';
+    videoEl.pause();
+    if (ytPlayer) {
+      const videoId = new URL(item.url).searchParams.get('v');
+      ytPlayer.loadVideoById(videoId);
+    }
+  } else if (item.type === 'hls') {
+    document.getElementById('ytPlayer').innerHTML = '';
+    videoEl.style.display = 'block';
+    if (hls) hls.destroy();
+    hls = new Hls();
+    hls.loadSource(item.url);
+    hls.attachMedia(videoEl);
+    hls.on(Hls.Events.MANIFEST_PARSED, function () {
+      videoEl.play();
+    });
+  }
+}
+
+function nextVideo() {
+  currentIndex++;
+  if (currentIndex >= playlist.length) currentIndex = 0; // Loop
+  loadVideo(currentIndex);
+}
+
+document.getElementById('nextBtn').addEventListener('click', nextVideo);
+
+// YouTube API will call this
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('ytPlayer', {
+    height: '360',
+    width: '640',
+    videoId: new URL(playlist[0].url).searchParams.get('v'),
+    events: {
+      'onReady': () => ytPlayer.playVideo(),
+      'onStateChange': (event) => {
+        if (event.data === YT.PlayerState.ENDED) nextVideo();
+      }
+    }
+  });
+}
+
+// Autoplay first video
+window.onload = () => loadVideo(0);
+</script>
+
 </body>
 </html>
