@@ -4,253 +4,209 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MSTV Live TV Channel</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #000000, #1a1a1a);
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
       color: white;
-    }
-
-    .container {
-      max-width: 900px;
-      margin: 20px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 20px;
     }
-
     h1 {
       font-size: 2.5em;
-      background: linear-gradient(to right, #ff6b6b, #4ecdc4);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
       text-align: center;
       margin-bottom: 10px;
+      background: linear-gradient(45deg, gold, orange);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-
     .player-container {
       position: relative;
       width: 100%;
-      aspect-ratio: 16 / 9;
-      background: black;
-      border-radius: 15px;
+      max-width: 800px;
+      background: #000;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 0 20px rgba(255,255,255,0.1);
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
-
+    #videoPlayer {
+      width: 100%;
+      height: 450px;
+    }
+    .overlay-logo {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-weight: bold;
+      font-size: 1.2em;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 6px 10px;
+      border-radius: 5px;
+    }
     .speaker-icon {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 10;
-      font-size: 60px;
+      font-size: 48px;
       color: white;
-      background: rgba(0,0,0,0.6);
-      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
       padding: 20px;
+      border-radius: 50%;
       cursor: pointer;
-      display: none;
-    }
-
-    .status {
       display: flex;
-      justify-content: space-between;
-      margin-top: 10px;
-      font-size: 0.9em;
-      color: #ccc;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
     }
-
-    .guide {
-      margin-top: 20px;
-      padding: 15px;
-      background: rgba(255,255,255,0.05);
+    .status-bar, .tv-guide {
+      max-width: 800px;
+      width: 100%;
+      margin-top: 15px;
+      background: rgba(255,255,255,0.1);
+      padding: 10px 20px;
       border-radius: 10px;
     }
-
-    .guide-title {
-      font-weight: bold;
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+    .tv-guide h3 {
       margin-bottom: 10px;
-      font-size: 1.1em;
+      font-size: 1.2em;
+      text-align: center;
+      border-bottom: 1px solid #fff3;
+      padding-bottom: 5px;
     }
-
-    .guide-item {
-      margin-bottom: 5px;
+    .tv-guide ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
-
-    iframe, video {
-      width: 100%;
-      height: 100%;
-      border: none;
+    .tv-guide li {
+      padding: 6px 0;
+      border-bottom: 1px solid #ffffff22;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>MSTV Live TV Channel</h1>
-    <p style="text-align: center;">Broadcasting your curated content 24/7</p>
 
-    <div class="player-container" id="playerContainer">
-      <div class="speaker-icon" id="unmuteIcon">🔊</div>
-      <div id="player" style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; color: white;">
-        Loading player...
-      </div>
-    </div>
+  <h1>MSTV Live TV Channel</h1>
+  <p>Broadcasting your curated content 24/7</p>
 
-    <div class="status">
-      <div id="status">Loading...</div>
-      <div id="clock"></div>
-      <div><span id="nowPlaying">Now Playing: -</span> | <span id="nextUp">Next: -</span></div>
-    </div>
-
-    <div class="guide">
-      <div class="guide-title">Today's TV Guide</div>
-      <div id="tvGuide"></div>
-    </div>
+  <div class="player-container">
+    <div class="overlay-logo">MSTV</div>
+    <video id="videoPlayer" muted autoplay playsinline></video>
+    <div id="speakerIcon" class="speaker-icon">🔊</div>
   </div>
 
+  <div class="status-bar">
+    <div id="statusText">Loading...</div>
+    <div id="currentTime">Time: --:--:--</div>
+    <div id="nowPlaying">Now Playing: -</div>
+    <div id="nextUp">Next: -</div>
+  </div>
+
+  <div class="tv-guide">
+    <h3>Today's TV Guide</h3>
+    <ul id="tvGuideList"></ul>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    const playlist = [
+    const playlistItems = [
       {
         title: "Sample YouTube Video",
-        duration: "00:04:00",
-        url: "https://youtu.be/2-HuLX0CbT8?si=-JhezUSxF6Gtegga"
+        duration: 240,
+        url: "https://www.youtube.com/embed/2-HuLX0CbT8?si=-JhezUSxF6Gtegga&autoplay=1&mute=1"
       },
       {
         title: "Live News (YouTube Live)",
-        duration: "00:06:00",
-        url: "https://www.youtube.com/live/biuyKchLhOU?si=vpgAFbpLMrN0I2Tj"
+        duration: 360,
+        url: "https://www.youtube.com/embed/biuyKchLhOU?si=vpgAFbpLMrN0I2Tj&autoplay=1&mute=1"
       },
       {
         title: "Sample HLS Stream",
-        duration: "00:05:00",
+        duration: 300,
         url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
       }
     ];
 
-    const speakerIcon = document.getElementById('unmuteIcon');
-    const playerContainer = document.getElementById('player');
-    const nowPlayingText = document.getElementById('nowPlaying');
-    const nextUpText = document.getElementById('nextUp');
-    const guideContainer = document.getElementById('tvGuide');
-    const statusText = document.getElementById('status');
-    const clockEl = document.getElementById('clock');
+    const player = document.getElementById('videoPlayer');
+    const speakerIcon = document.getElementById('speakerIcon');
+    const now = new Date();
+    const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
 
-    function parseDuration(durationStr) {
-      const parts = durationStr.split(':').map(Number);
-      return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
-    }
+    let cumulativeTime = 0;
+    let currentIndex = 0;
 
-    function generateSchedule(startTime = Date.now()) {
-      const scheduled = [];
-      let current = new Date(startTime);
-      for (let i = 0; i < 24; i++) {
-        for (const item of playlist) {
-          const start = new Date(current);
-          const durationSec = parseDuration(item.duration);
-          const end = new Date(start.getTime() + durationSec * 1000);
-          scheduled.push({ ...item, start, end });
-          current = end;
-        }
+    // Build TV Guide + calculate current item
+    const guideList = document.getElementById('tvGuideList');
+    playlistItems.forEach((item, i) => {
+      const startSec = cumulativeTime;
+      const endSec = cumulativeTime + item.duration;
+      const start = formatTime(startSec);
+      const end = formatTime(endSec);
+
+      const li = document.createElement('li');
+      li.textContent = `${start} - ${end} :: ${item.title}`;
+      guideList.appendChild(li);
+
+      if (secondsSinceMidnight >= startSec && secondsSinceMidnight < endSec) {
+        currentIndex = i;
       }
-      return scheduled;
-    }
+      cumulativeTime += item.duration;
+    });
 
-    function getCurrentItem(schedule) {
+    const nowItem = playlistItems[currentIndex];
+    const nextItem = playlistItems[(currentIndex + 1) % playlistItems.length];
+
+    document.getElementById('nowPlaying').textContent = "Now Playing: " + nowItem.title;
+    document.getElementById('nextUp').textContent = "Next: " + nextItem.title;
+
+    // Display current time live
+    setInterval(() => {
       const now = new Date();
-      for (let i = 0; i < schedule.length; i++) {
-        if (now >= schedule[i].start && now < schedule[i].end) {
-          return { current: schedule[i], next: schedule[i + 1] || schedule[0] };
-        }
-      }
-      return { current: null, next: schedule[0] };
-    }
+      document.getElementById('currentTime').textContent = `Time: ${now.toLocaleTimeString()}`;
+    }, 1000);
 
-    function renderTVGuide(schedule) {
-      guideContainer.innerHTML = '';
-      const today = new Date().toDateString();
-      schedule.slice(0, 10).forEach(item => {
-        const from = new Date(item.start).toTimeString().slice(0, 5);
-        const to = new Date(item.end).toTimeString().slice(0, 5);
-        const div = document.createElement('div');
-        div.className = 'guide-item';
-        div.textContent = `${from} - ${to} :: ${item.title}`;
-        guideContainer.appendChild(div);
-      });
-    }
-
-    function loadPlayer(item) {
-      const url = item.url;
-      nowPlayingText.textContent = `Now Playing: ${item.title}`;
-      statusText.textContent = 'Live Broadcasting';
-
-      if (/youtu/.test(url)) {
-        const videoIdMatch = url.match(/(?:v=|\/live\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-        const videoId = videoIdMatch ? videoIdMatch[1] : null;
-        if (videoId) {
-          playerContainer.innerHTML = `
-            <iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&rel=0" allowfullscreen allow="autoplay"></iframe>
-          `;
-          showSpeakerIcon();
-        } else {
-          playerContainer.innerHTML = `<div style="padding: 20px; color: red;">Invalid YouTube URL</div>`;
-        }
-      } else if (url.endsWith(".m3u8")) {
-        playerContainer.innerHTML = `<video id="video" autoplay muted controls></video>`;
-        const video = document.getElementById('video');
+    // Play media
+    function playItem(item) {
+      if (item.url.includes('.m3u8')) {
         if (Hls.isSupported()) {
           const hls = new Hls();
-          hls.loadSource(url);
-          hls.attachMedia(video);
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = url;
+          hls.loadSource(item.url);
+          hls.attachMedia(player);
+        } else if (player.canPlayType('application/vnd.apple.mpegurl')) {
+          player.src = item.url;
         }
-        showSpeakerIcon();
       } else {
-        playerContainer.innerHTML = `<video src="${url}" autoplay muted controls></video>`;
-        showSpeakerIcon();
+        player.outerHTML = `<iframe id="videoPlayer" width="100%" height="450" src="${item.url}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
       }
+      document.getElementById('statusText').textContent = "Live Broadcasting";
     }
 
-    function showSpeakerIcon() {
-      const video = document.querySelector('video, iframe');
-      if (!video) return;
-      speakerIcon.style.display = 'block';
-      speakerIcon.onclick = () => {
-        const v = document.querySelector('video');
-        if (v) {
-          v.muted = false;
-          v.volume = 1;
-        }
+    playItem(nowItem);
+
+    // Speaker toggle
+    speakerIcon.addEventListener('click', () => {
+      const videoEl = document.getElementById('videoPlayer');
+      if (videoEl && videoEl.muted !== undefined) {
+        videoEl.muted = false;
         speakerIcon.style.display = 'none';
-      };
-    }
-
-    function startClock() {
-      setInterval(() => {
-        const now = new Date();
-        clockEl.textContent = now.toLocaleTimeString();
-      }, 1000);
-    }
-
-    function startPlaybackLoop() {
-      const schedule = generateSchedule();
-      renderTVGuide(schedule);
-      const { current, next } = getCurrentItem(schedule);
-
-      if (current) loadPlayer(current);
-      nextUpText.textContent = `Next: ${next.title}`;
-
-      const wait = new Date(current?.end || next.start).getTime() - Date.now();
-      setTimeout(() => {
-        startPlaybackLoop();
-      }, wait + 1000);
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      startClock();
-      startPlaybackLoop();
+      }
     });
+
+    function formatTime(totalSeconds) {
+      const hrs = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      return `${hrs}:${mins}`;
+    }
   </script>
 </body>
 </html>
