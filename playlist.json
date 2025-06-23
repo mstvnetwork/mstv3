@@ -1,12 +1,42 @@
 [
   {
-    "title": "MSTV Sample HLS",
-    "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-    "duration": "00:05:00"
+    "title": "🌅 Morning Yoga Stream",
+    "url": "https://www.youtube.com/watch?v=5qap5aO4i9A",  // LoFi YouTube Live
+    "duration": "02:00:00"
   },
   {
-    "title": "Sample YouTube Live",
-    "url": "https://www.youtube.com/watch?v=21X5lGlDOfg",
-    "duration": "00:10:00"
+    "title": "🌍 Global News Live (HLS)",
+    "url": "https://moiptvhls-i.akamaihd.net/hls/live/652316/event2/master.m3u8",
+    "duration": "01:00:00"
+  },
+  {
+    "title": "🎥 Documentary Hour",
+    "url": "https://dai.google.com/linear/hls/event/6Wo9bER-RZmdzn_VwdYj8w/master.m3u8",
+    "duration": "01:30:00"
+  },
+  {
+    "title": "🎶 Chill Music (YouTube Live)",
+    "url": "https://www.youtube.com/watch?v=DWcJFNfaw9c",
+    "duration": "02:00:00"
+  },
+  {
+    "title": "🌧️ Rain Sounds (HLS)",
+    "url": "https://streaming.ecable.tv.ec/hls/livestream.m3u8",
+    "duration": "03:00:00"
+  },
+  {
+    "title": "📰 News Roundup (YouTube)",
+    "url": "https://www.youtube.com/watch?v=hHW1oY26kxQ",
+    "duration": "01:00:00"
+  },
+  {
+    "title": "🎬 Movie Stream (HLS)",
+    "url": "https://bamusak-tv.masuk.id/live/htv/playlist.m3u8",
+    "duration": "03:00:00"
+  },
+  {
+    "title": "💤 Sleep Stream (HLS)",
+    "url": "https://wzmedia.dotplaytv.com/live/dotplaytv-abr/playlist.m3u8",
+    "duration": "11:30:00"
   }
 ]
