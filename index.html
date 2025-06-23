@@ -5,72 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MSTV NETWORK</title>
   <style>
-    body {
-      background: #000;
-      color: #fff;
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-      margin: 20px;
-      line-height: 1.6;
+    body { background: black; color: white; font-family: Arial, sans-serif; padding: 20px; }
+    h1 { font-size: 2rem; }
+    .live { background: red; padding: 3px 10px; border-radius: 5px; margin-right: 10px; }
+    #loading { font-style: italic; margin-bottom: 10px; }
+    #video-container iframe, #video-container video {
+      width: 100%; max-height: 360px; border: none; border-radius: 8px;
+      background: black;
     }
-    h1 {
-      font-size: 1.8rem;
-      margin-bottom: 10px;
-    }
-    .live-label {
-      background: red;
-      padding: 2px 8px;
-      border-radius: 4px;
-      color: white;
-      font-weight: bold;
-      margin-right: 10px;
-      font-size: 1rem;
-      vertical-align: middle;
-    }
-    #loading {
-      font-style: italic;
-      margin-bottom: 10px;
-    }
-    video {
-      width: 100%;
-      max-height: 300px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      background: #111;
-    }
-    .info p {
-      margin: 4px 0;
-      font-size: 1rem;
-    }
-    .schedule {
-      margin-top: 30px;
-    }
-    .schedule h2 {
-      font-size: 1.2rem;
-      margin-bottom: 10px;
-    }
+    .info p { margin: 6px 0; }
+    #schedule-list { margin-top: 20px; }
     .schedule-item {
-      margin: 2px 0;
-      font-size: 0.95rem;
+      display: flex; justify-content: space-between; border-bottom: 1px solid #444; padding: 4px 0;
     }
-    .schedule-time {
-      display: inline-block;
-      width: 50px;
-    }
-    .schedule-title {
-      display: inline-block;
-      width: 250px;
-    }
-    .schedule-duration {
-      display: inline-block;
-      width: 50px;
-    }
+    .schedule-time { width: 80px; }
+    .schedule-title { flex: 1; }
+    .schedule-duration { width: 60px; text-align: right; }
   </style>
 </head>
 <body>
-  <h1><span class="live-label">LIVE</span>MSTV NETWORK</h1>
+  <h1><span class="live">LIVE</span>MSTV NETWORK</h1>
   <div id="loading">Loading current segment...</div>
 
-  <video id="video" controls autoplay muted></video>
+  <div id="video-container"></div>
 
   <div class="info">
     <p>Program: <span id="program-name">--</span></p>
@@ -82,10 +39,8 @@
     <p>Viewers: 63</p>
   </div>
 
-  <div class="schedule">
-    <h2>Today's Schedule</h2>
-    <div id="schedule-list"></div>
-  </div>
+  <h2>Today's Schedule</h2>
+  <div id="schedule-list"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="playlist.js"></script>
