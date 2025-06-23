@@ -1,145 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MSTV NETWORK</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+  <title>Multi-Source Playlist Player</title>
   <style>
-    body {
-      margin: 0;
-      background: black;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    h1 {
-      font-size: 2em;
-      color: gold;
-      text-shadow: 2px 2px 5px red;
-    }
-    #player-container {
-      margin: 20px auto;
-      max-width: 900px;
-      border: 4px solid gold;
-      border-radius: 20px;
-      box-shadow: 0 0 25px red;
-      background: #111;
-      padding: 10px;
-    }
-    #video-player, #yt-player {
-      width: 100%;
-      height: 500px;
-      border-radius: 12px;
-      display: none;
-    }
-    #now-playing {
-      font-size: 1.2em;
-      margin-top: 10px;
-      color: cyan;
-    }
-    #clock {
-      font-size: 1em;
-      color: #ccc;
-    }
-    #off-air {
-      display: none;
-      padding: 40px;
-      color: red;
-      font-size: 1.5em;
-      border: 2px dashed red;
-      border-radius: 10px;
-      background-color: #220000;
-    }
+    body { background: #000; color: white; text-align: center; font-family: sans-serif; }
+    #playerContainer, video { width: 90%; max-width: 800px; margin: auto; border: 3px solid gold; border-radius: 16px; }
+    #nextBtn { margin-top: 15px; padding: 10px 20px; font-size: 16px; }
   </style>
 </head>
 <body>
 
-  <h1>MSTV NETWORK</h1>
-  <div id="clock"></div>
-  <div id="now-playing">Loading schedule...</div>
-  <div id="player-container">
-    <div id="yt-player"></div>
-    <video id="video-player" controls autoplay muted></video>
-    <div id="off-air">🔌 Off Air - Please check back later</div>
-  </div>
+<h2>MSTV Playlist Player</h2>
+<div id="playerContainer">
+  <div id="ytPlayer"></div>
+  <video id="hlsPlayer" controls style="display:none;"></video>
+</div>
+<button id="nextBtn">Next</button>
 
-  <script>
-    const videoEl = document.getElementById('video-player');
-    const ytContainer = document.getElementById('yt-player');
-    const offAir = document.getElementById('off-air');
-    const nowPlaying = document.getElementById('now-playing');
-    const clockEl = document.getElementById('clock');
-    const zone = 'Australia/Melbourne';
-    let schedule = [];
-    let currentIndex = -1;
-    let hls, ytPlayer;
+<script src="https://www.youtube.com/iframe_api"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-    async function loadPlaylist() {
-      const res = await fetch('https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json');
-      schedule = await res.json();
-      updateClock();
-      setInterval(updateClock, 10000);
-      setInterval(checkSchedule, 15000);
-      checkSchedule();
+<script>
+const playlist = [
+  { type: "youtube", url: "https://www.youtube.com/watch?v=Gnef-jGl2zM&list=PLYIexFLR0T0mkUsnZ1jK08Lt8--owBp6g" },
+  { type: "youtube", url: "https://www.youtube.com/watch?v=CRFZq2xJKCE" },
+  { type: "hls", url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" }
+];
+
+let currentIndex = 0;
+let ytPlayer;
+let hls;
+let videoEl = document.getElementById('hlsPlayer');
+
+function loadVideo(index) {
+  const item = playlist[index];
+  if (!item) return;
+
+  if (item.type === 'youtube') {
+    videoEl.style.display = 'none';
+    videoEl.pause();
+    if (ytPlayer) {
+      const videoId = new URL(item.url).searchParams.get('v');
+      ytPlayer.loadVideoById(videoId);
     }
+  } else if (item.type === 'hls') {
+    document.getElementById('ytPlayer').innerHTML = '';
+    videoEl.style.display = 'block';
+    if (hls) hls.destroy();
+    hls = new Hls();
+    hls.loadSource(item.url);
+    hls.attachMedia(videoEl);
+    hls.on(Hls.Events.MANIFEST_PARSED, function () {
+      videoEl.play();
+    });
+  }
+}
 
-    function updateClock() {
-      const now = luxon.DateTime.now().setZone(zone);
-      clockEl.textContent = `📺 ${now.toFormat('HH:mm:ss')} (${zone})`;
-    }
+function nextVideo() {
+  currentIndex++;
+  if (currentIndex >= playlist.length) currentIndex = 0; // Loop
+  loadVideo(currentIndex);
+}
 
-    function getCurrentScheduleIndex() {
-      const now = luxon.DateTime.now().setZone(zone);
-      for (let i = schedule.length - 1; i >= 0; i--) {
-        const start = luxon.DateTime.fromFormat(schedule[i].start, 'HH:mm', { zone });
-        if (now >= start) return i;
-      }
-      return -1;
-    }
+document.getElementById('nextBtn').addEventListener('click', nextVideo);
 
-    function checkSchedule() {
-      const newIndex = getCurrentScheduleIndex();
-      if (newIndex !== currentIndex) {
-        currentIndex = newIndex;
-        if (newIndex === -1) return showOffAir();
-        const item = schedule[newIndex];
-        nowPlaying.textContent = `Now Playing: ${item.title}`;
-        playItem(item);
-      }
-    }
-
-    function showOffAir() {
-      videoEl.style.display = 'none';
-      ytContainer.innerHTML = '';
-      offAir.style.display = 'block';
-      nowPlaying.textContent = 'Off Air';
-    }
-
-    function playItem(item) {
-      offAir.style.display = 'none';
-      videoEl.style.display = 'none';
-      ytContainer.innerHTML = '';
-
-      if (item.type === 'hls') {
-        videoEl.style.display = 'block';
-        if (hls) hls.destroy();
-        hls = new Hls();
-        hls.loadSource(item.url);
-        hls.attachMedia(videoEl);
-      } else if (item.type === 'youtube') {
-        const videoId = new URL(item.url).searchParams.get('v');
-        ytContainer.innerHTML = '<div id="yt-embed"></div>';
-        ytPlayer = new YT.Player('yt-embed', {
-          height: '500', width: '100%', videoId,
-          playerVars: { autoplay: 1, controls: 1 }
-        });
+// YouTube API will call this
+function onYouTubeIframeAPIReady() {
+  ytPlayer = new YT.Player('ytPlayer', {
+    height: '360',
+    width: '640',
+    videoId: new URL(playlist[0].url).searchParams.get('v'),
+    events: {
+      'onReady': () => ytPlayer.playVideo(),
+      'onStateChange': (event) => {
+        if (event.data === YT.PlayerState.ENDED) nextVideo();
       }
     }
+  });
+}
 
-    loadPlaylist();
-  </script>
+// Autoplay first video
+window.onload = () => loadVideo(0);
+</script>
+
 </body>
 </html>
