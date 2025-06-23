@@ -1,4 +1,9 @@
-// script.js
+// script.js (local time fallback)
+
+const playlist = [
+  { title: "Morning Chill Out", start: "10:55", duration: 120, url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
+  { title: "Afternoon Encore", start: "14:25", duration: 15, url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" }
+];
 
 function parseTime(str) {
   const [h, m] = str.split(':').map(Number);
@@ -11,10 +16,8 @@ function formatTime(mins) {
   return `${h}:${m}`;
 }
 
-async function getCurrentAEST() {
-  const res = await fetch("https://worldtimeapi.org/api/timezone/Australia/Melbourne");
-  const data = await res.json();
-  return new Date(data.datetime);
+function getCurrentLocalTime() {
+  return new Date(); // use device/browser time
 }
 
 function loadStream(url) {
@@ -30,6 +33,7 @@ function loadStream(url) {
 
 function updateScheduleUI() {
   const list = document.getElementById('schedule-list');
+  if (!list) return;
   list.innerHTML = '';
   playlist.forEach(p => {
     list.innerHTML += `
@@ -41,8 +45,8 @@ function updateScheduleUI() {
   });
 }
 
-async function updatePlayer() {
-  const now = await getCurrentAEST();
+function updatePlayer() {
+  const now = getCurrentLocalTime();
   const currentMins = now.getHours() * 60 + now.getMinutes();
   const seconds = now.getSeconds();
 
