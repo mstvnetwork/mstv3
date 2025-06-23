@@ -9,33 +9,32 @@
     body {
       margin: 0;
       font-family: sans-serif;
-      /* Your gradient background */
       background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-      color: #fff; /* Light text for dark background */
+      color: #fff;
       text-align: center;
       padding: 20px;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      overflow-x: hidden; /* Prevent horizontal scroll for content that might overflow */
+      overflow-x: hidden;
     }
 
     /* Enforce a maximum width for the entire content */
-    body > * { /* Targets direct children of the body */
-      max-width: 960px; /* Adjust this value as needed for your "fixed" width */
+    body > * {
+      max-width: 960px;
       margin-left: auto;
       margin-right: auto;
-      width: 100%; /* Ensure it takes full width up to max-width */
-      box-sizing: border-box; /* Include padding/border in width calculation */
+      width: 100%;
+      box-sizing: border-box;
     }
 
     header {
       display: flex;
-      justify-content: center; /* Center the branding */
+      justify-content: center;
       align-items: center;
       padding: 10px 20px;
-      background: rgba(0, 0, 0, 0.3); /* Slightly transparent background for header */
+      background: rgba(0, 0, 0, 0.3);
       border-bottom: 2px solid rgba(255, 255, 255, 0.2);
       margin-bottom: 20px;
       border-radius: 10px;
@@ -47,79 +46,50 @@
     }
 
     #branding img {
-      height: 50px; /* Adjust logo size as needed */
+      height: 50px;
       margin-right: 15px;
     }
 
     #branding .tagline {
       font-size: 1.2em;
       font-weight: bold;
-      color: #fff; /* Tagline color remains white for the dark gradient */
+      color: #fff;
     }
 
     .player-container {
-      position: relative; /* Crucial for positioning children absolutely */
+      position: relative;
       background: #000;
       border-radius: 15px;
-      overflow: hidden; /* Important to clip scrolling text if it goes outside */
-      margin-bottom: 20px; /* This margin is now for the entire player container */
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); /* Stronger shadow for dark background */
-      flex-grow: 1; /* Allows player to take available space */
-      /* Aspect Ratio 16:9 for the container */
-      width: 100%; /* Take full width of its parent */
-      padding-top: 56.25%; /* 16:9 Aspect Ratio (height / width * 100) */
-      height: 0; /* Important to collapse height since padding defines it */
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      flex-grow: 1;
+      width: 100%;
+      padding-top: 56.25%; /* 16:9 Aspect Ratio */
+      height: 0;
     }
 
     .video-player {
-      position: absolute; /* Position video player absolutely within its padding-defined container */
+      position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
     }
 
-    /* Marquee/Scrolling Text styles */
-    .scrolling-text-container {
-      position: absolute; /* Position it relative to .player-container */
-      bottom: 0; /* Align to the bottom of the player container */
-      left: 0;
-      width: 100%; /* Take full width of the player container */
-      background: rgba(204, 0, 0, 0.8); /* Red background, slightly transparent */
-      color: #fff; /* White text */
-      padding: 5px 0; /* Slightly reduced padding */
-      font-size: 1em; /* Slightly reduced font size */
-      white-space: nowrap; /* Keep text on one line */
-      overflow: hidden; /* Hide overflowing text */
-      z-index: 15; /* Ensure it's above the video, below mute button */
-      box-sizing: border-box; /* Include padding in width calculation */
-      /* No border-radius on its own, it inherits from player-container due to overflow: hidden */
-    }
-
-    .scrolling-text {
-      display: inline-block; /* Essential for marquee effect */
-      padding-left: 100%; /* Start off-screen to the right */
-      animation: marquee 15s linear infinite; /* Adjust duration as needed */
-    }
-
-    @keyframes marquee {
-      0% { transform: translateX(0); } /* Start at 0, or right edge with padding-left: 100% */
-      100% { transform: translateX(-100%); } /* Move to the left off-screen */
-    }
-
     .status, .guide {
       margin: 10px auto;
       font-size: 16px;
-      background: rgba(0, 0, 0, 0.4); /* Slightly transparent background for info boxes */
-      color: #eee; /* Lighter text for these boxes */
+      background: rgba(0, 0, 0, 0.4);
+      color: #eee;
       padding: 15px;
       border-radius: 10px;
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     h3 {
-      color: #fff; /* Heading color remains white for the dark gradient */
+      color: #fff;
       margin-top: 30px;
       margin-bottom: 15px;
     }
@@ -127,7 +97,7 @@
     .guide-entry {
       margin: 4px 0;
       padding: 5px 0;
-      border-bottom: 1px dotted rgba(255, 255, 255, 0.3); /* Lighter dotted line */
+      border-bottom: 1px dotted rgba(255, 255, 255, 0.3);
     }
 
     .guide-entry:last-child {
@@ -135,14 +105,14 @@
     }
 
     .highlight {
-      color: #4ecdc4; /* Existing highlight color */
+      color: #4ecdc4;
       font-weight: bold;
     }
 
     .error {
-      color: #ffe0e0; /* Lighter red for error text */
+      color: #ffe0e0;
       margin: 10px auto;
-      background: rgba(136, 0, 0, 0.7); /* Darker, slightly transparent red background */
+      background: rgba(136, 0, 0, 0.7);
       border: 1px solid red;
       padding: 10px;
       border-radius: 5px;
@@ -168,33 +138,9 @@
       background: black;
     }
 
-    /* Mute/Unmute Button Styles */
-    #muteButton {
-      position: absolute;
-      bottom: 20px; /* Adjust as needed, relative to the bottom of player-container */
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(0, 0, 0, 0.6);
-      border: 2px solid #fff;
-      border-radius: 50%;
-      width: 60px; /* Increased size for better tap target */
-      height: 60px; /* Increased size for better tap target */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      z-index: 20; /* Ensure it's above scrolling text and video */
-      transition: opacity 0.3s ease;
-    }
-
-    #muteButton img {
-      width: 30px; /* Icon size */
-      height: 30px; /* Icon size */
-    }
-
     /* Footer styles */
     footer {
-      background: rgba(0, 0, 0, 0.3); /* Transparent background for footer */
+      background: rgba(0, 0, 0, 0.3);
       color: #fff;
       padding: 20px 0;
       margin-top: 40px;
@@ -216,7 +162,7 @@
     }
 
     .social-media img {
-      width: 35px; /* Size of social icons */
+      width: 35px;
       height: 35px;
       transition: transform 0.2s ease-in-out;
     }
@@ -225,15 +171,7 @@
       transform: scale(1.1);
     }
 
-    /* Responsive adjustments for video player height based on content width */
-    @media (max-width: 768px) {
-      /* The padding-top method automatically adjusts height,
-         but if you have a fixed height for the container, adjust here if needed. */
-    }
-
     @media (max-width: 480px) {
-      /* The padding-top method automatically adjusts height,
-         but if you have a fixed height for the container, adjust here if needed. */
       #branding img {
         height: 40px;
       }
@@ -255,18 +193,6 @@
   <div class="player-container">
     <img src="https://example.com/logo.png" alt="MSTV Logo" class="watermark" />
     <div id="player" class="video-player">Loading player...</div>
-    <div id="muteButton" style="display: none;">
-      <img id="speakerIcon" src="https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png" alt="Mute">
-    </div>
-    <div class="scrolling-text-container">
-      <div class="scrolling-text">
-        This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
-                            
-        Breaking News: Today is Tuesday, June 24, 2025. Current time is 9:21:17 AM AEST.
-                            
-        Visit our social media for updates!
-      </div>
-    </div>
   </div>
 
   <div class="status">
@@ -313,11 +239,9 @@
     const viewerCount = document.getElementById("viewerCount");
     const tvGuide = document.getElementById("tvGuide");
     const errorBox = document.getElementById("error");
-    const muteButton = document.getElementById("muteButton");
-    const speakerIcon = document.getElementById("speakerIcon");
 
     let hlsInstance = null;
-    let youtubePlayerInstance = null; // Global variable for YouTube player
+    let youtubePlayerInstance = null;
 
     function parseDuration(duration) {
       if (typeof duration === "number") return duration;
@@ -331,26 +255,12 @@
     }
 
     function formatClockTime(date) {
-      // Formats time in AEST (e.g., 09:21:17 AM)
       return date.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Australia/Melbourne' });
     }
 
     function updateClock() {
       const now = new Date();
       document.getElementById("currentTime").textContent = formatClockTime(now);
-      const scrollingTextDiv = document.querySelector('.scrolling-text');
-      if (scrollingTextDiv) {
-        // Store original text without the time, or update if it exists
-        const originalTextBase = scrollingTextDiv.dataset.originalTextBase ||
-                                 scrollingTextDiv.innerHTML.replace(/Current time is \d{1,2}:\d{2}:\d{2} [AP]M AEST\./, 'Current time is TIME_PLACEHOLDER AEST.');
-        if (!scrollingTextDiv.dataset.originalTextBase) {
-          scrollingTextDiv.dataset.originalTextBase = originalTextBase;
-        }
-        
-        // Update the placeholder with current time
-        const updatedText = originalTextBase.replace('TIME_PLACEHOLDER', formatClockTime(now));
-        scrollingTextDiv.innerHTML = updatedText;
-      }
     }
 
     function updateViewers() {
@@ -381,39 +291,34 @@
         nowTitle.textContent = title;
         statusText.textContent = "Live Broadcasting";
 
-        // Dispose of previous HLS instance if it exists
         if (hlsInstance) {
           hlsInstance.destroy();
           hlsInstance = null;
         }
-        // Destroy previous YouTube player instance if it exists
         if (youtubePlayerInstance) {
           youtubePlayerInstance.destroy();
           youtubePlayerInstance = null;
         }
 
         if (isYT) {
-          // YouTube videos: Create a div that the YouTube API will replace with an iframe
+          const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+          if (!idMatch) throw new Error("Invalid YouTube URL");
+          const id = idMatch[1];
+          
           playerDiv.innerHTML = `<div id="youtube-iframe-container" style="width:100%; height:100%;"></div>`;
           
-          // Show mute button for YouTube
-          muteButton.style.display = 'flex';
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png"; // Always show muted icon initially for autoplay
-          
-          // Ensure YT (YouTube API) is loaded before creating player
           if (typeof YT !== 'undefined' && YT.Player) {
             youtubePlayerInstance = new YT.Player('youtube-iframe-container', {
-              videoId: idMatch[1], // Use the extracted video ID
+              videoId: id,
               playerVars: {
                 autoplay: 1,
                 start: Math.floor(offset),
-                controls: 0,        // Hide native controls (including seek bar)
-                modestbranding: 1,  // Reduce YouTube logo
-                rel: 0,             // No related videos
-                showinfo: 0,        // No video title/uploader info
+                controls: 0,
+                modestbranding: 1,
+                rel: 0,
+                showinfo: 0,
                 loop: 1,
-                enablejsapi: 1,
-                mute: 1             // Start muted to comply with autoplay policies
+                enablejsapi: 1
               },
               events: {
                 'onReady': onYouTubePlayerReady,
@@ -422,89 +327,33 @@
             });
           } else {
             console.warn("YouTube API not yet loaded, retrying YouTube player initialization.");
-            setTimeout(() => playItem(item, offset), 100); // Retry after a short delay
+            setTimeout(() => playItem(item, offset), 100);
           }
 
         } else if (isHLS) {
-          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay muted data-src="${url}"></video>`;
+          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay></video>`;
           const video = document.getElementById("m3u8Player");
-          const src = video.getAttribute("data-src");
-
-          video.removeAttribute('controls'); // Remove native controls (including seek bar)
-          muteButton.style.display = 'flex';
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png"; // Always show muted icon initially for autoplay
+          video.removeAttribute('controls');
 
           if (Hls.isSupported()) {
             hlsInstance = new Hls();
-            hlsInstance.loadSource(src);
+            hlsInstance.loadSource(url);
             hlsInstance.attachMedia(video);
             hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-              video.play().catch(error => {
-                if (error.name === "NotAllowedError") {
-                  console.warn("Autoplay was prevented (sound). User needs to interact.");
-                }
-              });
+              video.play().catch(error => console.warn("Autoplay was prevented:", error));
             });
           } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            video.src = src;
-            video.play().catch(error => {
-              if (error.name === "NotAllowedError") {
-                console.warn("Autoplay was prevented (sound). User needs to interact.");
-              }
-            });
+            video.src = url;
+            video.play().catch(error => console.warn("Autoplay was prevented:", error));
           } else {
             throw new Error("Unsupported video format for HLS.");
           }
 
-          video.onvolumechange = () => {
-            if (video.muted) {
-              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-              muteButton.style.display = 'flex'; // Ensure button is visible if muted
-            } else {
-              // Icon changes to "up", but button disappears (as per requirement)
-              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-              muteButton.style.display = 'none'; 
-            }
-          };
-          // Set initial mute state for HLS
-          if (video.muted) {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-            muteButton.style.display = 'flex';
-          } else {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-            muteButton.style.display = 'none'; // Should be hidden if already unmuted (unlikely due to autoplay muted)
-          }
-
         } else {
-          // For other video formats (e.g., MP4)
-          playerDiv.innerHTML = `<video id="otherPlayer" width="100%" height="100%" autoplay muted><source src="${url}"></video>`;
+          playerDiv.innerHTML = `<video id="otherPlayer" width="100%" height="100%" autoplay><source src="${url}"></video>`;
           const video = document.getElementById("otherPlayer");
-          video.removeAttribute('controls'); // Remove native controls (including seek bar)
-          muteButton.style.display = 'flex';
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png"; // Always show muted icon initially for autoplay
-
-          video.play().catch(error => {
-            if (error.name === "NotAllowedError") {
-              console.warn("Autoplay was prevented (sound). User needs to interact.");
-            }
-          });
-
-          video.onvolumechange = () => {
-            if (video.muted) {
-              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-              muteButton.style.display = 'flex';
-            } else {
-              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-              muteButton.style.display = 'none';
-            }
-          };
-          if (video.muted) {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-            muteButton.style.display = 'flex';
-          } else {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-            muteButton.style.display = 'none';
-          }
+          video.removeAttribute('controls');
+          video.play().catch(error => console.warn("Autoplay was prevented:", error));
         }
       } catch (err) {
         showOffAir(err.message);
@@ -512,57 +361,12 @@
     }
 
     function onYouTubePlayerReady(event) {
-      youtubePlayerInstance = event.target; // Store the instance for later use
-      youtubePlayerInstance.mute(); // Ensure it's muted on ready (browser might have unmuted if interacted with)
-
-      // Initial UI update based on actual player state
-      if (youtubePlayerInstance.isMuted()) {
-        speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-        muteButton.style.display = 'flex';
-      } else {
-        speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-        muteButton.style.display = 'none';
-      }
+      youtubePlayerInstance = event.target;
     }
 
     function onYouTubePlayerStateChange(event) {
-      if (event.data === YT.PlayerState.PLAYING) {
-        // When playing, update the button/icon based on current mute state
-        if (youtubePlayerInstance && !youtubePlayerInstance.isMuted()) {
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-          muteButton.style.display = 'none'; // Hide if unmuted
-        } else if (youtubePlayerInstance && youtubePlayerInstance.isMuted()) {
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-          muteButton.style.display = 'flex'; // Show if muted
-        }
-      }
+      // You can add logic here if you want to react to YouTube player state changes
     }
-
-    // Function to handle mute/unmute button click
-    muteButton.addEventListener('click', () => {
-      const videoElement = playerDiv.querySelector('video');
-      
-      if (videoElement) { // Handle HTML5 video (HLS, MP4)
-        videoElement.muted = !videoElement.muted;
-        if (!videoElement.muted) {
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-          muteButton.style.display = 'none'; // Hide button if unmuted
-        } else {
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-          muteButton.style.display = 'flex'; // Ensure button is visible if muted
-        }
-      } else if (youtubePlayerInstance) { // Handle YouTube video
-        if (youtubePlayerInstance.isMuted()) {
-          youtubePlayerInstance.unMute();
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-          muteButton.style.display = 'none'; // Hide button after attempting to unmute
-        } else {
-          youtubePlayerInstance.mute();
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-          muteButton.style.display = 'flex'; // Show button if muted
-        }
-      }
-    });
 
     function showOffAir(msg = "Off Air") {
       playerDiv.innerHTML = `<div class="off-air">${msg}</div>`;
@@ -570,9 +374,8 @@
       nowTitle.textContent = "-";
       nowProgress.textContent = "-";
       nextTitle.textContent = "-";
-      muteButton.style.display = 'none'; // Hide mute button when off air
       if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-      if (youtubePlayerInstance) { // Destroy YouTube player if it exists
+      if (youtubePlayerInstance) {
         youtubePlayerInstance.destroy();
         youtubePlayerInstance = null;
       }
@@ -613,30 +416,26 @@
         cursor += dur;
       }
 
-      // Re-sync automatically when next item starts
       const secondsToNext = parseDuration(playlist[currentIndex].duration) - (timeInLoop - cursor);
       setTimeout(syncToRealTime, secondsToNext * 1000 + 100);
     }
 
-    // Load YouTube Iframe API script
     function loadYouTubeAPI() {
       const tag = document.createElement('script');
-      tag.src = "http://www.youtube.com/iframe_api"; // Official and correct YouTube API URL
+      tag.src = "http://www.youtube.com/iframe_api"; // Standard YouTube API URL
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     }
 
-    // This function will be called by the YouTube Iframe API when it's ready
     window.onYouTubeIframeAPIReady = function() {
       console.log("YouTube Iframe API is ready.");
-      // No direct player creation here, `playItem` will handle it when a YouTube video is scheduled.
     };
 
     updateClock();
     updateViewers();
-    setInterval(updateClock, 1000); // Update clock every second
-    loadPlaylist(); // Start loading playlist and playing content
-    loadYouTubeAPI(); // Load YouTube API when the page loads
+    setInterval(updateClock, 1000);
+    loadPlaylist();
+    loadYouTubeAPI();
   </script>
 </body>
 </html>
