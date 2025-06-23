@@ -1,9 +1,4 @@
-// script.js (local time fallback)
-
-const playlist = [
-  { title: "Morning Chill Out", start: "10:55", duration: 120, url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" },
-  { title: "Afternoon Encore", start: "14:25", duration: 15, url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8" }
-];
+// Just use the playlist defined in playlist.js
 
 function parseTime(str) {
   const [h, m] = str.split(':').map(Number);
@@ -17,7 +12,7 @@ function formatTime(mins) {
 }
 
 function getCurrentLocalTime() {
-  return new Date(); // use device/browser time
+  return new Date();
 }
 
 function loadStream(url) {
