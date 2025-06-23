@@ -1,16 +1,16 @@
-{
-  "programs": [
-    {
-      "title": "Morning Show",
-      "url": "https://example.com/video1.mp4",
-      "startTime": "2025-06-23T06:00:00Z",
-      "endTime": "2025-06-23T08:00:00Z"
-    },
-    {
-      "title": "News Hour", 
-      "url": "https://example.com/video2.mp4",
-      "startTime": "2025-06-23T08:00:00Z",
-      "endTime": "2025-06-23T09:00:00Z"
-    }
-  ]
-}
+[
+  {
+    "title": "Evening News",
+    "startTime": "2025-06-23T16:00:00+10:00",
+    "endTime": "2025-06-23T17:00:00+10:00",
+    "type": "youtube",
+    "url": "https://www.youtube.com/watch?v=abc123xyz"
+  },
+  {
+    "title": "HLS Sports Feed",
+    "startTime": "2025-06-23T17:00:00+10:00",
+    "endTime": "2025-06-23T18:30:00+10:00",
+    "type": "hls",
+    "url": "https://example.com/stream.m3u8"
+  }
+]
