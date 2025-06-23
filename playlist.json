@@ -1,5 +1,16 @@
-[
-  { "type": "youtube", "url": "https://www.youtube.com/watch?v=Gnef-jGl2zM&list=PLYIexFLR0T0mkUsnZ1jK08Lt8--owBp6g" },
-  { "type": "youtube", "url": "https://www.youtube.com/watch?v=CRFZq2xJKCE" },
-  { "type": "hls", "url": "https://path-to-your-hls-stream.m3u8" }
-]
+{
+  "programs": [
+    {
+      "title": "Morning Show",
+      "url": "https://example.com/video1.mp4",
+      "startTime": "2025-06-23T06:00:00Z",
+      "endTime": "2025-06-23T08:00:00Z"
+    },
+    {
+      "title": "News Hour", 
+      "url": "https://example.com/video2.mp4",
+      "startTime": "2025-06-23T08:00:00Z",
+      "endTime": "2025-06-23T09:00:00Z"
+    }
+  ]
+}
