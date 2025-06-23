@@ -2,247 +2,262 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MSTV Live TV Channel</title>
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: #0f0f0f;
-      color: #fff;
-    }
-    .header {
-      text-align: center;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 20px;
-      background: linear-gradient(to right, #4ecdc4, #556270);
     }
-    .header h1 {
-      margin: 0;
-      font-size: 2.2em;
+    h1 {
+      font-size: 2.5em;
+      text-align: center;
+      margin-bottom: 10px;
+      background: linear-gradient(45deg, gold, orange);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-    .player-container {
+    .player-wrapper {
       position: relative;
       width: 100%;
       max-width: 960px;
-      height: 540px;
-      margin: 20px auto;
-      background: #000;
-      border-radius: 12px;
+      aspect-ratio: 16 / 9;
+      background: black;
+      border: 4px solid gold;
+      border-radius: 15px;
       overflow: hidden;
+      margin-bottom: 20px;
     }
-    .logo-overlay {
+    #playerFrame {
+      width: 100%;
+      height: 100%;
+    }
+    .watermark {
       position: absolute;
       top: 10px;
       left: 10px;
-      z-index: 10;
-      background: rgba(0,0,0,0.5);
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-weight: bold;
+      width: 100px;
+      opacity: 0.8;
+      pointer-events: none;
     }
-    .speaker-icon {
+    #muteOverlay {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 40px;
-      background: rgba(0,0,0,0.6);
-      padding: 15px;
+      width: 70px;
+      height: 70px;
+      background: rgba(0, 0, 0, 0.6);
       border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      z-index: 20;
+      z-index: 10;
+    }
+    #muteOverlay svg {
+      fill: white;
+      width: 40px;
+      height: 40px;
+    }
+    #muteOverlay.hidden {
       display: none;
     }
-    .status-bar {
-      max-width: 960px;
-      margin: 10px auto;
-      display: flex;
-      justify-content: space-between;
-      padding: 10px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 8px;
-      font-size: 14px;
-    }
-    .guide {
-      max-width: 960px;
-      margin: 20px auto;
-      padding: 10px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 8px;
-    }
-    .guide h3 {
+    .info-bar {
+      text-align: center;
       margin-bottom: 10px;
     }
-    .guide ul {
-      list-style: none;
-      padding: 0;
+    .info-bar span {
+      margin: 0 10px;
     }
-    .guide li {
+    .tv-guide {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 960px;
+      width: 100%;
+    }
+    .tv-guide h2 {
+      margin-bottom: 10px;
+      font-size: 1.2em;
+      color: gold;
+    }
+    .tv-guide-item {
       padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>MSTV Live TV Channel</h1>
-    <p>Broadcasting your curated content 24/7</p>
+  <h1>MSTV Live TV Channel</h1>
+  <p>Broadcasting your curated content 24/7</p>
+
+  <div class="player-wrapper">
+    <div id="playerFrame"><p style="color: white; text-align:center;">Loading player...</p></div>
+    <img class="watermark" src="https://i.imgur.com/1wz8yZM.png" alt="Logo" />
+    <div id="muteOverlay" title="Click to unmute">
+      <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v8.06c1.48-.74 2.5-2.26 2.5-4.03z"/><path d="M19 12c0 2.48-1.51 4.58-3.71 5.4l1.43 1.43C18.29 18.15 20 15.28 20 12s-1.71-6.15-3.28-7.83l-1.43 1.43C17.49 7.42 19 9.52 19 12z"/></svg>
+    </div>
   </div>
 
-  <div class="player-container" id="playerContainer">
-    <div class="logo-overlay">MSTV</div>
-    <div class="speaker-icon" id="speakerIcon">🔊</div>
-    <div id="player" style="width:100%; height:100%;"></div>
+  <div class="info-bar">
+    <span id="status">Loading...</span> |
+    <span id="clock"></span> |
+    <span id="nowPlaying">Now Playing: -</span> |
+    <span id="nextUp">Next: -</span>
   </div>
 
-  <div class="status-bar">
-    <div id="status">Loading...</div>
-    <div id="clock"></div>
-    <div id="nowPlaying">Now Playing: - | Next: -</div>
-  </div>
-
-  <div class="guide">
-    <h3>Today's TV Guide</h3>
-    <ul id="tvGuide"></ul>
+  <div class="tv-guide">
+    <h2>Today's TV Guide</h2>
+    <div id="guideList">Loading...</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
-    const playlistUrl = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json";
-    const playerContainer = document.getElementById("player");
-    const speakerIcon = document.getElementById("speakerIcon");
+    const playlistURL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json";
+    const playerFrame = document.getElementById("playerFrame");
     const status = document.getElementById("status");
-    const nowPlayingEl = document.getElementById("nowPlaying");
-    const guideEl = document.getElementById("tvGuide");
+    const clock = document.getElementById("clock");
+    const nowPlaying = document.getElementById("nowPlaying");
+    const nextUp = document.getElementById("nextUp");
+    const guideList = document.getElementById("guideList");
+    const muteOverlay = document.getElementById("muteOverlay");
 
-    function parseDuration(d) {
-      const parts = d.split(':').map(Number);
-      return parts[0] * 3600 + parts[1] * 60 + (parts[2] || 0);
-    }
+    let playlist = [];
+    let currentIndex = -1;
+    let startTime = new Date().setHours(0, 0, 0, 0);
 
-    function formatTime(s) {
-      const m = Math.floor(s / 60);
-      const ss = s % 60;
-      return `${m.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}`;
-    }
-
-    async function loadPlaylist() {
-      const res = await fetch(playlistUrl);
-      const data = await res.json();
-      return data;
-    }
-
-    function isYouTube(url) {
-      return /youtu\.?be/.test(url);
-    }
-
-    function isYouTubeLive(url) {
-      return url.includes('/live');
-    }
-
-    function getYouTubeID(url) {
-      const match = url.match(/(?:youtu\.be\/|v=|\/live\/)([a-zA-Z0-9_-]{11})/);
-      return match ? match[1] : null;
-    }
-
-    function playOffAir() {
-      playerContainer.innerHTML = `
-        <div style="color:white;display:flex;align-items:center;justify-content:center;height:100%;">
-          <h2>🔌 Off Air</h2>
-        </div>`;
-      status.textContent = "Off Air";
-    }
-
-    function playItem(item, startSeconds = 0) {
-      let url = item.url;
-      nowPlayingEl.textContent = `Now Playing: ${item.title} | Next: ${nextItemTitle}`;
-
-      if (isYouTube(url)) {
-        const id = getYouTubeID(url);
-        const embedUrl = isYouTubeLive(url)
-          ? `https://www.youtube.com/embed/${id}?autoplay=1&mute=1`
-          : `https://www.youtube.com/embed/${id}?autoplay=1&start=${startSeconds}&mute=1`;
-        playerContainer.innerHTML = `
-          <iframe src="${embedUrl}" width="100%" height="100%" frameborder="0"
-            allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-      } else if (url.includes(".m3u8")) {
-        playerContainer.innerHTML = `<video id="video" autoplay muted controls width="100%" height="100%"></video>`;
-        const video = document.getElementById("video");
-        const hls = new Hls();
-        hls.loadSource(url);
-        hls.attachMedia(video);
-        speakerIcon.style.display = "block";
-        speakerIcon.onclick = () => {
-          video.muted = false;
-          speakerIcon.style.display = "none";
-        };
-      } else {
-        playerContainer.innerHTML = `
-          <video autoplay muted controls width="100%" height="100%">
-            <source src="${url}" />
-            Your browser does not support video.
-          </video>`;
-      }
+    function formatTime(seconds) {
+      const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+      const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+      return `${h}:${m}`;
     }
 
     function updateClock() {
       const now = new Date();
-      document.getElementById("clock").textContent = now.toLocaleTimeString();
+      clock.textContent = now.toLocaleTimeString();
     }
 
-    function getCurrentSchedule(playlist) {
-      const now = new Date();
-      const secondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-      const total = playlist.reduce((a, b) => a + parseDuration(b.duration), 0);
-      const position = secondsToday % total;
+    function isYouTube(url) {
+      return /youtu\.be|youtube\.com/.test(url);
+    }
 
-      let current = null, next = null;
-      let guide = [], cursor = 0;
-      for (let i = 0; i < playlist.length; i++) {
-        const item = playlist[i];
-        const dur = parseDuration(item.duration);
-        const start = cursor;
-        const end = cursor + dur;
-        guide.push({start, end, title: item.title});
-        if (position >= start && position < end) {
-          current = {...item, offset: position - start};
-          next = playlist[(i + 1) % playlist.length];
+    function getYouTubeID(url) {
+      const match = url.match(/(?:v=|\/live\/|youtu\.be\/)([^&?/]+)/);
+      return match ? match[1] : null;
+    }
+
+    function isHLS(url) {
+      return url.endsWith('.m3u8');
+    }
+
+    function playItem(index) {
+      const item = playlist[index];
+      if (!item) return;
+
+      const url = item.url;
+      const duration = getDuration(item);
+      const title = item.title || "Untitled";
+      nowPlaying.textContent = `Now Playing: ${title}`;
+      nextUp.textContent = `Next: ${playlist[index + 1] ? playlist[index + 1].title : '-'}`;
+      status.textContent = "Live";
+
+      if (isYouTube(url)) {
+        const id = getYouTubeID(url);
+        if (id) {
+          playerFrame.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=1&modestbranding=1&rel=0" frameborder="0" allowfullscreen></iframe>`;
         }
-        cursor = end;
+      } else if (isHLS(url)) {
+        playerFrame.innerHTML = `<video id="videoPlayer" width="100%" height="100%" autoplay muted controls playsinline></video>`;
+        const video = document.getElementById("videoPlayer");
+        const hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        video.play();
+      } else {
+        playerFrame.innerHTML = `<video width="100%" height="100%" src="${url}" autoplay muted controls playsinline></video>`;
       }
 
-      return { current, next, guide };
+      showMuteOverlay();
+      setTimeout(() => {
+        playNext(index, duration);
+      }, duration * 1000);
     }
 
-    function renderTVGuide(guide) {
-      guideEl.innerHTML = '';
-      for (const slot of guide) {
-        const start = formatTime(slot.start);
-        const end = formatTime(slot.end);
-        guideEl.innerHTML += `<li>${start} - ${end} :: ${slot.title}</li>`;
+    function getDuration(item) {
+      const parts = (item.duration || "00:05:00").split(":").map(Number);
+      return parts.length === 3 ? parts[0]*3600 + parts[1]*60 + parts[2] : parts[0]*60 + parts[1];
+    }
+
+    function playNext(currentIdx, duration) {
+      const nextIdx = currentIdx + 1;
+      if (nextIdx < playlist.length) {
+        currentIndex = nextIdx;
+        playItem(currentIndex);
       }
     }
+
+    function syncPlayback() {
+      const now = Date.now();
+      const secondsSinceStart = Math.floor((now - startTime) / 1000);
+      let running = 0;
+      for (let i = 0; i < playlist.length; i++) {
+        const dur = getDuration(playlist[i]);
+        if (running + dur > secondsSinceStart) {
+          currentIndex = i;
+          playItem(i);
+          break;
+        }
+        running += dur;
+      }
+    }
+
+    function renderGuide() {
+      guideList.innerHTML = '';
+      let running = 0;
+      playlist.forEach(item => {
+        const dur = getDuration(item);
+        const start = formatTime(running);
+        const end = formatTime(running + dur);
+        guideList.innerHTML += `<div class="tv-guide-item">${start} - ${end} :: ${item.title}</div>`;
+        running += dur;
+      });
+    }
+
+    function showMuteOverlay() {
+      muteOverlay.classList.remove("hidden");
+    }
+
+    muteOverlay.addEventListener("click", () => {
+      const video = document.querySelector("video");
+      if (video) {
+        video.muted = false;
+        video.volume = 1;
+      }
+      muteOverlay.classList.add("hidden");
+    });
 
     async function init() {
+      updateClock();
+      setInterval(updateClock, 1000);
+
       try {
-        const playlist = await loadPlaylist();
-        const { current, next, guide } = getCurrentSchedule(playlist);
-        renderTVGuide(guide);
-        if (current) {
-          nextItemTitle = next?.title || '-';
-          playItem(current, current.offset);
-          status.textContent = "Live Broadcasting";
-        } else {
-          playOffAir();
-        }
-      } catch (err) {
-        console.error(err);
-        playOffAir();
+        const res = await fetch(playlistURL);
+        const data = await res.json();
+        playlist = data.items || data.playlist || data;
+        renderGuide();
+        syncPlayback();
+      } catch (e) {
         status.textContent = "Failed to load playlist";
       }
     }
 
-    setInterval(updateClock, 1000);
-    setInterval(init, 15000); // auto-refresh player every 15s
     init();
   </script>
 </body>
