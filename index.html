@@ -29,6 +29,12 @@
     #now-playing {
       margin-top: 15px; font-size: 1.2rem;
     }
+    #tv-guide {
+      max-width: 960px; margin: 20px auto; padding: 10px;
+      background: #111; border: 1px solid gold; border-radius: 10px; text-align: left;
+    }
+    #tv-guide h3 { color: gold; margin-top: 0; }
+    #guide-list { list-style: none; padding-left: 0; color: white; font-size: 0.95rem; max-height: 300px; overflow-y: auto; }
   </style>
 </head>
 <body>
@@ -41,11 +47,16 @@
 
 <div id="player-container">
   <video id="video" controls muted></video>
-  <iframe id="iframe" frameborder="0" allowfullscreen allow="autoplay"></iframe>
+  <iframe id="iframe" frameborder="0" allow="autoplay"></iframe>
   <div id="placeholder">Loading...</div>
 </div>
 
 <div id="now-playing">Now Playing: <span id="current-title">None</span></div>
+
+<div id="tv-guide">
+  <h3>Today's Schedule</h3>
+  <ul id="guide-list"></ul>
+</div>
 
 <footer>&copy; 2025 MSTV NETWORK</footer>
 
@@ -55,6 +66,7 @@
   const placeholder = document.getElementById('placeholder');
   const titleEl = document.getElementById('current-title');
   const clock = document.getElementById('clock');
+  const guideList = document.getElementById('guide-list');
 
   const playlistUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
   const slotDurationSeconds = 120;
@@ -74,6 +86,7 @@
     try {
       const res = await fetch(playlistUrl + '?t=' + Date.now());
       playlist = await res.json();
+      renderTVGuide();
     } catch (e) {
       console.error('Failed to load playlist:', e);
       placeholder.textContent = 'Error loading playlist.';
@@ -88,11 +101,10 @@
 
   function playItem(index) {
     if (!playlist[index]) return;
-
-    if (currentIndex === index) return; // already playing
+    if (currentIndex === index) return;
     currentIndex = index;
-
     const item = playlist[index];
+
     titleEl.textContent = item.name;
     video.style.display = 'none';
     iframe.style.display = 'none';
@@ -111,6 +123,21 @@
     }
   }
 
+  function renderTVGuide() {
+    guideList.innerHTML = '';
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(0, 0, 0, 0);
+    for (let i = 0; i < playlist.length; i++) {
+      const item = playlist[i];
+      const slotStart = new Date(midnight.getTime() + i * slotDurationSeconds * 1000);
+      const timeStr = slotStart.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+      const li = document.createElement('li');
+      li.textContent = `${timeStr} – ${item.name}`;
+      guideList.appendChild(li);
+    }
+  }
+
   async function loop() {
     if (!playlist.length) return;
     const index = getCurrentSlotIndex();
@@ -120,7 +147,8 @@
   document.addEventListener('DOMContentLoaded', async () => {
     await loadPlaylist();
     loop();
-    setInterval(loop, 15000); // Check every 15 seconds
+    setInterval(loop, 15000);
+    setInterval(loadPlaylist, 60000); // refresh guide every 60 seconds
   });
 </script>
 
