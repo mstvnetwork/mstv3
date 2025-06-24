@@ -166,30 +166,6 @@
       background: black;
     }
 
-    /* Mute/Unmute Button Styles */
-    #muteButton {
-      position: absolute;
-      bottom: 20px; /* Adjust as needed */
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: rgba(0, 0, 0, 0.6);
-      border: 2px solid #fff;
-      border-radius: 50%;
-      width: 60px; /* Increased size for better tap target */
-      height: 60px; /* Increased size for better tap target */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      z-index: 20; /* Ensure it's above other elements */
-      transition: opacity 0.3s ease;
-    }
-
-    #muteButton img {
-      width: 30px; /* Icon size */
-      height: 30px; /* Icon size */
-    }
-
     /* Footer styles */
     footer {
       background: rgba(0, 0, 0, 0.3); /* Transparent background for footer */
@@ -253,9 +229,6 @@
   <div class="player-container">
     <img src="https://example.com/logo.png" alt="MSTV Logo" class="watermark" />
     <div id="player" class="video-player">Loading player...</div>
-    <div id="muteButton" style="display: none;">
-      <img id="speakerIcon" src="https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png" alt="Mute">
-    </div>
   </div>
 
   <div class="scrolling-text-container">
@@ -312,8 +285,7 @@
     const viewerCount = document.getElementById("viewerCount");
     const tvGuide = document.getElementById("tvGuide");
     const errorBox = document.getElementById("error");
-    const muteButton = document.getElementById("muteButton");
-    const speakerIcon = document.getElementById("speakerIcon");
+    // Removed references to muteButton and speakerIcon here
 
     let hlsInstance = null; // To keep track of the HLS.js instance
     let youtubePlayer = null; // To keep track of the YouTube player instance
@@ -380,68 +352,42 @@
           // **IMPORTANT CHANGE: Added `autoplay=1` and `mute=0` for sound**
           playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=0&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
           
-          muteButton.style.display = 'flex'; // Always show mute button for YouTube, initial state is unmuted
+          // Removed mute button display logic for YouTube
 
         } else if (isHLS) {
-          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay data-src="${url}"></video>`;
+          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay></video>`; // Removed 'data-src' and set directly below
           const video = document.getElementById("m3u8Player");
-          const src = video.getAttribute("data-src");
+          video.src = url; // Set src directly
 
           video.removeAttribute('controls');
-          muteButton.style.display = 'flex'; // Show mute button for HLS initially
+          // Removed mute button display logic for HLS
 
           if (Hls.isSupported()) {
             hlsInstance = new Hls();
-            hlsInstance.loadSource(src);
+            hlsInstance.loadSource(video.src); // Use video.src
             hlsInstance.attachMedia(video);
             hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
               video.play().catch(error => {
                 if (error.name === "NotAllowedError") {
                   console.warn("Autoplay was prevented. User needs to interact to play.");
                   video.muted = true; // Mute if autoplay prevented
-                  speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-                  muteButton.style.display = 'flex';
                 }
               });
             });
           } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            video.src = src;
+            // Already set video.src above
             video.play().catch(error => {
               if (error.name === "NotAllowedError") {
                 console.warn("Autoplay was prevented. User needs to interact to play.");
                 video.muted = true; // Mute if autoplay prevented
-                speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-                muteButton.style.display = 'flex';
               }
             });
           } else {
             throw new Error("Unsupported video format for HLS.");
           }
 
-          // Update mute button icon based on video's muted state
-          video.onvolumechange = () => {
-            if (video.muted) {
-              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-              muteButton.style.display = 'flex'; // Always show if muted
-            } else {
-              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-              // Only hide if not muted and autoplay was successful
-              if (video.autoplay && !video.muted) {
-                 muteButton.style.display = 'none';
-              }
-            }
-          };
-
-          // Initial state for HLS
-          if (video.muted) {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-            muteButton.style.display = 'flex';
-          } else {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-            // If it can autoplay with sound, hide button
-            // This might need a slight delay or check for actual play status
-            muteButton.style.display = 'none';
-          }
+          // Removed onvolumechange event listener
+          // Removed initial state for HLS mute button
 
         } else {
           // For other video formats (e.g., MP4)
@@ -449,36 +395,17 @@
           const video = document.getElementById("otherPlayer");
           video.src = url; // Set src directly for other video types
           video.removeAttribute('controls');
-          muteButton.style.display = 'flex';
+          // Removed mute button display logic for other formats
 
           video.play().catch(error => {
             if (error.name === "NotAllowedError") {
               console.warn("Autoplay was prevented. User needs to interact to play.");
               video.muted = true; // Mute if autoplay prevented
-              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-              muteButton.style.display = 'flex';
             }
           });
 
-          video.onvolumechange = () => {
-            if (video.muted) {
-              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-              muteButton.style.display = 'flex';
-            } else {
-              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-              if (video.autoplay && !video.muted) {
-                muteButton.style.display = 'none';
-              }
-            }
-          };
-          
-          if (video.muted) {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-            muteButton.style.display = 'flex';
-          } else {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-            muteButton.style.display = 'none';
-          }
+          // Removed onvolumechange event listener
+          // Removed initial state for other formats mute button
         }
       } catch (err) {
         showOffAir(err.message);
@@ -488,40 +415,10 @@
     // This function is called by the YouTube Iframe API when the player is ready.
     function onYouTubePlayerReady(event) {
         youtubePlayer = event.target; // Store the player object
-        if (youtubePlayer && youtubePlayer.isMuted && youtubePlayer.isMuted()) {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-            muteButton.style.display = 'flex';
-        } else {
-            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-            muteButton.style.display = 'none'; // Hide if already unmuted by user interaction
-        }
+        // Removed mute button display logic for YouTube player ready
     }
 
-    // Function to handle mute/unmute
-    muteButton.addEventListener('click', () => {
-      const videoElement = playerDiv.querySelector('video');
-
-      if (videoElement) {
-        videoElement.muted = !videoElement.muted;
-        if (!videoElement.muted) {
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-          muteButton.style.display = 'none'; // Hide button if unmuted
-        } else {
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-          muteButton.style.display = 'flex';
-        }
-      } else if (youtubePlayer) { // Use the stored youtubePlayer object
-        if (youtubePlayer.isMuted()) {
-          youtubePlayer.unMute();
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_up/baseline_volume_up_black_24dp.png";
-          muteButton.style.display = 'none'; // Hide button if unmuted
-        } else {
-          youtubePlayer.mute();
-          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
-          muteButton.style.display = 'flex';
-        }
-      }
-    });
+    // Removed muteButton.addEventListener logic completely
 
     function showOffAir(msg = "Off Air") {
       playerDiv.innerHTML = `<div class="off-air">${msg}</div>`;
@@ -529,7 +426,7 @@
       nowTitle.textContent = "-";
       nowProgress.textContent = "-";
       nextTitle.textContent = "-";
-      muteButton.style.display = 'none'; // Hide mute button when off air
+      // Removed mute button hide logic when off air
     }
 
     async function loadPlaylist() {
