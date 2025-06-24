@@ -1,673 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"/>
-  <title>MSTV Live TV Channel</title>
-  <style>
-    /* Base styles */
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      /* Your gradient background */
-      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-      color: #fff; /* Light text for dark background */
-      text-align: center;
-      padding: 20px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      overflow-x: hidden; /* Prevent horizontal scroll for content that might overflow */
-    }
-
-    /* Enforce a maximum width for the entire content */
-    body > * { /* Targets direct children of the body */
-      max-width: 960px; /* Adjust this value as needed for your "fixed" width */
-      margin-left: auto;
-      margin-right: auto;
-      width: 100%; /* Ensure it takes full width up to max-width */
-      box-sizing: border-box; /* Include padding/border in width calculation */
-    }
-
-    header {
-      display: flex;
-      justify-content: center; /* Center the branding */
-      align-items: center;
-      padding: 10px 20px;
-      background: rgba(0, 0, 0, 0.3); /* Slightly transparent background for header */
-      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-      margin-bottom: 20px;
-      border-radius: 10px;
-    }
-
-    #branding {
-      display: flex;
-      align-items: center;
-    }
-
-    #branding img {
-      height: 50px; /* Adjust logo size as needed */
-      margin-right: 15px;
-    }
-
-    #branding .tagline {
-      font-size: 1.2em;
-      font-weight: bold;
-      color: #fff; /* Tagline color remains white for the dark gradient */
-    }
-
-    .player-container {
-      position: relative;
-      background: #000;
-      border-radius: 15px;
-      overflow: hidden;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); /* Stronger shadow for dark background */
-      flex-grow: 1; /* Allows player to take available space */
-      /* Aspect Ratio 16:9 for the container */
-      width: 100%; /* Take full width of its parent */
-      padding-top: 56.25%; /* 16:9 Aspect Ratio (height / width * 100) */
-      height: 0; /* Important to collapse height since padding defines it */
-    }
-
-    .video-player {
-      position: absolute; /* Position video player absolutely within its padding-defined container */
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Marquee/Scrolling Text styles */
-    .scrolling-text-container {
-      background: #cc0000; /* Red background */
-      color: #fff; /* White text */
-      padding: 8px 0;
-      border-bottom-left-radius: 15px;
-      border-bottom-right-radius: 15px;
-      font-size: 1.1em;
-      white-space: nowrap; /* Keep text on one line */
-      overflow: hidden; /* Hide overflowing text */
-      position: relative; /* For absolute positioning of actual marquee */
-      z-index: 10; /* Ensure it's above other elements if needed */
-    }
-
-    .scrolling-text {
-      display: inline-block; /* Essential for marquee effect */
-      padding-left: 100%; /* Start off-screen to the right */
-      animation: marquee 15s linear infinite; /* Adjust duration as needed */
-    }
-
-    @keyframes marquee {
-      0% { transform: translateX(0); } /* Start at 0, or right edge with padding-left: 100% */
-      100% { transform: translateX(-100%); } /* Move to the left off-screen */
-    }
-
-    .status, .guide {
-      margin: 10px auto;
-      font-size: 16px;
-      background: rgba(0, 0, 0, 0.4); /* Slightly transparent background for info boxes */
-      color: #eee; /* Lighter text for these boxes */
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
-    }
-
-    h3 {
-      color: #fff; /* Heading color remains white for the dark gradient */
-      margin-top: 30px;
-      margin-bottom: 15px;
-    }
-
-    .guide-entry {
-      margin: 4px 0;
-      padding: 5px 0;
-      border-bottom: 1px dotted rgba(255, 255, 255, 0.3); /* Lighter dotted line */
-    }
-
-    .guide-entry:last-child {
-      border-bottom: none;
-    }
-
-    .highlight {
-      color: #4ecdc4; /* Existing highlight color */
-      font-weight: bold;
-    }
-
-    .error {
-      color: #ffe0e0; /* Lighter red for error text */
-      margin: 10px auto;
-      background: rgba(136, 0, 0, 0.7); /* Darker, slightly transparent red background */
-      border: 1px solid red;
-      padding: 10px;
-      border-radius: 5px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
-    }
-
-    .watermark {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 80px;
-      opacity: 0.8;
-      z-index: 5;
-    }
-
-    .off-air {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100%;
-      font-size: 24px;
-      color: red;
-      background: black;
-    }
-
-    /* Mute Button Styles */
-    #muteButton {
-      position: absolute;
-      bottom: 15px; /* Adjusted slightly for better placement */
-      right: 15px; /* Adjusted slightly for better placement */
-      background: rgba(0, 0, 0, 0.6);
-      border: none;
-      border-radius: 50%;
-      padding: 8px;
-      cursor: pointer;
-      z-index: 20;
-      /* Initial display is none in HTML, JS will set to block */
-      display: none; /* Keep this as initially hidden */
-      justify-content: center;
-      align-items: center;
-      transition: background 0.3s ease;
-    }
-
-    #muteButton:hover {
-      background: rgba(0, 0, 0, 0.8);
-    }
-
-    #speakerIcon {
-      width: 25px; /* Slightly smaller for circular button */
-      height: 25px;
-      display: block; /* Ensure no extra space below image */
-    }
-
-
-    /* Footer styles */
-    footer {
-      background: rgba(0, 0, 0, 0.3); /* Transparent background for footer */
-      color: #fff;
-      padding: 20px 0;
-      margin-top: 40px;
-      text-align: center;
-      border-top: 2px solid rgba(255, 255, 255, 0.2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      border-radius: 10px;
-    }
-
-    .social-media {
-      margin-top: 15px;
-    }
-
-    .social-media a {
-      display: inline-block;
-      margin: 0 10px;
-    }
-
-    .social-media img {
-      width: 35px; /* Size of social icons */
-      height: 35px;
-      transition: transform 0.2s ease-in-out;
-    }
-
-    .social-media img:hover {
-      transform: scale(1.1);
-    }
-
-    /* Responsive adjustments for video player height based on content width */
-    @media (max-width: 768px) {
-      /* The padding-top method automatically adjusts height,
-         but if you have a fixed height for the container, adjust here if needed. */
-    }
-
-    @media (max-width: 480px) {
-      /* The padding-top method automatically adjusts height,
-         but if you have a fixed height for the container, adjust here if needed. */
-      #branding img {
-        height: 40px;
-      }
-      #branding .tagline {
-        font-size: 1em;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My YouTube Playlist Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 20px;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio (height:width) */
+            height: 0;
+            overflow: hidden;
+            max-width: 800px; /* Max width for the video player */
+            background-color: #000; /* Fallback background */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px; /* Slightly rounded corners */
+        }
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+        p {
+            margin-top: 20px;
+            font-size: 1.1em;
+            text-align: center;
+            max-width: 600px;
+        }
+        .instruction {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            max-width: 700px;
+            text-align: left;
+        }
+        .instruction strong {
+            color: #e74c3c; /* A distinct color for emphasis */
+        }
+    </style>
 </head>
 <body>
 
-  <header>
-    <div id="branding">
-      <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/main/logo.png" alt="MSTV Logo" id="main-logo">
-      <span class="tagline">Broadcasting your curated content 24/7</span>
+    <h1>Enjoy My Complete YouTube Playlist!</h1>
+
+    <div class="video-container">
+        <iframe
+            width="560"
+            height="315"
+            src="https://www.youtube.com/playlist?list=PLLQwHVFP77cG2eoXfzqcUztw2xZ04Fmbr"
+            title="My Awesome Playlist on YouTube"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen>
+        </iframe>
     </div>
-  </header>
 
-  <div class="player-container">
-    <img src="https://example.com/logo.png" alt="MSTV Logo" class="watermark" />
-    <div id="player" class="video-player">Loading player...</div>
+    <p>
+        This embedded player is configured to play all videos in the playlist sequentially.
+        After one video finishes, the next one will automatically start.
+    </p>
 
-    <button id="muteButton" style="display: none;">
-      <img id="speakerIcon" src="https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png" alt="Muted" />
-    </button>
-  </div>
-
-  <div class="scrolling-text-container">
-    <div class="scrolling-text">
-      This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
-                          
-      Breaking News: Today is Tuesday, June 24, 2025. Current time is 12:25:29 PM AEST.
-                          
-      Visit our social media for updates!
+    <div class="instruction">
+        <h2>How to Make Sure All Videos Play in Order:</h2>
+        <ol>
+            <li><strong>Find Your Playlist on YouTube:</strong> Navigate to the specific playlist on YouTube that you want to embed.</li>
+            <li><strong>Get the Embed Code:</strong>
+                <ul>
+                    <li>Click the "Share" button below the playlist title.</li>
+                    <li>In the pop-up, click "Embed."</li>
+                    <li>YouTube will provide an `<iframe>` code. **Copy the entire `src` attribute value** from that code. It should start with `https://www.youtube.com/embed/videoseries?list=YOUR_PLAYLIST_ID` (where `YOUR_PLAYLIST_ID` is the unique identifier for your playlist).</li>
+                    <li>**Example of a playlist `src`:** `https://www.youtube.com/embed/videoseries?list=YOUR_PLAYLIST_ID`</li>
+                </ul>
+            </li>
+            <li><strong>Paste into the HTML:</strong> In the HTML code above, replace the placeholder `src="https://www.youtube.com/embed/videoseries?list=YOUR_PLAYLIST_ID"` with the exact `src` value you copied from YouTube.</li>
+            <li>**Save and Test:** Save your HTML file and open it in a web browser. The playlist should now play all videos in the order you've arranged them on YouTube.</li>
+        </ol>
+        <p>
+            **Note on Autoplay:** While `autoplay=1` is included in the `allow` attribute, many modern browsers block autoplay with sound unless the user has previously interacted with the site or explicitly allowed it. Users will likely need to click play on the first video, but then the rest of the playlist should play sequentially.
+        </p>
+        <p>
+            **Troubleshooting:** If only one video plays, double-check that the `src` URL in your `<iframe>` actually references a playlist (i.e., it contains `list=` and your `playlist_ID`) and not just a single video ID.
+        </p>
     </div>
-  </div>
 
-  <div class="status">
-    <p>Status: <span id="statusText">Loading...</span></p>
-    <p>Time: <span id="currentTime"></span></p>
-    <p>Viewers: <span id="viewerCount">0</span></p>
-    <p>Now Playing: <span id="nowTitle">-</span> |
-       Progress: <span id="nowProgress">-</span> |
-       Next Up: <span id="nextTitle">-</span></p>
-  </div>
-
-  <h3>Today's TV Guide</h3>
-  <div class="guide" id="tvGuide"></div>
-  <div id="error" class="error"></div>
-
-  <footer>
-    <p>Copyright © 2025 MSTV. All Rights Reserved.</p>
-    <div class="social-media">
-      <a href="https://facebook.com/yourprofile" target="_blank" aria-label="Facebook">
-        <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/facebook.png" alt="Facebook">
-      </a>
-      <a href="https://twitter.com/yourprofile" target="_blank" aria-label="Twitter">
-        <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/twitter.png" alt="Twitter">
-      </a>
-      <a href="https://instagram.com/yourprofile" target="_blank" aria-label="Instagram">
-        <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/instagram.png" alt="Instagram">
-      </a>
-    </div>
-  </footer>
-
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script>
-    // Playlist JSON URL - INFERRED FROM YOUR REPO. PLEASE CONFIRM THIS IS CORRECT.
-    const playlistUrl = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json";
-
-    let playlist = [];
-    let totalDuration = 0;
-    let currentIndex = -1;
-
-    const playerDiv = document.getElementById("player");
-    const statusText = document.getElementById("statusText");
-    const nowTitle = document.getElementById("nowTitle");
-    const nowProgress = document.getElementById("nowProgress");
-    const nextTitle = document.getElementById("nextTitle");
-    const viewerCount = document.getElementById("viewerCount");
-    const tvGuide = document.getElementById("tvGuide");
-    const errorBox = document.getElementById("error");
-
-    // Mute button elements
-    const muteButton = document.getElementById("muteButton");
-    const speakerIcon = document.getElementById("speakerIcon");
-    let isMuted = true; // Initial state: player starts muted
-
-    let hlsInstance = null; // To keep track of the HLS.js instance
-    let youtubePlayer = null; // To keep track of the YouTube player instance
-
-    function parseDuration(duration) {
-      if (typeof duration === "number") return duration;
-      const parts = duration.split(":").map(Number);
-      return parts.reduce((acc, val, idx) => acc + val * Math.pow(60, parts.length - 1 - idx), 0);
-    }
-
-    function formatTime(seconds) {
-      const d = new Date(seconds * 1000);
-      return d.toISOString().substr(11, 5);
-    }
-
-    function formatClockTime(date) {
-      return date.toLocaleTimeString();
-    }
-
-    function updateClock() {
-      document.getElementById("currentTime").textContent = formatClockTime(new Date());
-    }
-
-    function updateViewers() {
-      viewerCount.textContent = 50 + Math.floor(Math.random() * 150);
-      setTimeout(updateViewers, 30000 + Math.random() * 15000);
-    }
-
-    function createTVGuide(playlist) {
-      let html = "";
-      let cursor = 0;
-      playlist.forEach(item => {
-        const duration = parseDuration(item.duration);
-        const start = formatTime(cursor);
-        const end = formatTime(cursor + duration);
-        html += `<div class="guide-entry">${start} - ${end} :: ${item.title || "Untitled"}</div>`;
-        cursor += duration;
-      });
-      tvGuide.innerHTML = html;
-    }
-
-    function playItem(item, offset = 0) {
-      console.log(`[PLAYBACK] Attempting to play: ${item.title || 'Untitled'} (URL: ${item.url}) at offset ${offset}s`);
-      try {
-        const url = item.url;
-        const title = item.title || "Untitled";
-        const isHLS = url.includes(".m3u8");
-        const isYT = /youtu(?:\.be|be\.com)/.test(url);
-
-        nowTitle.textContent = title;
-        statusText.textContent = "Live Broadcasting";
-
-        // Dispose of previous HLS instance if it exists
-        if (hlsInstance) {
-          hlsInstance.destroy();
-          hlsInstance = null;
-          console.log("[PLAYBACK] HLS instance destroyed.");
-        }
-        // Clear YouTube player instance (destroy will be called by API if available)
-        if (youtubePlayer) {
-          try {
-            youtubePlayer.destroy();
-            console.log("[PLAYBACK] YouTube player instance destroyed.");
-          } catch (e) {
-            console.warn("[PLAYBACK] Error destroying YouTube player (may already be gone):", e);
-          }
-          youtubePlayer = null; // Clear the reference regardless
-        }
-
-        // --- Mute Button Visibility Logic ---
-        console.log("[PLAYBACK] Setting mute button display to 'block'.");
-        muteButton.style.display = 'block'; // Show mute button when player is active
-        // --- End Mute Button Visibility Logic ---
-
-
-        if (isYT) {
-          const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
-          if (!idMatch) throw new Error("Invalid YouTube URL");
-          const id = idMatch[1];
-          // *** CORRECTED YOUTUBE EMBED URL ***
-          playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-          console.log(`[PLAYBACK] YouTube iframe created for ID: ${id}. Waiting for API ready...`);
-          isMuted = true; // Assume muted initially for YouTube
-          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
-          speakerIcon.alt = "Muted";
-
-        } else if (isHLS) {
-          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay muted></video>`;
-          const video = document.getElementById("m3u8Player");
-          video.src = url;
-
-          video.removeAttribute('controls');
-          console.log(`[PLAYBACK] HLS video element created for URL: ${url}`);
-
-          if (Hls.isSupported()) {
-            hlsInstance = new Hls();
-            hlsInstance.loadSource(video.src);
-            hlsInstance.attachMedia(video);
-            hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-              console.log("[PLAYBACK] HLS Manifest parsed. Attempting to play video.");
-              video.play().catch(error => {
-                if (error.name === "NotAllowedError") {
-                  console.warn("[PLAYBACK] Autoplay was prevented (even muted). User needs to interact to play.", error);
-                } else {
-                  console.error("[PLAYBACK] Video play error:", error);
-                }
-              });
-            });
-            hlsInstance.muted = true;
-          } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            console.log("[PLAYBACK] Native HLS playback detected. Attempting to play video.");
-            video.play().catch(error => {
-              if (error.name === "NotAllowedError") {
-                console.warn("[PLAYBACK] Autoplay was prevented (even muted). User needs to interact to play.", error);
-              } else {
-                console.error("[PLAYBACK] Native video play error:", error);
-              }
-            });
-          } else {
-            throw new Error("Unsupported video format for HLS.");
-          }
-          isMuted = true;
-          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png";
-          speakerIcon.alt = "Muted";
-
-
-        } else {
-          playerDiv.innerHTML = `<video id="otherPlayer" width="100%" height="100%" autoplay muted></video>`;
-          const video = document.getElementById("otherPlayer");
-          video.src = url;
-          video.removeAttribute('controls');
-          console.log(`[PLAYBACK] Other video element created for URL: ${url}`);
-
-          video.play().catch(error => {
-            if (error.name === "NotAllowedError") {
-              console.warn("[PLAYBACK] Autoplay was prevented (even muted). User needs to interact to play.", error);
-            } else {
-              console.error("[PLAYBACK] Other video play error:", error);
-            }
-          });
-          isMuted = true;
-          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png";
-          speakerIcon.alt = "Muted";
-        }
-      } catch (err) {
-        console.error("[PLAYBACK ERROR] Failed to play item:", err);
-        showOffAir("Playback Error: " + err.message);
-      }
-    }
-
-    // This function is called by the YouTube Iframe API when it's ready.
-    window.onYouTubeIframeAPIReady = function() {
-      console.log("[INIT] YouTube Iframe API is ready."); // This tells us the API script loaded
-    };
-
-    // This function will be called by the YouTube Iframe API *for each new player instance*
-    function onYouTubePlayerReady(event) {
-        youtubePlayer = event.target; // Store the player object
-        youtubePlayer.mute(); // Ensure it is muted when ready, even if API parameter failed (redundant but safe)
-        isMuted = true;
-        speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
-        speakerIcon.alt = "Muted";
-        console.log("[YT API] YouTube player instance ready and muted. Player object:", youtubePlayer); // ADDED LOG: Crucial to see this every YT load
-    }
-
-    function showOffAir(msg = "Off Air") {
-      playerDiv.innerHTML = `<div class="off-air">${msg}</div>`;
-      statusText.textContent = "Off Air";
-      nowTitle.textContent = "-";
-      nowProgress.textContent = "-";
-      nextTitle.textContent = "-";
-      muteButton.style.display = 'none'; // Hide mute button when off air
-      console.log(`[STATUS] Player set to Off Air: ${msg}`);
-    }
-
-    async function loadPlaylist() {
-      console.log(`[INIT] Loading playlist from: ${playlistUrl}`);
-      try {
-        const res = await fetch(playlistUrl);
-        if (!res.ok) {
-            console.error(`[INIT ERROR] Failed to fetch playlist: ${res.status} ${res.statusText}`);
-            throw new Error(`Failed to load playlist (Status: ${res.status})`);
-        }
-        playlist = await res.json();
-        if (Array.isArray(playlist.items)) {
-            playlist = playlist.items; // Use 'items' array if structure demands
-            console.log("[INIT] Playlist loaded successfully (using .items property).");
-        } else if (Array.isArray(playlist)) {
-            console.log("[INIT] Playlist loaded successfully (as direct array).");
-        } else {
-            console.error("[INIT ERROR] Playlist JSON is not an array or does not have an 'items' array.");
-            throw new Error("Playlist format invalid.");
-        }
-
-
-        if (playlist.length === 0) {
-            throw new Error("Playlist is empty.");
-        }
-
-        totalDuration = playlist.reduce((sum, item) => sum + parseDuration(item.duration), 0);
-        console.log(`[INIT] Total playlist duration: ${totalDuration} seconds.`);
-        createTVGuide(playlist);
-        syncToRealTime();
-      } catch (e) {
-        showOffAir("Failed to load playlist or playlist is empty: " + e.message);
-        errorBox.textContent = "Error: " + e.message;
-        console.error("[INIT ERROR] Playlist loading error:", e);
-      }
-    }
-
-    // This is the function with the critical fix
-    function syncToRealTime() {
-      if (playlist.length === 0) {
-          console.warn("[SYNC] Playlist not loaded yet, re-trying sync in 1s.");
-          setTimeout(syncToRealTime, 1000); // Try again after 1 second
-          return;
-      }
-
-      const now = new Date();
-      const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-      const timeInLoop = secondsSinceMidnight % totalDuration;
-      console.log(`[SYNC] Current time in loop: ${timeInLoop.toFixed(2)}s (Total duration: ${totalDuration}s)`);
-
-      let cursor = 0;
-      let foundItem = false;
-      let newCurrentIndex = -1; // Use a new variable for the calculated index
-
-      for (let i = 0; i < playlist.length; i++) {
-        const dur = parseDuration(playlist[i].duration);
-        if (cursor + dur > timeInLoop) {
-          newCurrentIndex = i; // Found current item
-          foundItem = true;
-          break;
-        }
-        cursor += dur;
-      }
-
-      if (!foundItem && playlist.length > 0) {
-        newCurrentIndex = 0;
-        cursor = 0;
-        console.warn("[SYNC] Edge case: time landed at end of loop, starting from beginning.");
-      } else if (!foundItem) {
-        showOffAir("No items in playlist to sync.");
-        return;
-      }
-
-      // *** CRITICAL FIX HERE: Prevent player re-initialization if item hasn't truly changed ***
-      if (newCurrentIndex !== currentIndex) {
-          console.log(`[SYNC] Item changed from ${currentIndex} to ${newCurrentIndex}. Playing new item.`);
-          currentIndex = newCurrentIndex; // Update the global index
-          const currentItemDuration = parseDuration(playlist[currentIndex].duration);
-          const elapsedTimeInCurrentItem = timeInLoop - cursor;
-          nowProgress.textContent = `${Math.floor((elapsedTimeInCurrentItem / currentItemDuration) * 100)}%`;
-          nextTitle.textContent = playlist[(currentIndex + 1) % playlist.length].title || "End of loop";
-          playItem(playlist[currentIndex], elapsedTimeInCurrentItem); // Play the new item
-      } else {
-          // If it's the same item, just update progress and next title display.
-          // DO NOT call playItem here, as it would re-initialize the player unnecessarily.
-          const currentItemDuration = parseDuration(playlist[currentIndex].duration);
-          const elapsedTimeInCurrentItem = timeInLoop - cursor;
-          nowProgress.textContent = `${Math.floor((elapsedTimeInCurrentItem / currentItemDuration) * 100)}%`;
-          nextTitle.textContent = playlist[(currentIndex + 1) % playlist.length].title || "End of loop";
-          console.log(`[SYNC] Same item. Progress updated to ${nowProgress.textContent}. No player re-initialization.`);
-      }
-
-      // Schedule the next sync.
-      // This is still important to keep the time and next item info updated,
-      // and to trigger playItem when the next video's time arrives.
-      const currentItemDuration = parseDuration(playlist[currentIndex].duration);
-      const elapsedTimeInCurrentItem = timeInLoop - cursor;
-      let secondsToNext = currentItemDuration - elapsedTimeInCurrentItem;
-
-      if (secondsToNext < 0) { // If somehow we've gone past, set to a small positive number to re-sync fast
-          secondsToNext = 0.5; // Resync in half a second
-      }
-
-      console.log(`[SYNC] Current item: '${playlist[currentIndex].title}', Remaining: ${secondsToNext.toFixed(2)}s. Scheduling next sync.`);
-
-      // Clear any existing timeout to prevent multiple timers running
-      if (window.syncTimeout) {
-          clearTimeout(window.syncTimeout);
-      }
-      window.syncTimeout = setTimeout(syncToRealTime, secondsToNext * 1000 + 100); // Add a small buffer of 100ms
-    }
-
-
-    // Mute Button Event Listener
-    muteButton.addEventListener("click", () => {
-      // Check for HLS.js video
-      const videoElement = document.getElementById("m3u8Player") || document.getElementById("otherPlayer");
-      console.log("[MUTE BUTTON] Clicked. Current isMuted:", isMuted);
-
-      if (hlsInstance && videoElement) {
-        videoElement.muted = !videoElement.muted; // Toggle native video muted state
-        hlsInstance.muted = videoElement.muted; // Keep HLS.js instance in sync
-        isMuted = videoElement.muted;
-        console.log(`[MUTE BUTTON] HLS/Other video muted state: ${isMuted}`);
-      } else if (youtubePlayer) { // This condition should now correctly identify the YouTube player
-        console.log("[MUTE BUTTON] YouTube player detected:", youtubePlayer); // ADDED LOG
-        if (isMuted) {
-          console.log("[MUTE BUTTON] Attempting to call youtubePlayer.unMute()."); // ADDED LOG
-          youtubePlayer.unMute();
-          console.log("[MUTE BUTTON] YouTube unmuted.");
-        } else {
-          console.log("[MUTE BUTTON] Attempting to call youtubePlayer.mute()."); // ADDED LOG
-          youtubePlayer.mute();
-          console.log("[MUTE BUTTON] YouTube muted.");
-        }
-        isMuted = !isMuted; // Toggle our internal state
-      } else if (videoElement) { // Direct MP4 or other native video
-        videoElement.muted = !videoElement.muted;
-        isMuted = videoElement.muted;
-        console.log(`[MUTE BUTTON] Native video muted state: ${isMuted}`);
-      } else {
-        console.warn("[MUTE BUTTON] No active player (HLS/YouTube/Other) to mute/unmute.");
-      }
-
-      // Update speaker icon based on new state - USING YOUR SPECIFIC GITHUB URLS
-      speakerIcon.src = isMuted ? "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png" : "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/sound%20(1).png";
-      speakerIcon.alt = isMuted ? "Muted" : "Unmuted";
-      console.log(`[MUTE BUTTON] Speaker icon updated to: ${speakerIcon.src}`);
-    });
-
-
-    // Load YouTube Iframe API
-    function loadYouTubeAPI() {
-      const tag = document.createElement('script');
-      // *** CORRECTED YOUTUBE API URL (THIS IS THE IMPORTANT FIX) ***
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      console.log("[INIT] YouTube Iframe API script requested from correct URL.");
-    }
-
-    // This function will be called by the YouTube Iframe API when it's ready
-    window.onYouTubeIframeAPIReady = function() {
-      console.log("[INIT] YouTube Iframe API is ready.");
-      // The onYouTubePlayerReady will be called when an actual player is instantiated
-    };
-
-    updateClock();
-    updateViewers();
-    setInterval(updateClock, 1000);
-    loadYouTubeAPI(); // Load YouTube API when script starts
-    loadPlaylist(); // Start loading the playlist and playing
-  </script>
 </body>
 </html>
