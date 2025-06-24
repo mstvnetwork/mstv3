@@ -84,7 +84,6 @@
       background: #cc0000; /* Red background */
       color: #fff; /* White text */
       padding: 8px 0;
-      /* margin-top: -20px; Removed this margin to place it outside the player container */
       border-bottom-left-radius: 15px;
       border-bottom-right-radius: 15px;
       font-size: 1.1em;
@@ -166,6 +165,35 @@
       background: black;
     }
 
+    /* Mute Button Styles */
+    #muteButton {
+      position: absolute;
+      bottom: 15px; /* Adjusted slightly for better placement */
+      right: 15px; /* Adjusted slightly for better placement */
+      background: rgba(0, 0, 0, 0.6);
+      border: none;
+      border-radius: 50%;
+      padding: 8px;
+      cursor: pointer;
+      z-index: 20;
+      /* Initial display is none in HTML, JS will set to block */
+      display: none; /* Keep this as initially hidden */
+      justify-content: center;
+      align-items: center;
+      transition: background 0.3s ease;
+    }
+
+    #muteButton:hover {
+      background: rgba(0, 0, 0, 0.8);
+    }
+
+    #speakerIcon {
+      width: 25px; /* Slightly smaller for circular button */
+      height: 25px;
+      display: block; /* Ensure no extra space below image */
+    }
+
+
     /* Footer styles */
     footer {
       background: rgba(0, 0, 0, 0.3); /* Transparent background for footer */
@@ -229,13 +257,17 @@
   <div class="player-container">
     <img src="https://example.com/logo.png" alt="MSTV Logo" class="watermark" />
     <div id="player" class="video-player">Loading player...</div>
+
+    <button id="muteButton" style="display: none;">
+      <img id="speakerIcon" src="https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png" alt="Muted" />
+    </button>
   </div>
 
   <div class="scrolling-text-container">
     <div class="scrolling-text">
       This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
                           
-      Breaking News: Today is Tuesday, June 24, 2025. Current time is 8:53:04 AM AEST.
+      Breaking News: Today is Tuesday, June 24, 2025. Current time is 12:06:29 PM AEST.
                           
       Visit our social media for updates!
     </div>
@@ -258,19 +290,20 @@
     <p>Copyright © 2025 MSTV. All Rights Reserved.</p>
     <div class="social-media">
       <a href="https://facebook.com/yourprofile" target="_blank" aria-label="Facebook">
-        <img src="assets/facebook.png" alt="Facebook">
+        <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/facebook.png" alt="Facebook">
       </a>
       <a href="https://twitter.com/yourprofile" target="_blank" aria-label="Twitter">
-        <img src="assets/twitter.png" alt="Twitter">
+        <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/twitter.png" alt="Twitter">
       </a>
       <a href="https://instagram.com/yourprofile" target="_blank" aria-label="Instagram">
-        <img src="assets/instagram.png" alt="Instagram">
+        <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/instagram.png" alt="Instagram">
       </a>
-      </div>
+    </div>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
+    // Playlist JSON URL - INFERRED FROM YOUR REPO. PLEASE CONFIRM THIS IS CORRECT.
     const playlistUrl = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json";
 
     let playlist = [];
@@ -285,7 +318,11 @@
     const viewerCount = document.getElementById("viewerCount");
     const tvGuide = document.getElementById("tvGuide");
     const errorBox = document.getElementById("error");
-    // Removed references to muteButton and speakerIcon here
+
+    // Mute button elements
+    const muteButton = document.getElementById("muteButton");
+    const speakerIcon = document.getElementById("speakerIcon");
+    let isMuted = true; // Initial state: player starts muted
 
     let hlsInstance = null; // To keep track of the HLS.js instance
     let youtubePlayer = null; // To keep track of the YouTube player instance
@@ -328,6 +365,7 @@
     }
 
     function playItem(item, offset = 0) {
+      console.log(`[PLAYBACK] Attempting to play: ${item.title || 'Untitled'} (URL: ${item.url}) at offset ${offset}s`);
       try {
         const url = item.url;
         const title = item.title || "Untitled";
@@ -341,84 +379,112 @@
         if (hlsInstance) {
           hlsInstance.destroy();
           hlsInstance = null;
+          console.log("[PLAYBACK] HLS instance destroyed.");
         }
         // Clear YouTube player instance
-        youtubePlayer = null;
+        if (youtubePlayer) {
+          // YouTube API destroy method
+          youtubePlayer.destroy();
+          youtubePlayer = null;
+          console.log("[PLAYBACK] YouTube player destroyed.");
+        }
+
+        // --- Mute Button Visibility Logic ---
+        console.log("[PLAYBACK] Setting mute button display to 'block'.");
+        muteButton.style.display = 'block'; // Show mute button when player is active
+        // --- End Mute Button Visibility Logic ---
+
 
         if (isYT) {
           const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
           if (!idMatch) throw new Error("Invalid YouTube URL");
           const id = idMatch[1];
-          // **IMPORTANT CHANGE: Added `autoplay=1` and `mute=0` for sound**
-          playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=0&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-          
-          // Removed mute button display logic for YouTube
+          // IMPORTANT: autoplay=1 and mute=1 for autoplay to work
+          playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+          console.log(`[PLAYBACK] YouTube iframe created for ID: ${id}`);
+          // YouTube API will call onYouTubeIframeAPIReady -> onYouTubePlayerReady
+          isMuted = true; // Assume muted initially for YouTube
+          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
+          speakerIcon.alt = "Muted";
 
         } else if (isHLS) {
-          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay></video>`; // Removed 'data-src' and set directly below
+          // IMPORTANT: autoplay muted for HLS to work reliably
+          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay muted></video>`;
           const video = document.getElementById("m3u8Player");
-          video.src = url; // Set src directly
+          video.src = url;
 
           video.removeAttribute('controls');
-          // Removed mute button display logic for HLS
+          console.log(`[PLAYBACK] HLS video element created for URL: ${url}`);
 
           if (Hls.isSupported()) {
             hlsInstance = new Hls();
-            hlsInstance.loadSource(video.src); // Use video.src
+            hlsInstance.loadSource(video.src);
             hlsInstance.attachMedia(video);
             hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+              console.log("[PLAYBACK] HLS Manifest parsed. Attempting to play video.");
               video.play().catch(error => {
                 if (error.name === "NotAllowedError") {
-                  console.warn("Autoplay was prevented. User needs to interact to play.");
-                  video.muted = true; // Mute if autoplay prevented
+                  console.warn("[PLAYBACK] Autoplay was prevented (even muted). User needs to interact to play.", error);
+                  // Already muted, but log if it still fails
+                } else {
+                  console.error("[PLAYBACK] Video play error:", error);
                 }
               });
             });
+            // HLS.js handles muting through its own instance property
+            hlsInstance.muted = true; // Ensure HLS.js instance starts muted
           } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            // Already set video.src above
+            console.log("[PLAYBACK] Native HLS playback detected. Attempting to play video.");
             video.play().catch(error => {
               if (error.name === "NotAllowedError") {
-                console.warn("Autoplay was prevented. User needs to interact to play.");
-                video.muted = true; // Mute if autoplay prevented
+                console.warn("[PLAYBACK] Autoplay was prevented (even muted). User needs to interact to play.", error);
+              } else {
+                console.error("[PLAYBACK] Native video play error:", error);
               }
             });
           } else {
             throw new Error("Unsupported video format for HLS.");
           }
+          isMuted = true; // Assume muted initially for HLS
+          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
+          speakerIcon.alt = "Muted";
 
-          // Removed onvolumechange event listener
-          // Removed initial state for HLS mute button
 
         } else {
           // For other video formats (e.g., MP4)
-          playerDiv.innerHTML = `<video id="otherPlayer" width="100%" height="100%" autoplay></video>`;
+          // IMPORTANT: autoplay muted for other formats to work reliably
+          playerDiv.innerHTML = `<video id="otherPlayer" width="100%" height="100%" autoplay muted></video>`;
           const video = document.getElementById("otherPlayer");
-          video.src = url; // Set src directly for other video types
+          video.src = url;
           video.removeAttribute('controls');
-          // Removed mute button display logic for other formats
+          console.log(`[PLAYBACK] Other video element created for URL: ${url}`);
 
           video.play().catch(error => {
             if (error.name === "NotAllowedError") {
-              console.warn("Autoplay was prevented. User needs to interact to play.");
-              video.muted = true; // Mute if autoplay prevented
+              console.warn("[PLAYBACK] Autoplay was prevented (even muted). User needs to interact to play.", error);
+            } else {
+              console.error("[PLAYBACK] Other video play error:", error);
             }
           });
-
-          // Removed onvolumechange event listener
-          // Removed initial state for other formats mute button
+          isMuted = true; // Assume muted initially for other video types
+          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
+          speakerIcon.alt = "Muted";
         }
       } catch (err) {
-        showOffAir(err.message);
+        console.error("[PLAYBACK ERROR] Failed to play item:", err);
+        showOffAir("Playback Error: " + err.message);
       }
     }
 
     // This function is called by the YouTube Iframe API when the player is ready.
     function onYouTubePlayerReady(event) {
         youtubePlayer = event.target; // Store the player object
-        // Removed mute button display logic for YouTube player ready
+        youtubePlayer.mute(); // Ensure it is muted when ready, even if API parameter failed (redundant but safe)
+        isMuted = true;
+        speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
+        speakerIcon.alt = "Muted";
+        console.log("[YT API] YouTube player ready and muted.");
     }
-
-    // Removed muteButton.addEventListener logic completely
 
     function showOffAir(msg = "Off Air") {
       playerDiv.innerHTML = `<div class="off-air">${msg}</div>`;
@@ -426,48 +492,151 @@
       nowTitle.textContent = "-";
       nowProgress.textContent = "-";
       nextTitle.textContent = "-";
-      // Removed mute button hide logic when off air
+      muteButton.style.display = 'none'; // Hide mute button when off air
+      console.log(`[STATUS] Player set to Off Air: ${msg}`);
     }
 
     async function loadPlaylist() {
+      console.log(`[INIT] Loading playlist from: ${playlistUrl}`);
       try {
         const res = await fetch(playlistUrl);
-        if (!res.ok) throw new Error("Failed to load playlist");
+        if (!res.ok) {
+            console.error(`[INIT ERROR] Failed to fetch playlist: ${res.status} ${res.statusText}`);
+            throw new Error(`Failed to load playlist (Status: ${res.status})`);
+        }
         playlist = await res.json();
-        if (Array.isArray(playlist.items)) playlist = playlist.items;
+        if (Array.isArray(playlist.items)) {
+            playlist = playlist.items; // Use 'items' array if structure demands
+            console.log("[INIT] Playlist loaded successfully (using .items property).");
+        } else if (Array.isArray(playlist)) {
+            console.log("[INIT] Playlist loaded successfully (as direct array).");
+        } else {
+            console.error("[INIT ERROR] Playlist JSON is not an array or does not have an 'items' array.");
+            throw new Error("Playlist format invalid.");
+        }
+
+
+        if (playlist.length === 0) {
+            throw new Error("Playlist is empty.");
+        }
 
         totalDuration = playlist.reduce((sum, item) => sum + parseDuration(item.duration), 0);
+        console.log(`[INIT] Total playlist duration: ${totalDuration} seconds.`);
         createTVGuide(playlist);
         syncToRealTime();
       } catch (e) {
-        showOffAir("Failed to load playlist");
-        errorBox.textContent = e.message;
+        showOffAir("Failed to load playlist or playlist is empty: " + e.message);
+        errorBox.textContent = "Error: " + e.message;
+        console.error("[INIT ERROR] Playlist loading error:", e);
       }
     }
 
     function syncToRealTime() {
+      if (playlist.length === 0) {
+          console.warn("[SYNC] Playlist not loaded yet, re-trying sync in 1s.");
+          setTimeout(syncToRealTime, 1000); // Try again after 1 second
+          return;
+      }
+
       const now = new Date();
       const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
       const timeInLoop = secondsSinceMidnight % totalDuration;
+      console.log(`[SYNC] Current time in loop: ${timeInLoop.toFixed(2)}s (Total duration: ${totalDuration}s)`);
 
       let cursor = 0;
+      let foundItem = false;
+      let currentItemIndex = -1; // Temp variable for loop
       for (let i = 0; i < playlist.length; i++) {
         const dur = parseDuration(playlist[i].duration);
         if (cursor + dur > timeInLoop) {
-          currentIndex = i;
-          const progress = ((timeInLoop - cursor) / dur) * 100;
-          nowProgress.textContent = `${Math.floor(progress)}%`;
-          nextTitle.textContent = playlist[(i + 1) % playlist.length].title || "End";
-          playItem(playlist[i], timeInLoop - cursor);
+          currentItemIndex = i; // Found current item
+          foundItem = true;
           break;
         }
         cursor += dur;
       }
 
-      // Re-sync automatically when next item starts
-      const secondsToNext = parseDuration(playlist[currentIndex].duration) - (timeInLoop - cursor);
-      setTimeout(syncToRealTime, secondsToNext * 1000 + 100);
+      if (!foundItem && playlist.length > 0) {
+        // Fallback for edge case if current time lands exactly on end of loop
+        currentItemIndex = 0;
+        cursor = 0; // Reset cursor for the 0th item
+        console.warn("[SYNC] Edge case: time landed at end of loop, starting from beginning.");
+      } else if (!foundItem) {
+        showOffAir("No items in playlist to sync.");
+        return;
+      }
+
+      // Check if current item has changed
+      if (currentItemIndex !== currentIndex) {
+          console.log(`[SYNC] Item changed from ${currentIndex} to ${currentItemIndex}. Playing new item.`);
+          currentIndex = currentItemIndex;
+          const currentItemDuration = parseDuration(playlist[currentIndex].duration);
+          const elapsedTimeInCurrentItem = timeInLoop - cursor;
+          nowProgress.textContent = `${Math.floor((elapsedTimeInCurrentItem / currentItemDuration) * 100)}%`;
+          nextTitle.textContent = playlist[(currentIndex + 1) % playlist.length].title || "End of loop";
+          playItem(playlist[currentIndex], elapsedTimeInCurrentItem);
+      } else {
+          // If it's the same item, just update progress
+          const currentItemDuration = parseDuration(playlist[currentIndex].duration);
+          const elapsedTimeInCurrentItem = timeInLoop - cursor;
+          nowProgress.textContent = `${Math.floor((elapsedTimeInCurrentItem / currentItemDuration) * 100)}%`;
+          nextTitle.textContent = playlist[(currentIndex + 1) % playlist.length].title || "End of loop";
+          console.log(`[SYNC] Same item. Progress updated to ${nowProgress.textContent}.`);
+      }
+
+
+      // Set timeout for the next item's start or next sync check
+      const currentItemDuration = parseDuration(playlist[currentIndex].duration);
+      const elapsedTimeInCurrentItem = timeInLoop - cursor;
+      const secondsToNext = currentItemDuration - elapsedTimeInCurrentItem;
+
+      console.log(`[SYNC] Current item: '${playlist[currentIndex].title}', Remaining: ${secondsToNext.toFixed(2)}s`);
+
+      // Set timeout for the next item's start. Add a small buffer.
+      // If secondsToNext is very small or negative, schedule for immediate re-sync
+      if (secondsToNext <= 1) { // If less than or equal to 1 second remaining, re-sync quickly
+        console.log("[SYNC] Less than 1s to next item or negative remaining time. Re-syncing immediately (500ms).");
+        setTimeout(syncToRealTime, 500); // Re-sync quickly
+      } else {
+        setTimeout(syncToRealTime, secondsToNext * 1000 + 500); // Standard re-sync
+      }
     }
+
+
+    // Mute Button Event Listener
+    muteButton.addEventListener("click", () => {
+      // Check for HLS.js video
+      const videoElement = document.getElementById("m3u8Player") || document.getElementById("otherPlayer");
+      console.log("[MUTE BUTTON] Clicked. Current isMuted:", isMuted);
+
+      if (hlsInstance && videoElement) {
+        videoElement.muted = !videoElement.muted; // Toggle native video muted state
+        hlsInstance.muted = videoElement.muted; // Keep HLS.js instance in sync
+        isMuted = videoElement.muted;
+        console.log(`[MUTE BUTTON] HLS/Other video muted state: ${isMuted}`);
+      } else if (youtubePlayer) {
+        if (isMuted) {
+          youtubePlayer.unMute();
+          console.log("[MUTE BUTTON] YouTube unmuted.");
+        } else {
+          youtubePlayer.mute();
+          console.log("[MUTE BUTTON] YouTube muted.");
+        }
+        isMuted = !isMuted; // Toggle our internal state
+      } else if (videoElement) { // Direct MP4 or other native video
+        videoElement.muted = !videoElement.muted;
+        isMuted = videoElement.muted;
+        console.log(`[MUTE BUTTON] Native video muted state: ${isMuted}`);
+      } else {
+        console.warn("[MUTE BUTTON] No active player (HLS/YouTube/Other) to mute/unmute.");
+      }
+
+      // Update speaker icon based on new state - USING YOUR SPECIFIC GITHUB URLS
+      speakerIcon.src = isMuted ? "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png" : "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/sound%20(1).png";
+      speakerIcon.alt = isMuted ? "Muted" : "Unmuted";
+      console.log(`[MUTE BUTTON] Speaker icon updated to: ${speakerIcon.src}`);
+    });
+
 
     // Load YouTube Iframe API
     function loadYouTubeAPI() {
@@ -475,19 +644,20 @@
       tag.src = "https://www.youtube.com/iframe_api"; // Correct YouTube API URL
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      console.log("[INIT] YouTube Iframe API script requested.");
     }
 
     // This function will be called by the YouTube Iframe API when it's ready
     window.onYouTubeIframeAPIReady = function() {
-      console.log("YouTube Iframe API is ready.");
+      console.log("[INIT] YouTube Iframe API is ready.");
       // The onYouTubePlayerReady will be called when an actual player is instantiated
     };
 
     updateClock();
     updateViewers();
     setInterval(updateClock, 1000);
-    loadPlaylist();
     loadYouTubeAPI(); // Load YouTube API when script starts
+    loadPlaylist(); // Start loading the playlist and playing
   </script>
 </body>
 </html>
