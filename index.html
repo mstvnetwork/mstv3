@@ -11,6 +11,21 @@
   #placeholder-image { display: flex; align-items: center; justify-content: center; color: #999; font-size: 1.5rem; height: 100%; }
   #loading { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; padding: 5px 10px; border-radius: 5px; display: none; font-weight: bold; }
   #unmute-button { position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; display: none; }
+  #iframe-unmute-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: red;
+    color: white;
+    font-weight: bold;
+    font-size: 1.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    z-index: 10;
+    display: none;
+  }
   #now-playing-container { max-width: 960px; margin: 0 auto 20px; font-size: 1.2rem; font-weight: bold; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -25,6 +40,7 @@
   <div id="placeholder-image">Loading stream...</div>
   <div id="loading">Loading...</div>
   <button id="unmute-button">🔇 Unmute</button>
+  <div id="iframe-unmute-overlay">Click to Unmute</div>
 </div>
 
 <div id="now-playing-container">
@@ -38,6 +54,7 @@
   const placeholder = document.getElementById('placeholder-image');
   const loading = document.getElementById('loading');
   const unmuteButton = document.getElementById('unmute-button');
+  const iframeUnmuteOverlay = document.getElementById('iframe-unmute-overlay');
   const currentChannelName = document.getElementById('current-channel-name');
   const countdownTimer = document.getElementById('countdown-timer');
 
@@ -69,6 +86,26 @@
 
   videoPlayer.addEventListener('volumechange', updateUnmuteButton);
 
+  // Handle iframe unmute overlay
+  function showIframeUnmuteOverlay(show) {
+    iframeUnmuteOverlay.style.display = show ? 'flex' : 'none';
+  }
+
+  iframeUnmuteOverlay.addEventListener('click', () => {
+    // When user clicks overlay, remove it and reload iframe without mute param
+    showIframeUnmuteOverlay(false);
+
+    if (!iframePlayer.src) return;
+
+    try {
+      let url = new URL(iframePlayer.src);
+      url.searchParams.delete('mute');
+      iframePlayer.src = url.toString();
+    } catch (e) {
+      console.error('Invalid iframe URL:', e);
+    }
+  });
+
   function clearPlayers() {
     if (hlsInstance) {
       hlsInstance.destroy();
@@ -82,6 +119,7 @@
     iframePlayer.style.display = 'none';
     placeholder.style.display = 'none';
     unmuteButton.style.display = 'none';
+    showIframeUnmuteOverlay(false);
     showLoading(false);
     currentChannelName.textContent = 'None';
     countdownTimer.textContent = '--:--';
@@ -135,16 +173,22 @@
       }
     } else if (channel.type === 'iframe') {
       iframePlayer.style.display = 'block';
-      // Remove mute=1 param if present, add autoplay=1 if missing
+
+      // Ensure autoplay=1
       let url = new URL(channel.url);
-      url.searchParams.delete('mute');
       url.searchParams.set('autoplay', '1');
+
+      // Start muted by default (add mute=1 param if not present)
+      if (!url.searchParams.has('mute')) {
+        url.searchParams.set('mute', '1');
+      }
 
       iframePlayer.src = url.toString();
       showLoading(true);
 
       iframePlayer.onload = () => {
         showLoading(false);
+        showIframeUnmuteOverlay(true);
         startCountdown(remainingSeconds);
       };
       iframePlayer.onerror = () => {
