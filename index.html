@@ -387,7 +387,7 @@
             youtubePlayer.destroy();
             console.log("[PLAYBACK] YouTube player instance destroyed.");
           } catch (e) {
-            console.warn("[PLAYBACK] Error destroying YouTube player:", e);
+            console.warn("[PLAYBACK] Error destroying YouTube player (may already be gone):", e);
           }
           youtubePlayer = null; // Clear the reference regardless
         }
@@ -402,10 +402,9 @@
           const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
           if (!idMatch) throw new Error("Invalid YouTube URL");
           const id = idMatch[1];
-          // CORRECTED YOUTUBE EMBED URL
+          // CORRECTED YOUTUBE EMBED URL (THIS IS THE IMPORTANT FIX)
           playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-          console.log(`[PLAYBACK] YouTube iframe created for ID: ${id}`);
-          // The onYouTubePlayerReady will be called by the YouTube API once the player is truly ready
+          console.log(`[PLAYBACK] YouTube iframe created for ID: ${id}. Waiting for API ready...`);
           isMuted = true; // Assume muted initially for YouTube
           speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
           speakerIcon.alt = "Muted";
@@ -475,13 +474,18 @@
     }
 
     // This function is called by the YouTube Iframe API when the player is ready.
+    window.onYouTubeIframeAPIReady = function() {
+      console.log("[INIT] YouTube Iframe API is ready."); // This tells us the API script loaded
+    };
+
+    // This function will be called by the YouTube Iframe API *for each new player instance*
     function onYouTubePlayerReady(event) {
         youtubePlayer = event.target; // Store the player object
         youtubePlayer.mute(); // Ensure it is muted when ready, even if API parameter failed (redundant but safe)
         isMuted = true;
         speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
         speakerIcon.alt = "Muted";
-        console.log("[YT API] YouTube player ready and muted.");
+        console.log("[YT API] YouTube player instance ready and muted. Player object:", youtubePlayer); // ADDED LOG: Crucial to see this every YT load
     }
 
     function showOffAir(msg = "Off Air") {
@@ -613,10 +617,13 @@
         isMuted = videoElement.muted;
         console.log(`[MUTE BUTTON] HLS/Other video muted state: ${isMuted}`);
       } else if (youtubePlayer) { // This condition should now correctly identify the YouTube player
+        console.log("[MUTE BUTTON] YouTube player detected:", youtubePlayer); // ADDED LOG
         if (isMuted) {
+          console.log("[MUTE BUTTON] Attempting to call youtubePlayer.unMute()."); // ADDED LOG
           youtubePlayer.unMute();
           console.log("[MUTE BUTTON] YouTube unmuted.");
         } else {
+          console.log("[MUTE BUTTON] Attempting to call youtubePlayer.mute()."); // ADDED LOG
           youtubePlayer.mute();
           console.log("[MUTE BUTTON] YouTube muted.");
         }
@@ -639,7 +646,7 @@
     // Load YouTube Iframe API
     function loadYouTubeAPI() {
       const tag = document.createElement('script');
-      // CORRECTED YOUTUBE API URL
+      // CORRECTED YOUTUBE API URL (THIS IS THE IMPORTANT FIX)
       tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
