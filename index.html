@@ -1,189 +1,579 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customized YouTube Embeds with Examples</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            background-color: #f0f0f0;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"/>
+  <title>MSTV Live TV Channel</title>
+  <style>
+    /* Base styles */
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      /* Your gradient background */
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #fff; /* Light text for dark background */
+      text-align: center;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-x: hidden; /* Prevent horizontal scroll for content that might overflow */
+    }
 
-        .video-container {
-            position: relative;
-            width: 640px; /* Standard 16:9 aspect ratio width */
-            height: 360px; /* Standard 16:9 aspect ratio height */
-            margin-bottom: 30px; /* Space between video players */
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            background-color: black; /* Background color for player space */
-            border-radius: 8px; /* Slightly rounded corners */
-            overflow: hidden; /* Ensures content stays within rounded corners */
-        }
+    /* Enforce a maximum width for the entire content */
+    body > * { /* Targets direct children of the body */
+      max-width: 960px; /* Adjust this value as needed for your "fixed" width */
+      margin-left: auto;
+      margin-right: auto;
+      width: 100%; /* Ensure it takes full width up to max-width */
+      box-sizing: border-box; /* Include padding/border in width calculation */
+    }
 
-        .video-container iframe {
-            width: 100%;
-            height: 100%;
-            display: block; /* Removes extra space below iframe */
-        }
+    header {
+      display: flex;
+      justify-content: center; /* Center the branding */
+      align-items: center;
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.3); /* Slightly transparent background for header */
+      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+      margin-bottom: 20px;
+      border-radius: 10px;
+    }
 
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10; /* Make sure it's above the iframe */
-            pointer-events: auto; /* This makes it capture all pointer events (clicks, touches) */
-            /* Optional: for debugging, you can add a background color to see the overlay: */
-            /* background-color: rgba(255, 0, 0, 0.1); */
-        }
+    #branding {
+      display: flex;
+      align-items: center;
+    }
 
-        .mute-toggle {
-            position: absolute;
-            bottom: 15px; /* Adjust positioning as needed */
-            right: 15px; /* Adjust positioning as needed */
-            background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent background */
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 5px;
-            padding: 8px 15px;
-            cursor: pointer;
-            font-size: 14px;
-            z-index: 11; /* Above the overlay */
-            transition: background-color 0.3s ease, transform 0.1s ease;
-        }
+    #branding img {
+      height: 50px; /* Adjust logo size as needed */
+      margin-right: 15px;
+    }
 
-        .mute-toggle:hover {
-            background-color: rgba(0, 0, 0, 0.8);
-        }
+    #branding .tagline {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #fff; /* Tagline color remains white for the dark gradient */
+    }
 
-        .mute-toggle:active {
-            transform: scale(0.98); /* Slight press effect */
-        }
+    .player-container {
+      position: relative;
+      background: #000;
+      border-radius: 15px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); /* Stronger shadow for dark background */
+      flex-grow: 1; /* Allows player to take available space */
+      /* Aspect Ratio 16:9 for the container */
+      width: 100%; /* Take full width of its parent */
+      padding-top: 56.25%; /* 16:9 Aspect Ratio (height / width * 100) */
+      height: 0; /* Important to collapse height since padding defines it */
+    }
 
-        h2 {
-            color: #333;
-            margin-bottom: 20px;
-            font-size: 1.8em;
-            text-align: center;
-        }
+    .video-player {
+      position: absolute; /* Position video player absolutely within its padding-defined container */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
 
-        /* Basic styling for demonstration readability */
-        p {
-            max-width: 640px;
-            text-align: center;
-            font-size: 0.9em;
-            color: #555;
-            margin-bottom: 10px;
-        }
-    </style>
+    /* Marquee/Scrolling Text styles */
+    .scrolling-text-container {
+      background: #cc0000; /* Red background */
+      color: #fff; /* White text */
+      padding: 8px 0;
+      /* margin-top: -20px; Removed this margin to place it outside the player container */
+      border-bottom-left-radius: 15px;
+      border-bottom-right-radius: 15px;
+      font-size: 1.1em;
+      white-space: nowrap; /* Keep text on one line */
+      overflow: hidden; /* Hide overflowing text */
+      position: relative; /* For absolute positioning of actual marquee */
+      z-index: 10; /* Ensure it's above other elements if needed */
+    }
+
+    .scrolling-text {
+      display: inline-block; /* Essential for marquee effect */
+      padding-left: 100%; /* Start off-screen to the right */
+      animation: marquee 15s linear infinite; /* Adjust duration as needed */
+    }
+
+    @keyframes marquee {
+      0% { transform: translateX(0); } /* Start at 0, or right edge with padding-left: 100% */
+      100% { transform: translateX(-100%); } /* Move to the left off-screen */
+    }
+
+    .status, .guide {
+      margin: 10px auto;
+      font-size: 16px;
+      background: rgba(0, 0, 0, 0.4); /* Slightly transparent background for info boxes */
+      color: #eee; /* Lighter text for these boxes */
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1); /* Subtle border */
+    }
+
+    h3 {
+      color: #fff; /* Heading color remains white for the dark gradient */
+      margin-top: 30px;
+      margin-bottom: 15px;
+    }
+
+    .guide-entry {
+      margin: 4px 0;
+      padding: 5px 0;
+      border-bottom: 1px dotted rgba(255, 255, 255, 0.3); /* Lighter dotted line */
+    }
+
+    .guide-entry:last-child {
+      border-bottom: none;
+    }
+
+    .highlight {
+      color: #4ecdc4; /* Existing highlight color */
+      font-weight: bold;
+    }
+
+    .error {
+      color: #ffe0e0; /* Lighter red for error text */
+      margin: 10px auto;
+      background: rgba(136, 0, 0, 0.7); /* Darker, slightly transparent red background */
+      border: 1px solid red;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    .watermark {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 80px;
+      opacity: 0.8;
+      z-index: 5;
+    }
+
+    .off-air {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      font-size: 24px;
+      color: red;
+      background: black;
+    }
+
+    /* Mute/Unmute Button Styles */
+    #muteButton {
+      position: absolute;
+      bottom: 20px; /* Adjust as needed */
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: rgba(0, 0, 0, 0.6);
+      border: 2px solid #fff;
+      border-radius: 50%;
+      width: 60px; /* Increased size for better tap target */
+      height: 60px; /* Increased size for better tap target */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      z-index: 20; /* Ensure it's above other elements */
+      transition: opacity 0.3s ease;
+    }
+
+    #muteButton img {
+      width: 30px; /* Icon size */
+      height: 30px; /* Icon size */
+    }
+
+    /* Footer styles */
+    footer {
+      background: rgba(0, 0, 0, 0.3); /* Transparent background for footer */
+      color: #fff;
+      padding: 20px 0;
+      margin-top: 40px;
+      text-align: center;
+      border-top: 2px solid rgba(255, 255, 255, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-radius: 10px;
+    }
+
+    .social-media {
+      margin-top: 15px;
+    }
+
+    .social-media a {
+      display: inline-block;
+      margin: 0 10px;
+    }
+
+    .social-media img {
+      width: 35px; /* Size of social icons */
+      height: 35px;
+      transition: transform 0.2s ease-in-out;
+    }
+
+    .social-media img:hover {
+      transform: scale(1.1);
+    }
+
+    /* Responsive adjustments for video player height based on content width */
+    @media (max-width: 768px) {
+      /* The padding-top method automatically adjusts height,
+         but if you have a fixed height for the container, adjust here if needed. */
+    }
+
+    @media (max-width: 480px) {
+      /* The padding-top method automatically adjusts height,
+         but if you have a fixed height for the container, adjust here if needed. */
+      #branding img {
+        height: 40px;
+      }
+      #branding .tagline {
+        font-size: 1em;
+      }
+    }
+  </style>
 </head>
 <body>
 
-    <h1>Custom YouTube Player Demonstration</h1>
-    <p>
-        These YouTube players are designed to autoplay (muted), have no seek bar,
-        and are unresponsive to direct clicks/touches on the video area.
-        Use the "Unmute/Mute" button to control audio.
-    </p>
-    <p>
-        **Note:** Due to browser policies, videos will start muted. Click "Unmute" to hear sound.
-    </p>
-
-    <h2>Example Video 1: Big Buck Bunny</h2>
-    <div class="video-container">
-        <iframe id="youtubePlayer1"
-                src="https://www.youtube.com/live/biuyKchLhOU?si=vpgAFbpLMrN0I2Tj4"
-                frameborder="0"
-                allow="autoplay; encrypted-media;"
-                allowfullscreen>
-        </iframe>
-        <div class="overlay"></div> <button id="muteToggle1" class="mute-toggle">Unmute</button>
+  <header>
+    <div id="branding">
+      <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/main/logo.png" alt="MSTV Logo" id="main-logo">
+      <span class="tagline">Broadcasting your curated content 24/7</span>
     </div>
+  </header>
 
-    <h2>Example Video 2: Sintel</h2>
-    <div class="video-container">
-        <iframe id="youtubePlayer2"
-                src="https://www.youtube.com/live/biuyKchLhOU?si=vpgAFbpLMrN0I2Tj5"
-                frameborder="0"
-                allow="autoplay; encrypted-media;"
-                allowfullscreen>
-        </iframe>
-        <div class="overlay"></div> <button id="muteToggle2" class="mute-toggle">Unmute</button>
+  <div class="player-container">
+    <img src="https://example.com/logo.png" alt="MSTV Logo" class="watermark" />
+    <div id="player" class="video-player">Loading player...</div>
+    <div id="muteButton" style="display: none;">
+      <img id="speakerIcon" src="https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png" alt="Mute">
     </div>
+  </div>
 
-    <script>
-        // Array to hold our player instances
-        let players = [];
-        const videoIds = [
-            'aqz-KE-bpKQ', // Big Buck Bunny
-            'eRsGxC2M5C8'  // Sintel
-        ];
+  <div class="scrolling-text-container">
+    <div class="scrolling-text">
+      This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
+                          
+      Breaking News: Today is Tuesday, June 24, 2025. Current time is 8:53:04 AM AEST.
+                          
+      Visit our social media for updates!
+    </div>
+  </div>
 
-        // This function is called by the YouTube IFrame Player API when it's ready
-        function onYouTubeIframeAPIReady() {
-            videoIds.forEach((videoId, index) => {
-                const playerElementId = `youtubePlayer${index + 1}`;
-                const muteButtonId = `muteToggle${index + 1}`;
+  <div class="status">
+    <p>Status: <span id="statusText">Loading...</span></p>
+    <p>Time: <span id="currentTime"></span></p>
+    <p>Viewers: <span id="viewerCount">0</span></p>
+    <p>Now Playing: <span id="nowTitle">-</span> |
+       Progress: <span id="nowProgress">-</span> |
+       Next Up: <span id="nextTitle">-</span></p>
+  </div>
 
-                players[index] = new YT.Player(playerElementId, {
-                    videoId: videoId, // Use the videoId directly here
-                    playerVars: {
-                        'controls': 0,          // Remove seek bar and other controls
-                        'autoplay': 1,          // Autoplay the video
-                        'mute': 1,              // Mute the video on load (to bypass browser autoplay restrictions)
-                        'iv_load_policy': 3,    // Do not show video annotations
-                        'modestbranding': 1,    // Remove YouTube logo from controls
-                        'enablejsapi': 1,       // Enable JS API control
-                        'rel': 0,               // Do not show related videos at the end
-                        'showinfo': 0           // Do not show video title and uploader info
-                    },
-                    events: {
-                        'onReady': (event) => onPlayerReady(event, muteButtonId),
-                        'onStateChange': (event) => onPlayerStateChange(event, muteButtonId)
-                    }
-                });
-            });
+  <h3>Today's TV Guide</h3>
+  <div class="guide" id="tvGuide"></div>
+  <div id="error" class="error"></div>
+
+  <footer>
+    <p>Copyright © 2025 MSTV. All Rights Reserved.</p>
+    <div class="social-media">
+      <a href="https://facebook.com/yourprofile" target="_blank" aria-label="Facebook">
+        <img src="assets/facebook.png" alt="Facebook">
+      </a>
+      <a href="https://twitter.com/yourprofile" target="_blank" aria-label="Twitter">
+        <img src="assets/twitter.png" alt="Twitter">
+      </a>
+      <a href="https://instagram.com/yourprofile" target="_blank" aria-label="Instagram">
+        <img src="assets/instagram.png" alt="Instagram">
+      </a>
+      </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    const playlistUrl = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/playlist.json";
+
+    let playlist = [];
+    let totalDuration = 0;
+    let currentIndex = -1;
+
+    const playerDiv = document.getElementById("player");
+    const statusText = document.getElementById("statusText");
+    const nowTitle = document.getElementById("nowTitle");
+    const nowProgress = document.getElementById("nowProgress");
+    const nextTitle = document.getElementById("nextTitle");
+    const viewerCount = document.getElementById("viewerCount");
+    const tvGuide = document.getElementById("tvGuide");
+    const errorBox = document.getElementById("error");
+    const muteButton = document.getElementById("muteButton");
+    const speakerIcon = document.getElementById("speakerIcon");
+
+    let hlsInstance = null; // To keep track of the HLS.js instance
+
+    function parseDuration(duration) {
+      if (typeof duration === "number") return duration;
+      const parts = duration.split(":").map(Number);
+      return parts.reduce((acc, val, idx) => acc + val * Math.pow(60, parts.length - 1 - idx), 0);
+    }
+
+    function formatTime(seconds) {
+      const d = new Date(seconds * 1000);
+      return d.toISOString().substr(11, 5);
+    }
+
+    function formatClockTime(date) {
+      return date.toLocaleTimeString();
+    }
+
+    function updateClock() {
+      document.getElementById("currentTime").textContent = formatClockTime(new Date());
+    }
+
+    function updateViewers() {
+      viewerCount.textContent = 50 + Math.floor(Math.random() * 150);
+      setTimeout(updateViewers, 30000 + Math.random() * 15000);
+    }
+
+    function createTVGuide(playlist) {
+      let html = "";
+      let cursor = 0;
+      playlist.forEach(item => {
+        const duration = parseDuration(item.duration);
+        const start = formatTime(cursor);
+        const end = formatTime(cursor + duration);
+        html += `<div class="guide-entry">${start} - ${end} :: ${item.title || "Untitled"}</div>`;
+        cursor += duration;
+      });
+      tvGuide.innerHTML = html;
+    }
+
+    function playItem(item, offset = 0) {
+      try {
+        const url = item.url;
+        const title = item.title || "Untitled";
+        const isHLS = url.includes(".m3u8");
+        const isYT = /youtu(?:\.be|be\.com)/.test(url);
+
+        nowTitle.textContent = title;
+        statusText.textContent = "Live Broadcasting";
+
+        // Dispose of previous HLS instance if it exists
+        if (hlsInstance) {
+          hlsInstance.destroy();
+          hlsInstance = null;
         }
 
-        // Called when a player is ready
-        function onPlayerReady(event, buttonId) {
-            const muteButton = document.getElementById(buttonId);
-
-            // Ensure the button text reflects the current (muted) state
-            muteButton.textContent = event.target.isMuted() ? 'Unmute' : 'Mute';
-
-            muteButton.addEventListener('click', function() {
-                if (event.target.isMuted()) {
-                    event.target.unMute();
-                    muteButton.textContent = 'Mute';
-                } else {
-                    event.target.mute();
-                    muteButton.textContent = 'Unmute';
+        if (isYT) {
+          const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+          if (!idMatch) throw new Error("Invalid YouTube URL");
+          const id = idMatch[1];
+          playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&loop=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+          // For YouTube, we'll control mute via its API
+          muteButton.style.display = 'flex'; // Show mute button for YouTube
+          if (playerDiv.querySelector('#youtubePlayer')) {
+            playerDiv.querySelector('#youtubePlayer').onload = function() {
+              const iframe = playerDiv.querySelector('#youtubePlayer');
+              const player = new YT.Player(iframe, {
+                events: {
+                  'onReady': onYouTubePlayerReady
                 }
+              });
+            };
+          }
+
+        } else if (isHLS) {
+          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay muted data-src="${url}"></video>`;
+          const video = document.getElementById("m3u8Player");
+          const src = video.getAttribute("data-src");
+
+          // Hide controls for HLS video and show mute button
+          video.removeAttribute('controls');
+          muteButton.style.display = 'flex';
+
+          if (Hls.isSupported()) {
+            hlsInstance = new Hls();
+            hlsInstance.loadSource(src);
+            hlsInstance.attachMedia(video);
+            hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+              video.play().catch(error => {
+                if (error.name === "NotAllowedError") {
+                  console.warn("Autoplay was prevented. User needs to interact to play.");
+                  muteButton.style.display = 'flex'; // Show mute button if autoplay fails
+                }
+              });
             });
+          } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            video.src = src;
+            video.play().catch(error => {
+              if (error.name === "NotAllowedError") {
+                console.warn("Autoplay was prevented. User needs to interact to play.");
+                muteButton.style.display = 'flex'; // Show mute button if autoplay fails
+              }
+            });
+          } else {
+            throw new Error("Unsupported video format for HLS.");
+          }
+
+          video.onvolumechange = () => {
+            if (video.muted) {
+              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+            } else {
+              // Once unmuted, hide the button
+              muteButton.style.display = 'none';
+            }
+          };
+          // Set initial mute state for HLS
+          if (video.muted) {
+            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+            muteButton.style.display = 'flex';
+          } else {
+            muteButton.style.display = 'none';
+          }
+
+        } else {
+          // For other video formats (e.g., MP4), hide controls and show mute button
+          playerDiv.innerHTML = `<video id="otherPlayer" width="100%" height="100%" autoplay muted><source src="${url}"></video>`;
+          const video = document.getElementById("otherPlayer");
+          video.removeAttribute('controls');
+          muteButton.style.display = 'flex';
+
+          video.play().catch(error => {
+            if (error.name === "NotAllowedError") {
+              console.warn("Autoplay was prevented. User needs to interact to play.");
+              muteButton.style.display = 'flex'; // Show mute button if autoplay fails
+            }
+          });
+
+          video.onvolumechange = () => {
+            if (video.muted) {
+              speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+            } else {
+              // Once unmuted, hide the button
+              muteButton.style.display = 'none';
+            }
+          };
+          // Set initial mute state for other videos
+          if (video.muted) {
+            speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+            muteButton.style.display = 'flex';
+          } else {
+            muteButton.style.display = 'none';
+          }
         }
+      } catch (err) {
+        showOffAir(err.message);
+      }
+    }
 
-        // Optional: Listen to player state changes (e.g., when video ends)
-        function onPlayerStateChange(event, buttonId) {
-            // You can add more logic here if needed.
-            // For example, to replay the video when it ends:
-            // if (event.data === YT.PlayerState.ENDED) {
-            //     event.target.playVideo();
-            // }
+    function onYouTubePlayerReady(event) {
+      // Ensure the YouTube player is muted initially
+      event.target.mute();
+      // Hide the mute button if already unmuted, though we expect it to be muted
+      if (!event.target.isMuted()) {
+        muteButton.style.display = 'none';
+      }
+    }
+
+    // Function to handle mute/unmute
+    muteButton.addEventListener('click', () => {
+      const videoElement = playerDiv.querySelector('video');
+      const youtubeIframe = playerDiv.querySelector('#youtubePlayer');
+
+      if (videoElement) {
+        videoElement.muted = !videoElement.muted;
+        if (!videoElement.muted) {
+          muteButton.style.display = 'none'; // Hide button if unmuted
+        } else {
+          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
         }
+      } else if (youtubeIframe) {
+        // For YouTube, we need the YT Player API
+        const youtubePlayer = new YT.Player(youtubeIframe);
+        if (youtubePlayer.isMuted()) {
+          youtubePlayer.unMute();
+          muteButton.style.display = 'none'; // Hide button if unmuted
+        } else {
+          youtubePlayer.mute();
+          speakerIcon.src = "https://raw.githubusercontent.com/google/material-design-icons/master/src/action/volume_off/baseline_volume_off_black_24dp.png";
+        }
+      }
+    });
 
+    function showOffAir(msg = "Off Air") {
+      playerDiv.innerHTML = `<div class="off-air">${msg}</div>`;
+      statusText.textContent = "Off Air";
+      nowTitle.textContent = "-";
+      nowProgress.textContent = "-";
+      nextTitle.textContent = "-";
+      muteButton.style.display = 'none'; // Hide mute button when off air
+    }
 
-        // This is crucial: Loads the YouTube IFrame Player API asynchronously
-        var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api"; // Official API script URL
-        var firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    </script>
+    async function loadPlaylist() {
+      try {
+        const res = await fetch(playlistUrl);
+        if (!res.ok) throw new Error("Failed to load playlist");
+        playlist = await res.json();
+        if (Array.isArray(playlist.items)) playlist = playlist.items;
+
+        totalDuration = playlist.reduce((sum, item) => sum + parseDuration(item.duration), 0);
+        createTVGuide(playlist);
+        syncToRealTime();
+      } catch (e) {
+        showOffAir("Failed to load playlist");
+        errorBox.textContent = e.message;
+      }
+    }
+
+    function syncToRealTime() {
+      const now = new Date();
+      const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+      const timeInLoop = secondsSinceMidnight % totalDuration;
+
+      let cursor = 0;
+      for (let i = 0; i < playlist.length; i++) {
+        const dur = parseDuration(playlist[i].duration);
+        if (cursor + dur > timeInLoop) {
+          currentIndex = i;
+          const progress = ((timeInLoop - cursor) / dur) * 100;
+          nowProgress.textContent = `${Math.floor(progress)}%`;
+          nextTitle.textContent = playlist[(i + 1) % playlist.length].title || "End";
+          playItem(playlist[i], timeInLoop - cursor);
+          break;
+        }
+        cursor += dur;
+      }
+
+      // Re-sync automatically when next item starts
+      const secondsToNext = parseDuration(playlist[currentIndex].duration) - (timeInLoop - cursor);
+      setTimeout(syncToRealTime, secondsToNext * 1000 + 100);
+    }
+
+    // Load YouTube Iframe API
+    function loadYouTubeAPI() {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+
+    // This function will be called by the YouTube Iframe API when it's ready
+    window.onYouTubeIframeAPIReady = function() {
+      console.log("YouTube Iframe API is ready.");
+      // If a YouTube video is already being played, its player will be initialized here
+    };
+
+    updateClock();
+    updateViewers();
+    setInterval(updateClock, 1000);
+    loadPlaylist();
+    loadYouTubeAPI(); // Load YouTube API when script starts
+  </script>
 </body>
 </html>
