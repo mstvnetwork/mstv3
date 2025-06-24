@@ -84,6 +84,7 @@
       background: #cc0000; /* Red background */
       color: #fff; /* White text */
       padding: 8px 0;
+      /* margin-top: -20px; Removed this margin to place it outside the player container */
       border-bottom-left-radius: 15px;
       border-bottom-right-radius: 15px;
       font-size: 1.1em;
@@ -165,33 +166,6 @@
       background: black;
     }
 
-    /* CUSTOM PLAY BUTTON OVERLAY STYLES */
-    .custom-play-button-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent overlay */
-      display: flex; /* Centers the play icon */
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      z-index: 15; /* Ensure it's above the player but below watermark if desired */
-      transition: opacity 0.3s ease;
-    }
-
-    .custom-play-button-overlay .play-icon {
-      width: 80px; /* Size of your play icon */
-      height: 80px;
-      opacity: 0.8;
-      transition: opacity 0.2s ease;
-    }
-
-    .custom-play-button-overlay:hover .play-icon {
-      opacity: 1;
-    }
-
     /* Footer styles */
     footer {
       background: rgba(0, 0, 0, 0.3); /* Transparent background for footer */
@@ -255,17 +229,13 @@
   <div class="player-container">
     <img src="https://example.com/logo.png" alt="MSTV Logo" class="watermark" />
     <div id="player" class="video-player">Loading player...</div>
-
-    <div id="customPlayButton" class="custom-play-button-overlay" style="display: none;">
-      <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/main/Design-Studio-2025-06-24.png" alt="Play" class="play-icon">
-    </div>
-    </div>
+  </div>
 
   <div class="scrolling-text-container">
     <div class="scrolling-text">
       This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
                           
-      Breaking News: Today is Tuesday, June 24, 2025. Current time is 10:56:48 AM AEST.
+      Breaking News: Today is Tuesday, June 24, 2025. Current time is 8:53:04 AM AEST.
                           
       Visit our social media for updates!
     </div>
@@ -315,9 +285,7 @@
     const viewerCount = document.getElementById("viewerCount");
     const tvGuide = document.getElementById("tvGuide");
     const errorBox = document.getElementById("error");
-
-    // Reference to the custom play button
-    const customPlayButton = document.getElementById("customPlayButton");
+    // Removed references to muteButton and speakerIcon here
 
     let hlsInstance = null; // To keep track of the HLS.js instance
     let youtubePlayer = null; // To keep track of the YouTube player instance
@@ -334,8 +302,7 @@
     }
 
     function formatClockTime(date) {
-      // Use options for cleaner time formatting, ensuring leading zeros for hours/minutes/seconds
-      return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}); 
+      return date.toLocaleTimeString();
     }
 
     function updateClock() {
@@ -378,35 +345,26 @@
         // Clear YouTube player instance
         youtubePlayer = null;
 
-        // Always hide the custom play button when a new item starts playing
-        // It will be re-shown for YouTube videos if needed
-        customPlayButton.style.display = 'none';
-        // Ensure to remove old event listener if it was added for a previous YT video
-        customPlayButton.removeEventListener('click', handleCustomPlayButtonClick);
-
-
         if (isYT) {
           const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
           if (!idMatch) throw new Error("Invalid YouTube URL");
           const id = idMatch[1];
+          // **IMPORTANT CHANGE: Added `autoplay=1` and `mute=0` for sound**
+          playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=0&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
           
-          // Set autoplay to 0 and enablejsapi to 1 for custom control
-          // Use controls=0 to hide YouTube's default player controls
-          playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="http://www.youtube.com/embed/${id}?autoplay=0&mute=0&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-          
-          customPlayButton.style.display = 'flex'; // Show custom play button for YouTube videos
-          // The YouTube player object will be created by the API's onYouTubeIframeAPIReady callback
-          // and then 'onPlayerReady' will attach the event listener to customPlayButton.
+          // Removed mute button display logic for YouTube
 
         } else if (isHLS) {
-          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay></video>`;
+          playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay></video>`; // Removed 'data-src' and set directly below
           const video = document.getElementById("m3u8Player");
           video.src = url; // Set src directly
+
           video.removeAttribute('controls');
-          
+          // Removed mute button display logic for HLS
+
           if (Hls.isSupported()) {
             hlsInstance = new Hls();
-            hlsInstance.loadSource(video.src);
+            hlsInstance.loadSource(video.src); // Use video.src
             hlsInstance.attachMedia(video);
             hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
               video.play().catch(error => {
@@ -417,15 +375,19 @@
               });
             });
           } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            // Already set video.src above
             video.play().catch(error => {
               if (error.name === "NotAllowedError") {
                 console.warn("Autoplay was prevented. User needs to interact to play.");
-                video.muted = true;
+                video.muted = true; // Mute if autoplay prevented
               }
             });
           } else {
             throw new Error("Unsupported video format for HLS.");
           }
+
+          // Removed onvolumechange event listener
+          // Removed initial state for HLS mute button
 
         } else {
           // For other video formats (e.g., MP4)
@@ -433,6 +395,7 @@
           const video = document.getElementById("otherPlayer");
           video.src = url; // Set src directly for other video types
           video.removeAttribute('controls');
+          // Removed mute button display logic for other formats
 
           video.play().catch(error => {
             if (error.name === "NotAllowedError") {
@@ -440,90 +403,22 @@
               video.muted = true; // Mute if autoplay prevented
             }
           });
+
+          // Removed onvolumechange event listener
+          // Removed initial state for other formats mute button
         }
       } catch (err) {
         showOffAir(err.message);
       }
     }
 
-    // Load YouTube Iframe API script
-    function loadYouTubeAPI() {
-      const tag = document.createElement('script');
-      // Correct YouTube API URL
-      tag.src = "https://www.youtube.com/iframe_api"; 
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    // This function is called by the YouTube Iframe API when the player is ready.
+    function onYouTubePlayerReady(event) {
+        youtubePlayer = event.target; // Store the player object
+        // Removed mute button display logic for YouTube player ready
     }
 
-    // This function will be called by the YouTube Iframe API when it's ready
-    window.onYouTubeIframeAPIReady = function() {
-      console.log("YouTube Iframe API is ready.");
-      // Check if a YouTube iframe is currently in the DOM
-      // We only create a new YT.Player if the iframe is already present from playItem
-      const iframeElement = document.getElementById('youtubePlayer');
-      if (iframeElement) {
-        youtubePlayer = new YT.Player('youtubePlayer', {
-          events: {
-            'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange
-          }
-        });
-      }
-    };
-
-    function onPlayerReady(event) {
-      // Mute and attempt to play to satisfy browser autoplay policies
-      event.target.mute();
-      event.target.playVideo();
-
-      // Attach event listener to the custom play button when the YouTube player is ready
-      customPlayButton.addEventListener('click', handleCustomPlayButtonClick);
-    }
-
-    function handleCustomPlayButtonClick() {
-        if (youtubePlayer) {
-            youtubePlayer.unMute(); // Unmute when clicked
-            youtubePlayer.playVideo();
-            customPlayButton.style.display = 'none'; // Hide custom button after click
-            // It's generally good practice to remove the listener if it's a one-time interaction,
-            // but in this case, we re-add it when a new YT video is cued/paused.
-            // So, leaving it here for subsequent state changes to re-trigger showing.
-            // The crucial removal happens in playItem and showOffAir for cleanup.
-        }
-    }
-
-    function onPlayerStateChange(event) {
-      // YT.PlayerState constants:
-      // -1 (unstarted)
-      // 0 (ended)
-      // 1 (playing)
-      // 2 (paused)
-      // 3 (buffering)
-      // 5 (video cued)
-
-      const currentItem = playlist[currentIndex];
-      const isYT = currentItem && /youtu(?:\.be|be\.com)/.test(currentItem.url);
-
-      if (!isYT) {
-          // If it's not a YouTube video, ensure the custom play button is hidden
-          customPlayButton.style.display = 'none';
-          customPlayButton.removeEventListener('click', handleCustomPlayButtonClick);
-          return;
-      }
-
-      if (event.data === YT.PlayerState.PLAYING) {
-        customPlayButton.style.display = 'none'; // Hide when playing
-      } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.BUFFERING || event.data === YT.PlayerState.CUED || event.data === YT.PlayerState.UNSTARTED) {
-        // Show the button if paused or waiting for user interaction, or unstarted
-        customPlayButton.style.display = 'flex';
-        // Re-add listener just in case it was removed or not yet added for this state
-        customPlayButton.removeEventListener('click', handleCustomPlayButtonClick); // Prevent double-adding
-        customPlayButton.addEventListener('click', handleCustomPlayButtonClick);
-      } else if (event.data === YT.PlayerState.ENDED) {
-          customPlayButton.style.display = 'none'; // Hide when video ends, syncToRealTime will handle next
-          customPlayButton.removeEventListener('click', handleCustomPlayButtonClick); // Clean up
-      }
-    }
+    // Removed muteButton.addEventListener logic completely
 
     function showOffAir(msg = "Off Air") {
       playerDiv.innerHTML = `<div class="off-air">${msg}</div>`;
@@ -531,8 +426,7 @@
       nowTitle.textContent = "-";
       nowProgress.textContent = "-";
       nextTitle.textContent = "-";
-      customPlayButton.style.display = 'none'; // Hide custom button when off air
-      customPlayButton.removeEventListener('click', handleCustomPlayButtonClick); // Clean up listener
+      // Removed mute button hide logic when off air
     }
 
     async function loadPlaylist() {
@@ -553,7 +447,6 @@
 
     function syncToRealTime() {
       const now = new Date();
-      // Current time in seconds since midnight (AEST)
       const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
       const timeInLoop = secondsSinceMidnight % totalDuration;
 
@@ -564,7 +457,7 @@
           currentIndex = i;
           const progress = ((timeInLoop - cursor) / dur) * 100;
           nowProgress.textContent = `${Math.floor(progress)}%`;
-          nextTitle.textContent = playlist[(i + 1) % playlist.length]?.title || "End of playlist"; // Use optional chaining for safety
+          nextTitle.textContent = playlist[(i + 1) % playlist.length].title || "End";
           playItem(playlist[i], timeInLoop - cursor);
           break;
         }
@@ -573,14 +466,26 @@
 
       // Re-sync automatically when next item starts
       const secondsToNext = parseDuration(playlist[currentIndex].duration) - (timeInLoop - cursor);
-      // Add a small buffer to ensure we don't start the next video too early
-      setTimeout(syncToRealTime, secondsToNext * 1000 + 500); 
+      setTimeout(syncToRealTime, secondsToNext * 1000 + 100);
     }
 
-    // Initial calls
+    // Load YouTube Iframe API
+    function loadYouTubeAPI() {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api"; // Correct YouTube API URL
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+
+    // This function will be called by the YouTube Iframe API when it's ready
+    window.onYouTubeIframeAPIReady = function() {
+      console.log("YouTube Iframe API is ready.");
+      // The onYouTubePlayerReady will be called when an actual player is instantiated
+    };
+
     updateClock();
     updateViewers();
-    setInterval(updateClock, 1000); // Update clock every second
+    setInterval(updateClock, 1000);
     loadPlaylist();
     loadYouTubeAPI(); // Load YouTube API when script starts
   </script>
