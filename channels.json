@@ -2,12 +2,12 @@
   {
     "name": "YouTube VOD Video 1",
     "type": "iframe",
-    "url": "https://www.youtube.com/embed/2-HuLX0CbT8?autoplay=1&mute=1"
+    "url": "https://www.youtube.com/embed/2-HuLX0CbT8?autoplay=1"
   },
   {
     "name": "YouTube Live Stream 2",
     "type": "iframe",
-    "url": "https://www.youtube.com/embed/live_stream?channel=biuyKchLhOU&autoplay=1&mute=1"
+    "url": "https://www.youtube.com/embed/live_stream?channel=biuyKchLhOU&autoplay=1"
   },
   {
     "name": "HLS Live Stream",
