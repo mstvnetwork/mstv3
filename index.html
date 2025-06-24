@@ -3,346 +3,166 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MSTV NETWORK - Looping Playlist Player</title>
+  <title>MSTV NETWORK</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
     body {
-      background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+      background: #000;
       color: #fff;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: Arial, sans-serif;
       margin: 0;
       padding-top: 80px;
-      padding-bottom: 50px;
-    }
-    header {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 80px;
-      background: linear-gradient(90deg, #ffd700, #ffb700);
-      color: #000;
-      font-weight: 900;
-      font-size: 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      box-shadow: 0 2px 10px rgba(255, 215, 0, 0.6);
-      z-index: 1000;
-      letter-spacing: 3px;
-    }
-    header #clock {
-      font-weight: 600;
-      font-size: 1.2rem;
-      font-family: monospace;
-    }
-    footer {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 50px;
-      background: #111;
-      color: #ccc;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      letter-spacing: 1.2px;
-      box-shadow: inset 0 1px 8px #333;
-    }
-    h1 {
+      padding-bottom: 60px;
       text-align: center;
-      font-weight: 900;
-      font-size: 2rem;
-      margin-bottom: 0.5rem;
-      color: #ffd700;
-      text-shadow: 0 0 8px #ffdb4d;
     }
+    header, footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      padding: 10px 20px;
+      background: #111;
+      color: gold;
+      font-weight: bold;
+      z-index: 1000;
+    }
+    header { top: 0; }
+    footer { bottom: 0; font-size: 0.9rem; color: #ccc; }
+    #clock { float: right; font-size: 1rem; color: white; }
+    h1 { color: gold; }
     #player-container {
       position: relative;
       max-width: 960px;
+      margin: auto;
       width: 90vw;
-      aspect-ratio: 16 / 9;
-      margin: 0 auto 20px auto;
+      aspect-ratio: 16/9;
       background: #222;
-      border: 3px solid #ffd700;
-      border-radius: 12px;
+      border: 2px solid gold;
+      border-radius: 10px;
       overflow: hidden;
-      box-shadow: 0 0 20px #ffd700aa;
     }
     video, iframe {
       width: 100%;
       height: 100%;
-      background: black;
-      border-radius: 10px;
+      display: none;
     }
-    #placeholder-image {
+    #placeholder {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #111;
+      color: #aaa;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #999;
       font-size: 1.5rem;
-      height: 100%;
-      position: absolute;
-      width: 100%;
-      top: 0;
-      left: 0;
-      background: #111a;
-      z-index: 5;
     }
-    #loading {
-      position: absolute;
-      top: 10px; right: 10px;
-      background: rgba(255, 255, 255, 0.85);
-      color: #000;
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-weight: bold;
-      display: none;
-      z-index: 10;
-    }
-    #unmute-button {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      background: rgba(255, 255, 255, 0.85);
-      color: #000;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 5px;
-      font-weight: bold;
-      cursor: pointer;
-      display: none;
-      z-index: 10;
-    }
-    #iframe-unmute-overlay {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(255, 0, 0, 0.75);
-      color: white;
-      font-size: 1.8rem;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      z-index: 20;
-      border-radius: 10px;
-      text-shadow: 0 0 6px black;
-    }
-    #now-playing-container {
-      max-width: 960px;
-      margin: 0 auto 30px auto;
+    #now-playing {
+      margin-top: 15px;
       font-size: 1.2rem;
-      font-weight: bold;
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      letter-spacing: 1px;
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
 
 <header>
   MSTV NETWORK
-  <div id="clock">--:--:--</div>
+  <span id="clock"></span>
 </header>
 
-<h1>MSTV Network - Looping Playlist</h1>
+<h1>Looping Playlist Player</h1>
 
 <div id="player-container">
-  <video id="video-player" playsinline controls muted></video>
-  <iframe id="media-player" frameborder="0" allowfullscreen allow="autoplay; fullscreen" style="display:none;"></iframe>
-  <div id="placeholder-image">Loading stream...</div>
-  <div id="loading">Loading...</div>
-  <button id="unmute-button">🔇 Unmute</button>
-  <div id="iframe-unmute-overlay">Click to unmute ▶️</div>
+  <video id="video" controls muted></video>
+  <iframe id="iframe" frameborder="0" allowfullscreen allow="autoplay"></iframe>
+  <div id="placeholder">Loading schedule...</div>
 </div>
 
-<div id="now-playing-container">
-  Now Playing: <span id="current-channel-name">None</span> |
-  Time Remaining: <span id="countdown-timer">--:--</span>
-</div>
+<div id="now-playing">Now Playing: <span id="current-title">None</span></div>
 
-<footer>
-  &copy; 2025 MSTV NETWORK | All Rights Reserved
-</footer>
+<footer>&copy; 2025 MSTV NETWORK</footer>
 
 <script>
-  const githubJsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
+  const DateTime = luxon.DateTime;
+  const video = document.getElementById('video');
+  const iframe = document.getElementById('iframe');
+  const placeholder = document.getElementById('placeholder');
+  const titleEl = document.getElementById('current-title');
+  const clock = document.getElementById('clock');
 
-  const videoPlayer = document.getElementById('video-player');
-  const iframePlayer = document.getElementById('media-player');
-  const placeholder = document.getElementById('placeholder-image');
-  const loading = document.getElementById('loading');
-  const unmuteButton = document.getElementById('unmute-button');
-  const currentChannelName = document.getElementById('current-channel-name');
-  const countdownTimer = document.getElementById('countdown-timer');
-  const iframeUnmuteOverlay = document.getElementById('iframe-unmute-overlay');
-  const clockEl = document.getElementById('clock');
-
-  let hlsInstance = null;
+  const playlistUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
   let playlist = [];
-  let currentIndex = -1;
-  let countdownInterval = null;
-  let playlistETag = null;
-
-  const slotDurationSeconds = 120;
+  let currentItem = null;
+  let hls = null;
 
   function updateClock() {
-    const now = new Date();
-    clockEl.textContent = now.toLocaleTimeString(undefined, {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      timeZoneName: 'short'
-    });
+    clock.textContent = DateTime.now().toFormat('HH:mm:ss');
   }
   setInterval(updateClock, 1000);
   updateClock();
 
-  function showLoading(show) {
-    loading.style.display = show ? 'block' : 'none';
-  }
-
-  function updateUnmuteButton() {
-    unmuteButton.style.display = videoPlayer.muted ? 'block' : 'none';
-  }
-
-  unmuteButton.onclick = () => {
-    videoPlayer.muted = false;
-    updateUnmuteButton();
-  };
-  videoPlayer.addEventListener('volumechange', updateUnmuteButton);
-
-  function clearPlayers() {
-    if (hlsInstance) {
-      hlsInstance.destroy();
-      hlsInstance = null;
+  async function loadPlaylist() {
+    try {
+      const res = await fetch(playlistUrl + '?t=' + Date.now());
+      playlist = await res.json();
+    } catch (e) {
+      placeholder.textContent = 'Failed to load schedule.';
+      console.error(e);
     }
-    videoPlayer.pause();
-    videoPlayer.removeAttribute('src');
-    videoPlayer.load();
-    iframePlayer.src = '';
-    videoPlayer.style.display = 'none';
-    iframePlayer.style.display = 'none';
+  }
+
+  function findCurrentItem() {
+    const now = DateTime.now();
+    return playlist.find(item =>
+      DateTime.fromISO(item.startTime) <= now &&
+      DateTime.fromISO(item.endTime) > now
+    );
+  }
+
+  function playItem(item) {
+    if (!item) {
+      titleEl.textContent = 'Off Air';
+      video.style.display = 'none';
+      iframe.style.display = 'none';
+      placeholder.textContent = 'Off Air';
+      placeholder.style.display = 'flex';
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+      return;
+    }
+
+    if (currentItem && currentItem.url === item.url) return;
+
+    currentItem = item;
+    titleEl.textContent = item.name;
     placeholder.style.display = 'none';
-    unmuteButton.style.display = 'none';
-    iframeUnmuteOverlay.style.display = 'none';
-    showLoading(false);
-    currentChannelName.textContent = 'None';
-    countdownTimer.textContent = '--:--';
-    if (countdownInterval) clearInterval(countdownInterval);
-  }
+    video.style.display = 'none';
+    iframe.style.display = 'none';
 
-  function playChannel(channel, remainingSeconds) {
-    clearPlayers();
-    showLoading(true);
-    currentChannelName.textContent = channel.name;
-
-    if (channel.type === 'hls') {
-      if (Hls.isSupported()) {
-        videoPlayer.style.display = 'block';
-        hlsInstance = new Hls();
-        hlsInstance.loadSource(channel.url);
-        hlsInstance.attachMedia(videoPlayer);
-        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-          videoPlayer.play().then(() => {
-            showLoading(false);
-            updateUnmuteButton();
-            startCountdown(remainingSeconds);
-          });
-        });
-      } else {
-        videoPlayer.src = channel.url;
-        videoPlayer.style.display = 'block';
-        videoPlayer.play().then(() => {
-          showLoading(false);
-          updateUnmuteButton();
-          startCountdown(remainingSeconds);
-        });
-      }
-    } else if (channel.type === 'iframe') {
-      iframeUnmuteOverlay.style.display = 'flex';
-      iframePlayer.style.display = 'block';
-      try {
-        const url = new URL(channel.url);
-        url.searchParams.set('autoplay', '1');
-        url.searchParams.delete('mute');
-        iframePlayer.src = url.toString();
-      } catch {
-        iframePlayer.src = channel.url;
-      }
-      iframePlayer.onload = () => {
-        showLoading(false);
-        startCountdown(remainingSeconds);
-      };
+    if (item.type === 'hls') {
+      if (hls) hls.destroy();
+      hls = new Hls();
+      hls.loadSource(item.url);
+      hls.attachMedia(video);
+      video.muted = true;
+      video.play();
+      video.style.display = 'block';
+    } else if (item.type === 'iframe') {
+      iframe.src = item.url;
+      iframe.style.display = 'block';
     }
   }
 
-  iframeUnmuteOverlay.onclick = () => {
-    iframeUnmuteOverlay.style.display = 'none';
-    if (currentIndex >= 0 && playlist[currentIndex].type === 'iframe') {
-      const url = new URL(playlist[currentIndex].url);
-      url.searchParams.set('autoplay', '1');
-      url.searchParams.delete('mute');
-      iframePlayer.src = url.toString();
-    }
-  };
-
-  function startCountdown(seconds) {
-    if (countdownInterval) clearInterval(countdownInterval);
-    countdownInterval = setInterval(() => {
-      const min = Math.floor(seconds / 60).toString().padStart(2, '0');
-      const sec = (seconds % 60).toString().padStart(2, '0');
-      countdownTimer.textContent = `${min}:${sec}`;
-      if (--seconds < 0) clearInterval(countdownInterval);
-    }, 1000);
+  async function loop() {
+    await loadPlaylist();
+    playItem(findCurrentItem());
   }
 
-  function getChannelIndexByTime() {
-    const now = new Date();
-    const secondsSinceMidnight = Math.floor((now - new Date(now.setHours(0, 0, 0, 0))) / 1000);
-    const slotNumber = Math.floor(secondsSinceMidnight / slotDurationSeconds) % playlist.length;
-    const remainingSeconds = slotDurationSeconds - (secondsSinceMidnight % slotDurationSeconds);
-    return { slotNumber, remainingSeconds };
-  }
-
-  async function fetchPlaylist() {
-    const headResp = await fetch(githubJsonUrl, { method: 'HEAD' });
-    const newETag = headResp.headers.get('ETag');
-    if (newETag !== playlistETag) {
-      const response = await fetch(`${githubJsonUrl}?cacheBust=${Date.now()}`);
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        playlist = data;
-        playlistETag = newETag;
-        return true;
-      }
-    }
-    return false;
-  }
-
-  async function updatePlayerByTime() {
-    if (!playlist.length) return;
-    const { slotNumber, remainingSeconds } = getChannelIndexByTime();
-    if (slotNumber !== currentIndex) {
-      currentIndex = slotNumber;
-      playChannel(playlist[slotNumber], remainingSeconds);
-    } else {
-      startCountdown(remainingSeconds);
-    }
-  }
-
-  async function mainLoop() {
-    const updated = await fetchPlaylist();
-    if (updated || currentIndex === -1) updatePlayerByTime();
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    mainLoop();
-    setInterval(mainLoop, 30000); // Every 30 seconds
-    setInterval(() => updatePlayerByTime(), 1000); // Sync timer
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loop();
+    setInterval(loop, 15000); // check every 15 seconds
   });
 </script>
 
