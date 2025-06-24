@@ -122,13 +122,23 @@
     iframe.style.display = 'none';
     placeholder.style.display = 'none';
 
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(0, 0, 0, 0);
+    const slotStart = new Date(midnight.getTime() + index * slotDurationSeconds * 1000);
+    const offsetSeconds = Math.floor((now - slotStart) / 1000);
+
     if (item.type === 'hls') {
       hls = new Hls();
       hls.loadSource(item.url);
       hls.attachMedia(video);
-      video.play();
+      hls.on(Hls.Events.MANIFEST_PARSED, function () {
+        video.currentTime = offsetSeconds;
+        video.play();
+      });
       video.style.display = 'block';
     } else if (item.type === 'iframe') {
+      // No true seek for iframe, fallback to fresh load
       iframe.src = item.url;
       iframe.style.display = 'block';
     }
