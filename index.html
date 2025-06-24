@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My YouTube Playlist Page</title>
+    <title>My YouTube Playlist (Mstv 1)</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -62,14 +62,14 @@
 </head>
 <body>
 
-    <h1>Enjoy My Complete YouTube Playlist!</h1>
+    <h1>Enjoy My YouTube Playlist: Mstv 1</h1>
 
     <div class="video-container">
         <iframe
             width="560"
             height="315"
-            src="https://www.youtube.com/playlist?list=PLLQwHVFP77cG2eoXfzqcUztw2xZ04Fmbr"
-            title="My Awesome Playlist on YouTube"
+            src="http://www.youtube.com/playlist?list=PLLQwHVFP77cG2eoXfzqcUztw2xZ04Fmbr"
+            title="Mstv 1 Playlist on YouTube"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerpolicy="strict-origin-when-cross-origin"
@@ -78,30 +78,22 @@
     </div>
 
     <p>
-        This embedded player is configured to play all videos in the playlist sequentially.
+        This embedded player should now play all videos in the "Mstv 1" playlist sequentially.
         After one video finishes, the next one will automatically start.
     </p>
 
     <div class="instruction">
-        <h2>How to Make Sure All Videos Play in Order:</h2>
+        <h2>How to Test This Live:</h2>
         <ol>
-            <li><strong>Find Your Playlist on YouTube:</strong> Navigate to the specific playlist on YouTube that you want to embed.</li>
-            <li><strong>Get the Embed Code:</strong>
-                <ul>
-                    <li>Click the "Share" button below the playlist title.</li>
-                    <li>In the pop-up, click "Embed."</li>
-                    <li>YouTube will provide an `<iframe>` code. **Copy the entire `src` attribute value** from that code. It should start with `https://www.youtube.com/embed/videoseries?list=YOUR_PLAYLIST_ID` (where `YOUR_PLAYLIST_ID` is the unique identifier for your playlist).</li>
-                    <li>**Example of a playlist `src`:** `https://www.youtube.com/embed/videoseries?list=YOUR_PLAYLIST_ID`</li>
-                </ul>
-            </li>
-            <li><strong>Paste into the HTML:</strong> In the HTML code above, replace the placeholder `src="https://www.youtube.com/embed/videoseries?list=YOUR_PLAYLIST_ID"` with the exact `src` value you copied from YouTube.</li>
-            <li>**Save and Test:** Save your HTML file and open it in a web browser. The playlist should now play all videos in the order you've arranged them on YouTube.</li>
+            <li><strong>Copy all the code above</strong> (from `<!DOCTYPE html>` to `</html>`).</li>
+            <li><strong>Open a plain text editor</strong> on your computer (like Notepad on Windows, TextEdit on Mac, or any code editor).</li>
+            <li><strong>Paste the copied code</strong> into the text editor.</li>
+            <li><strong>Save the file</strong> with an `.html` extension (e.g., `mstv1_playlist.html`). Make sure the "Save as type" is set to "All Files" or similar, not ".txt".</li>
+            <li><strong>Locate the saved file</strong> on your computer.</li>
+            <li><strong>Double-click the file.</strong> It should open in your default web browser, and you should see the embedded YouTube playlist.</li>
         </ol>
         <p>
-            **Note on Autoplay:** While `autoplay=1` is included in the `allow` attribute, many modern browsers block autoplay with sound unless the user has previously interacted with the site or explicitly allowed it. Users will likely need to click play on the first video, but then the rest of the playlist should play sequentially.
-        </p>
-        <p>
-            **Troubleshooting:** If only one video plays, double-check that the `src` URL in your `<iframe>` actually references a playlist (i.e., it contains `list=` and your `playlist_ID`) and not just a single video ID.
+            **If it still doesn't play the full playlist automatically:** Double-check the `src` attribute by going to your actual playlist on YouTube, clicking "Share", then "Embed", and copying the `src` URL directly from there. Sometimes, YouTube's embed URLs can have slight variations.
         </p>
     </div>
 
