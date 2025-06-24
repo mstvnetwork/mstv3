@@ -43,7 +43,7 @@
   MSTV NETWORK <span id="clock"></span>
 </header>
 
-<h1>24 Hour Looping Playlist (2 min slots)</h1>
+<h1>24 Hour Live TV Channel (2 min slots)</h1>
 
 <div id="player-container">
   <video id="video" controls muted></video>
@@ -138,9 +138,16 @@
       });
       video.style.display = 'block';
     } else if (item.type === 'iframe') {
-      // No true seek for iframe, fallback to fresh load
-      iframe.src = item.url;
+      const ytTime = `&start=${offsetSeconds}`;
+      let url = item.url;
+      if (url.includes('youtube.com/embed/')) {
+        url += (url.includes('?') ? '&' : '?') + 'autoplay=1' + ytTime;
+      }
+      iframe.src = url;
       iframe.style.display = 'block';
+    } else {
+      placeholder.textContent = 'Unsupported media type';
+      placeholder.style.display = 'flex';
     }
   }
 
@@ -169,7 +176,7 @@
     await loadPlaylist();
     loop();
     setInterval(loop, 15000);
-    setInterval(loadPlaylist, 60000); // refresh guide every 60 seconds
+    setInterval(loadPlaylist, 60000);
   });
 </script>
 
