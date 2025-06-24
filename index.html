@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MSTV Network - Time-Synced Playlist Player</title>
+<title>MSTV Network - Looping Playlist Player</title>
 <style>
   body { background: #000; color: #fff; font-family: Arial, sans-serif; text-align: center; margin: 0; }
   #player-container { position: relative; width: 100vw; max-width: 960px; aspect-ratio: 16/9; margin: 20px auto; background: #222; border: 3px solid gold; border-radius: 12px; overflow: hidden; }
@@ -17,12 +17,12 @@
 </head>
 <body>
 
-<h1>MSTV Network - Live Channel</h1>
+<h1>MSTV Network - Looping Playlist</h1>
 
 <div id="player-container">
   <video id="video-player" playsinline controls muted></video>
   <iframe id="media-player" frameborder="0" allowfullscreen allow="autoplay" style="display:none;"></iframe>
-  <div id="placeholder-image">No stream scheduled at this time.</div>
+  <div id="placeholder-image">Loading stream...</div>
   <div id="loading">Loading...</div>
   <button id="unmute-button">🔇 Unmute</button>
 </div>
@@ -43,9 +43,13 @@
 
   // Use your GitHub raw JSON URL here:
   const githubJsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
+
   let hlsInstance = null;
-  let currentChannel = null;
+  let playlist = [];
+  let currentIndex = -1;
   let countdownInterval = null;
+
+  const slotDurationSeconds = 120; // 2 minutes per slot
 
   function showLoading(show) {
     loading.style.display = show ? 'block' : 'none';
@@ -88,7 +92,7 @@
     }
   }
 
-  function playChannel(channel) {
+  function playChannel(channel, remainingSeconds) {
     clearPlayers();
     showLoading(true);
 
@@ -105,6 +109,7 @@
           videoPlayer.play().then(() => {
             showLoading(false);
             updateUnmuteButton();
+            startCountdown(remainingSeconds);
           });
         });
         hlsInstance.on(Hls.Events.ERROR, (event, data) => {
@@ -122,6 +127,7 @@
         videoPlayer.play().then(() => {
           showLoading(false);
           updateUnmuteButton();
+          startCountdown(remainingSeconds);
         });
       } else {
         placeholder.textContent = 'Your browser does not support HLS.';
@@ -131,42 +137,42 @@
     } else if (channel.type === 'iframe') {
       iframePlayer.style.display = 'block';
       iframePlayer.src = channel.url;
-      iframePlayer.onload = () => showLoading(false);
+      iframePlayer.onload = () => {
+        showLoading(false);
+        startCountdown(remainingSeconds);
+      };
       iframePlayer.onerror = () => {
         clearPlayers();
         placeholder.textContent = 'Failed to load iframe stream.';
         placeholder.style.display = 'flex';
       };
     } else {
-      // Fallback for direct video URLs
       videoPlayer.style.display = 'block';
       videoPlayer.src = channel.url;
       videoPlayer.muted = true;
       videoPlayer.play().then(() => {
         showLoading(false);
         updateUnmuteButton();
+        startCountdown(remainingSeconds);
       }).catch(() => {
         placeholder.textContent = 'Playback failed for this video.';
         placeholder.style.display = 'flex';
         showLoading(false);
       });
     }
-
-    // Start countdown timer
-    startCountdown(channel.endTime);
   }
 
-  // Countdown timer logic
-  function startCountdown(endTimeISO) {
+  function startCountdown(seconds) {
     if (countdownInterval) clearInterval(countdownInterval);
+    let remaining = seconds;
     function updateCountdown() {
-      const now = new Date();
-      const end = new Date(endTimeISO);
-      let diff = Math.floor((end - now) / 1000); // seconds
-      if (diff < 0) diff = 0;
-      const minutes = Math.floor(diff / 60).toString().padStart(2, '0');
-      const seconds = (diff % 60).toString().padStart(2, '0');
-      countdownTimer.textContent = `${minutes}:${seconds}`;
+      const minutes = Math.floor(remaining / 60).toString().padStart(2, '0');
+      const secs = (remaining % 60).toString().padStart(2, '0');
+      countdownTimer.textContent = `${minutes}:${secs}`;
+      if (remaining <= 0) {
+        clearInterval(countdownInterval);
+      }
+      remaining--;
     }
     updateCountdown();
     countdownInterval = setInterval(() => {
@@ -174,56 +180,72 @@
     }, 1000);
   }
 
-  // Find the currently scheduled channel by time
-  function getCurrentChannel(channels) {
+  // Calculate which channel to play based on current time and loop
+  function getChannelIndexByTime() {
     const now = new Date();
-    for (const ch of channels) {
-      const start = new Date(ch.startTime);
-      const end = new Date(ch.endTime);
-      if (now >= start && now < end) {
-        return ch;
-      }
-    }
-    return null;
+
+    // Calculate seconds since midnight local time
+    const midnight = new Date(now);
+    midnight.setHours(0, 0, 0, 0);
+    const secondsSinceMidnight = Math.floor((now - midnight) / 1000);
+
+    // Total number of slots in 24h loop
+    const totalSlots = playlist.length;
+
+    // Which slot are we in? (mod loop)
+    const slotNumber = Math.floor(secondsSinceMidnight / slotDurationSeconds) % totalSlots;
+
+    // Calculate how many seconds passed in current slot
+    const secondsIntoSlot = secondsSinceMidnight % slotDurationSeconds;
+
+    // Remaining seconds in current slot
+    const remainingSeconds = slotDurationSeconds - secondsIntoSlot;
+
+    return { slotNumber, remainingSeconds };
   }
 
-  // Main loop: fetch playlist and play current channel if changed
-  async function checkScheduleAndPlay() {
+  async function fetchPlaylistAndStart() {
     try {
       const urlWithCacheBuster = `${githubJsonUrl}?cacheBuster=${Date.now()}`;
       const response = await fetch(urlWithCacheBuster);
       if (!response.ok) throw new Error('Failed to fetch playlist JSON');
       const data = await response.json();
 
-      const channelToPlay = getCurrentChannel(data);
-      if (!channelToPlay) {
-        if (currentChannel !== null) {
-          clearPlayers();
-          placeholder.textContent = 'No stream scheduled at this time.';
-          placeholder.style.display = 'flex';
-          currentChannel = null;
-        }
+      if (!Array.isArray(data) || data.length === 0) {
+        placeholder.textContent = 'Playlist is empty.';
+        placeholder.style.display = 'flex';
         return;
       }
 
-      if (!currentChannel || currentChannel.url !== channelToPlay.url) {
-        currentChannel = channelToPlay;
-        playChannel(channelToPlay);
-      }
+      playlist = data;
+
+      // Immediately play current channel
+      updatePlayerByTime();
+
+      // Check every second to update if slot changes
+      setInterval(updatePlayerByTime, 1000);
+
     } catch (e) {
-      console.error('Error fetching or playing channel:', e);
+      console.error('Error fetching or playing playlist:', e);
       placeholder.textContent = 'Error loading streams.';
       placeholder.style.display = 'flex';
       showLoading(false);
     }
   }
 
+  function updatePlayerByTime() {
+    const { slotNumber, remainingSeconds } = getChannelIndexByTime();
+
+    if (slotNumber !== currentIndex) {
+      currentIndex = slotNumber;
+      playChannel(playlist[slotNumber], remainingSeconds);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
-    checkScheduleAndPlay();
-    setInterval(checkScheduleAndPlay, 10000); // check every 10 seconds
+    fetchPlaylistAndStart();
   });
 </script>
 
 </body>
 </html>
-
