@@ -12,21 +12,6 @@
   #loading { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; padding: 5px 10px; border-radius: 5px; display: none; font-weight: bold; }
   #unmute-button { position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; display: none; }
   #now-playing-container { max-width: 960px; margin: 0 auto 20px; font-size: 1.2rem; font-weight: bold; }
-  /* Overlay for unmute prompt on iframe streams */
-  #iframe-unmute-overlay {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: red;
-    color: white;
-    font-size: 1.8rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    z-index: 10;
-    user-select: none;
-    display: none; /* hidden by default */
-  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
@@ -40,7 +25,6 @@
   <div id="placeholder-image">Loading stream...</div>
   <div id="loading">Loading...</div>
   <button id="unmute-button">🔇 Unmute</button>
-  <div id="iframe-unmute-overlay">Click to unmute ▶️</div>
 </div>
 
 <div id="now-playing-container">
@@ -56,7 +40,6 @@
   const unmuteButton = document.getElementById('unmute-button');
   const currentChannelName = document.getElementById('current-channel-name');
   const countdownTimer = document.getElementById('countdown-timer');
-  const iframeUnmuteOverlay = document.getElementById('iframe-unmute-overlay');
 
   const githubJsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
 
@@ -99,7 +82,6 @@
     iframePlayer.style.display = 'none';
     placeholder.style.display = 'none';
     unmuteButton.style.display = 'none';
-    iframeUnmuteOverlay.style.display = 'none';
     showLoading(false);
     currentChannelName.textContent = 'None';
     countdownTimer.textContent = '--:--';
@@ -116,7 +98,6 @@
     currentChannelName.textContent = channel.name;
 
     if (channel.type === 'hls') {
-      iframeUnmuteOverlay.style.display = 'none'; // no overlay on HLS
       if (Hls.isSupported()) {
         videoPlayer.style.display = 'block';
         hlsInstance = new Hls();
@@ -162,9 +143,6 @@
       iframePlayer.src = url.toString();
       showLoading(true);
 
-      // Show the unmute overlay for iframe streams
-      iframeUnmuteOverlay.style.display = 'flex';
-
       iframePlayer.onload = () => {
         showLoading(false);
         startCountdown(remainingSeconds);
@@ -175,7 +153,6 @@
         placeholder.style.display = 'flex';
       };
     } else {
-      iframeUnmuteOverlay.style.display = 'none';
       videoPlayer.style.display = 'block';
       videoPlayer.src = channel.url;
       videoPlayer.muted = true;
@@ -190,19 +167,6 @@
       });
     }
   }
-
-  // When user clicks the overlay, hide it and reload iframe with autoplay and no mute param
-  iframeUnmuteOverlay.addEventListener('click', () => {
-    iframeUnmuteOverlay.style.display = 'none';
-    if (currentIndex >= 0 && playlist[currentIndex] && playlist[currentIndex].type === 'iframe') {
-      let channel = playlist[currentIndex];
-      // Reload iframe with mute param removed and autoplay=1 explicitly
-      let url = new URL(channel.url);
-      url.searchParams.delete('mute');
-      url.searchParams.set('autoplay', '1');
-      iframePlayer.src = url.toString();
-    }
-  });
 
   function startCountdown(seconds) {
     if (countdownInterval) clearInterval(countdownInterval);
