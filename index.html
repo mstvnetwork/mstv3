@@ -402,7 +402,7 @@
           const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
           if (!idMatch) throw new Error("Invalid YouTube URL");
           const id = idMatch[1];
-          // CORRECTED YOUTUBE EMBED URL (THIS IS THE IMPORTANT FIX)
+          // *** CORRECTED YOUTUBE EMBED URL ***
           playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
           console.log(`[PLAYBACK] YouTube iframe created for ID: ${id}. Waiting for API ready...`);
           isMuted = true; // Assume muted initially for YouTube
@@ -473,7 +473,7 @@
       }
     }
 
-    // This function is called by the YouTube Iframe API when the player is ready.
+    // This function is called by the YouTube Iframe API when it's ready.
     window.onYouTubeIframeAPIReady = function() {
       console.log("[INIT] YouTube Iframe API is ready."); // This tells us the API script loaded
     };
@@ -533,6 +533,7 @@
       }
     }
 
+    // This is the function with the critical fix
     function syncToRealTime() {
       if (playlist.length === 0) {
           console.warn("[SYNC] Playlist not loaded yet, re-trying sync in 1s.");
@@ -547,11 +548,12 @@
 
       let cursor = 0;
       let foundItem = false;
-      let currentItemIndex = -1; // Temp variable for loop
+      let newCurrentIndex = -1; // Use a new variable for the calculated index
+
       for (let i = 0; i < playlist.length; i++) {
         const dur = parseDuration(playlist[i].duration);
         if (cursor + dur > timeInLoop) {
-          currentItemIndex = i; // Found current item
+          newCurrentIndex = i; // Found current item
           foundItem = true;
           break;
         }
@@ -559,49 +561,51 @@
       }
 
       if (!foundItem && playlist.length > 0) {
-        // Fallback for edge case if current time lands exactly on end of loop
-        currentItemIndex = 0;
-        cursor = 0; // Reset cursor for the 0th item
+        newCurrentIndex = 0;
+        cursor = 0;
         console.warn("[SYNC] Edge case: time landed at end of loop, starting from beginning.");
       } else if (!foundItem) {
         showOffAir("No items in playlist to sync.");
         return;
       }
 
-      // Check if current item has changed
-      if (currentItemIndex !== currentIndex) {
-          console.log(`[SYNC] Item changed from ${currentIndex} to ${currentItemIndex}. Playing new item.`);
-          currentIndex = currentItemIndex;
+      // *** CRITICAL FIX HERE: Prevent player re-initialization if item hasn't truly changed ***
+      if (newCurrentIndex !== currentIndex) {
+          console.log(`[SYNC] Item changed from ${currentIndex} to ${newCurrentIndex}. Playing new item.`);
+          currentIndex = newCurrentIndex; // Update the global index
           const currentItemDuration = parseDuration(playlist[currentIndex].duration);
           const elapsedTimeInCurrentItem = timeInLoop - cursor;
           nowProgress.textContent = `${Math.floor((elapsedTimeInCurrentItem / currentItemDuration) * 100)}%`;
           nextTitle.textContent = playlist[(currentIndex + 1) % playlist.length].title || "End of loop";
-          playItem(playlist[currentIndex], elapsedTimeInCurrentItem);
+          playItem(playlist[currentIndex], elapsedTimeInCurrentItem); // Play the new item
       } else {
-          // If it's the same item, just update progress
+          // If it's the same item, just update progress and next title display.
+          // DO NOT call playItem here, as it would re-initialize the player unnecessarily.
           const currentItemDuration = parseDuration(playlist[currentIndex].duration);
           const elapsedTimeInCurrentItem = timeInLoop - cursor;
           nowProgress.textContent = `${Math.floor((elapsedTimeInCurrentItem / currentItemDuration) * 100)}%`;
           nextTitle.textContent = playlist[(currentIndex + 1) % playlist.length].title || "End of loop";
-          console.log(`[SYNC] Same item. Progress updated to ${nowProgress.textContent}.`);
+          console.log(`[SYNC] Same item. Progress updated to ${nowProgress.textContent}. No player re-initialization.`);
       }
 
-
-      // Set timeout for the next item's start or next sync check
+      // Schedule the next sync.
+      // This is still important to keep the time and next item info updated,
+      // and to trigger playItem when the next video's time arrives.
       const currentItemDuration = parseDuration(playlist[currentIndex].duration);
       const elapsedTimeInCurrentItem = timeInLoop - cursor;
-      const secondsToNext = currentItemDuration - elapsedTimeInCurrentItem;
+      let secondsToNext = currentItemDuration - elapsedTimeInCurrentItem;
 
-      console.log(`[SYNC] Current item: '${playlist[currentIndex].title}', Remaining: ${secondsToNext.toFixed(2)}s`);
-
-      // Set timeout for the next item's start. Add a small buffer.
-      // If secondsToNext is very small or negative, schedule for immediate re-sync
-      if (secondsToNext <= 1) { // If less than or equal to 1 second remaining, re-sync quickly
-        console.log("[SYNC] Less than 1s to next item or negative remaining time. Re-syncing immediately (500ms).");
-        setTimeout(syncToRealTime, 500); // Re-sync quickly
-      } else {
-        setTimeout(syncToRealTime, secondsToNext * 1000 + 500); // Standard re-sync
+      if (secondsToNext < 0) { // If somehow we've gone past, set to a small positive number to re-sync fast
+          secondsToNext = 0.5; // Resync in half a second
       }
+
+      console.log(`[SYNC] Current item: '${playlist[currentIndex].title}', Remaining: ${secondsToNext.toFixed(2)}s. Scheduling next sync.`);
+
+      // Clear any existing timeout to prevent multiple timers running
+      if (window.syncTimeout) {
+          clearTimeout(window.syncTimeout);
+      }
+      window.syncTimeout = setTimeout(syncToRealTime, secondsToNext * 1000 + 100); // Add a small buffer of 100ms
     }
 
 
@@ -646,7 +650,7 @@
     // Load YouTube Iframe API
     function loadYouTubeAPI() {
       const tag = document.createElement('script');
-      // CORRECTED YOUTUBE API URL (THIS IS THE IMPORTANT FIX)
+      // *** CORRECTED YOUTUBE API URL (THIS IS THE IMPORTANT FIX) ***
       tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
