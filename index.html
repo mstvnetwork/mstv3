@@ -1,1 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MSTV Network - Time-Synced Playlist Player</title>
+<style>
+  body { background: #000; color: #fff; font-family: Arial, sans-serif; text-align: center; margin: 0; }
+  #player-container { position: relative; width: 100vw; max-width: 960px; aspect-ratio: 16/9; margin: 20px auto; background: #222; border: 3px solid gold; border-radius: 12px; overflow: hidden; }
+  video, iframe { width: 100%; height: 100%; background: black; }
+  #placeholder-image { display: flex; align-items: center; justify-content: center; color: #999; font-size: 1.5rem; height: 100%; }
+  #loading { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; padding: 5px 10px; border-radius: 5px; display: none; font-weight: bold; }
+  #unmute-button { position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; display: none; }
+  #now-playing-container { max-width: 960px; margin: 0 auto 20px; font-size: 1.2rem; font-weight: bold; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+
+<h1>MSTV Network - Live Channel</h1>
+
+<div id="player-container">
+  <video id="video-player" playsinline controls muted></video>
+  <iframe id="media-player" frameborder="0" allowfullscreen allow="autoplay" style="display:none;"></iframe>
+  <div id="placeholder-image">No stream scheduled at this time.</div>
+  <div id="loading">Loading...</div>
+  <button id="unmute-button">🔇 Unmute</button>
+</div>
+
+<div id="now-playing-container">
+  Now Playing: <span id="current-channel-name">None</span> |
+  Time Remaining: <span id="countdown-timer">--:--</span>
+</div>
+
+<script>
+  const videoPlayer = document.getElementById('video-player');
+  const iframePlayer = document.getElementById('media-player');
+  const placeholder = document.getElementById('placeholder-image');
+  const loading = document.getElementById('loading');
+  const unmuteButton = document.getElementById('unmute-button');
+  const currentChannelName = document.getElementById('current-channel-name');
+  const countdownTimer = document.getElementById('countdown-timer');
+
+  // Use your GitHub raw JSON URL here:
+  const githubJsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
+  let hlsInstance = null;
+  let currentChannel = null;
+  let countdownInterval = null;
+
+  function showLoading(show) {
+    loading.style.display = show ? 'block' : 'none';
+  }
+
+  function updateUnmuteButton() {
+    if (videoPlayer.muted) {
+      unmuteButton.style.display = 'block';
+    } else {
+      unmuteButton.style.display = 'none';
+    }
+  }
+
+  unmuteButton.addEventListener('click', () => {
+    videoPlayer.muted = false;
+    updateUnmuteButton();
+  });
+
+  videoPlayer.addEventListener('volumechange', updateUnmuteButton);
+
+  function clearPlayers() {
+    if (hlsInstance) {
+      hlsInstance.destroy();
+      hlsInstance = null;
+    }
+    videoPlayer.pause();
+    videoPlayer.removeAttribute('src');
+    videoPlayer.load();
+    iframePlayer.src = '';
+    videoPlayer.style.display = 'none';
+    iframePlayer.style.display = 'none';
+    placeholder.style.display = 'none';
+    unmuteButton.style.display = 'none';
+    showLoading(false);
+    currentChannelName.textContent = 'None';
+    countdownTimer.textContent = '--:--';
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+  }
+
+  function playChannel(channel) {
+    clearPlayers();
+    showLoading(true);
+
+    currentChannelName.textContent = channel.name;
+
+    if (channel.type === 'hls') {
+      if (Hls.isSupported()) {
+        videoPlayer.style.display = 'block';
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(channel.url);
+        hlsInstance.attachMedia(videoPlayer);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          videoPlayer.muted = true;
+          videoPlayer.play().then(() => {
+            showLoading(false);
+            updateUnmuteButton();
+          });
+        });
+        hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            hlsInstance.destroy();
+            clearPlayers();
+            placeholder.textContent = 'Stream error occurred.';
+            placeholder.style.display = 'flex';
+          }
+        });
+      } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+        videoPlayer.style.display = 'block';
+        videoPlayer.src = channel.url;
+        videoPlayer.muted = true;
+        videoPlayer.play().then(() => {
+          showLoading(false);
+          updateUnmuteButton();
+        });
+      } else {
+        placeholder.textContent = 'Your browser does not support HLS.';
+        placeholder.style.display = 'flex';
+        showLoading(false);
+      }
+    } else if (channel.type === 'iframe') {
+      iframePlayer.style.display = 'block';
+      iframePlayer.src = channel.url;
+      iframePlayer.onload = () => showLoading(false);
+      iframePlayer.onerror = () => {
+        clearPlayers();
+        placeholder.textContent = 'Failed to load iframe stream.';
+        placeholder.style.display = 'flex';
+      };
+    } else {
+      // Fallback for direct video URLs
+      videoPlayer.style.display = 'block';
+      videoPlayer.src = channel.url;
+      videoPlayer.muted = true;
+      videoPlayer.play().then(() => {
+        showLoading(false);
+        updateUnmuteButton();
+      }).catch(() => {
+        placeholder.textContent = 'Playback failed for this video.';
+        placeholder.style.display = 'flex';
+        showLoading(false);
+      });
+    }
+
+    // Start countdown timer
+    startCountdown(channel.endTime);
+  }
+
+  // Countdown timer logic
+  function startCountdown(endTimeISO) {
+    if (countdownInterval) clearInterval(countdownInterval);
+    function updateCountdown() {
+      const now = new Date();
+      const end = new Date(endTimeISO);
+      let diff = Math.floor((end - now) / 1000); // seconds
+      if (diff < 0) diff = 0;
+      const minutes = Math.floor(diff / 60).toString().padStart(2, '0');
+      const seconds = (diff % 60).toString().padStart(2, '0');
+      countdownTimer.textContent = `${minutes}:${seconds}`;
+    }
+    updateCountdown();
+    countdownInterval = setInterval(() => {
+      updateCountdown();
+    }, 1000);
+  }
+
+  // Find the currently scheduled channel by time
+  function getCurrentChannel(channels) {
+    const now = new Date();
+    for (const ch of channels) {
+      const start = new Date(ch.startTime);
+      const end = new Date(ch.endTime);
+      if (now >= start && now < end) {
+        return ch;
+      }
+    }
+    return null;
+  }
+
+  // Main loop: fetch playlist and play current channel if changed
+  async function checkScheduleAndPlay() {
+    try {
+      const urlWithCacheBuster = `${githubJsonUrl}?cacheBuster=${Date.now()}`;
+      const response = await fetch(urlWithCacheBuster);
+      if (!response.ok) throw new Error('Failed to fetch playlist JSON');
+      const data = await response.json();
+
+      const channelToPlay = getCurrentChannel(data);
+      if (!channelToPlay) {
+        if (currentChannel !== null) {
+          clearPlayers();
+          placeholder.textContent = 'No stream scheduled at this time.';
+          placeholder.style.display = 'flex';
+          currentChannel = null;
+        }
+        return;
+      }
+
+      if (!currentChannel || currentChannel.url !== channelToPlay.url) {
+        currentChannel = channelToPlay;
+        playChannel(channelToPlay);
+      }
+    } catch (e) {
+      console.error('Error fetching or playing channel:', e);
+      placeholder.textContent = 'Error loading streams.';
+      placeholder.style.display = 'flex';
+      showLoading(false);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    checkScheduleAndPlay();
+    setInterval(checkScheduleAndPlay, 10000); // check every 10 seconds
+  });
+</script>
+
+</body>
+</html>
 
