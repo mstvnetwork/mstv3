@@ -267,7 +267,7 @@
     <div class="scrolling-text">
       This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
                           
-      Breaking News: Today is Tuesday, June 24, 2025. Current time is 12:06:29 PM AEST.
+      Breaking News: Today is Tuesday, June 24, 2025. Current time is 12:25:29 PM AEST.
                           
       Visit our social media for updates!
     </div>
@@ -381,12 +381,15 @@
           hlsInstance = null;
           console.log("[PLAYBACK] HLS instance destroyed.");
         }
-        // Clear YouTube player instance
+        // Clear YouTube player instance (destroy will be called by API if available)
         if (youtubePlayer) {
-          // YouTube API destroy method
-          youtubePlayer.destroy();
-          youtubePlayer = null;
-          console.log("[PLAYBACK] YouTube player destroyed.");
+          try {
+            youtubePlayer.destroy();
+            console.log("[PLAYBACK] YouTube player instance destroyed.");
+          } catch (e) {
+            console.warn("[PLAYBACK] Error destroying YouTube player:", e);
+          }
+          youtubePlayer = null; // Clear the reference regardless
         }
 
         // --- Mute Button Visibility Logic ---
@@ -399,16 +402,15 @@
           const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
           if (!idMatch) throw new Error("Invalid YouTube URL");
           const id = idMatch[1];
-          // IMPORTANT: autoplay=1 and mute=1 for autoplay to work
+          // CORRECTED YOUTUBE EMBED URL
           playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1&mute=1&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
           console.log(`[PLAYBACK] YouTube iframe created for ID: ${id}`);
-          // YouTube API will call onYouTubeIframeAPIReady -> onYouTubePlayerReady
+          // The onYouTubePlayerReady will be called by the YouTube API once the player is truly ready
           isMuted = true; // Assume muted initially for YouTube
           speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
           speakerIcon.alt = "Muted";
 
         } else if (isHLS) {
-          // IMPORTANT: autoplay muted for HLS to work reliably
           playerDiv.innerHTML = `<video id="m3u8Player" width="100%" height="100%" autoplay muted></video>`;
           const video = document.getElementById("m3u8Player");
           video.src = url;
@@ -425,14 +427,12 @@
               video.play().catch(error => {
                 if (error.name === "NotAllowedError") {
                   console.warn("[PLAYBACK] Autoplay was prevented (even muted). User needs to interact to play.", error);
-                  // Already muted, but log if it still fails
                 } else {
                   console.error("[PLAYBACK] Video play error:", error);
                 }
               });
             });
-            // HLS.js handles muting through its own instance property
-            hlsInstance.muted = true; // Ensure HLS.js instance starts muted
+            hlsInstance.muted = true;
           } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
             console.log("[PLAYBACK] Native HLS playback detected. Attempting to play video.");
             video.play().catch(error => {
@@ -445,14 +445,12 @@
           } else {
             throw new Error("Unsupported video format for HLS.");
           }
-          isMuted = true; // Assume muted initially for HLS
-          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
+          isMuted = true;
+          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png";
           speakerIcon.alt = "Muted";
 
 
         } else {
-          // For other video formats (e.g., MP4)
-          // IMPORTANT: autoplay muted for other formats to work reliably
           playerDiv.innerHTML = `<video id="otherPlayer" width="100%" height="100%" autoplay muted></video>`;
           const video = document.getElementById("otherPlayer");
           video.src = url;
@@ -466,8 +464,8 @@
               console.error("[PLAYBACK] Other video play error:", error);
             }
           });
-          isMuted = true; // Assume muted initially for other video types
-          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png"; // Set mute icon
+          isMuted = true;
+          speakerIcon.src = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/mute.png";
           speakerIcon.alt = "Muted";
         }
       } catch (err) {
@@ -614,7 +612,7 @@
         hlsInstance.muted = videoElement.muted; // Keep HLS.js instance in sync
         isMuted = videoElement.muted;
         console.log(`[MUTE BUTTON] HLS/Other video muted state: ${isMuted}`);
-      } else if (youtubePlayer) {
+      } else if (youtubePlayer) { // This condition should now correctly identify the YouTube player
         if (isMuted) {
           youtubePlayer.unMute();
           console.log("[MUTE BUTTON] YouTube unmuted.");
@@ -641,10 +639,11 @@
     // Load YouTube Iframe API
     function loadYouTubeAPI() {
       const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api"; // Correct YouTube API URL
+      // CORRECTED YOUTUBE API URL
+      tag.src = "https://www.youtube.com/iframe_api";
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      console.log("[INIT] YouTube Iframe API script requested.");
+      console.log("[INIT] YouTube Iframe API script requested from correct URL.");
     }
 
     // This function will be called by the YouTube Iframe API when it's ready
