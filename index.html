@@ -81,7 +81,6 @@
 <div id="now-playing">Now Playing: <span id="current-title">None</span></div>
 
 <footer>&copy; 2025 MSTV NETWORK</footer>
-
 <script>
   const DateTime = luxon.DateTime;
   const video = document.getElementById('video');
@@ -90,13 +89,16 @@
   const titleEl = document.getElementById('current-title');
   const clock = document.getElementById('clock');
 
+  const TIMEZONE = 'Australia/Melbourne';
   const playlistUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
+
   let playlist = [];
   let currentItem = null;
   let hls = null;
 
   function updateClock() {
-    clock.textContent = DateTime.now().toFormat('HH:mm:ss');
+    const now = DateTime.now().setZone(TIMEZONE);
+    clock.textContent = now.toFormat('HH:mm:ss');
   }
   setInterval(updateClock, 1000);
   updateClock();
@@ -112,10 +114,10 @@
   }
 
   function findCurrentItem() {
-    const now = DateTime.now();
+    const now = DateTime.now().setZone(TIMEZONE);
     return playlist.find(item =>
-      DateTime.fromISO(item.startTime) <= now &&
-      DateTime.fromISO(item.endTime) > now
+      DateTime.fromISO(item.startTime).setZone(TIMEZONE) <= now &&
+      DateTime.fromISO(item.endTime).setZone(TIMEZONE) > now
     );
   }
 
@@ -162,9 +164,8 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     await loop();
-    setInterval(loop, 15000); // check every 15 seconds
+    setInterval(loop, 15000);
   });
 </script>
-
 </body>
 </html>
