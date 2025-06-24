@@ -12,21 +12,6 @@
   #loading { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; padding: 5px 10px; border-radius: 5px; display: none; font-weight: bold; }
   #unmute-button { position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; display: none; }
   #now-playing-container { max-width: 960px; margin: 0 auto 20px; font-size: 1.2rem; font-weight: bold; }
-  /* Overlay for unmute prompt on iframe streams */
-  #iframe-unmute-overlay {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: red;
-    color: white;
-    font-size: 1.8rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    z-index: 10;
-    user-select: none;
-    display: none; /* hidden by default */
-  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
@@ -40,7 +25,7 @@
   <div id="placeholder-image">Loading stream...</div>
   <div id="loading">Loading...</div>
   <button id="unmute-button">🔇 Unmute</button>
-  <div id="iframe-unmute-overlay">Click to play channel ▶️</div>
+
 </div>
 
 <div id="now-playing-container">
