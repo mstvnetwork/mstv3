@@ -2,22 +2,16 @@
   {
     "name": "YouTube VOD Video 1",
     "type": "iframe",
-    "url": "https://www.youtube.com/embed/2-HuLX0CbT8?autoplay=1&mute=1",
-    "startTime": "2025-06-24T21:52:00+10:00",
-    "endTime": "2025-06-24T21:54:00+10:00"
+    "url": "https://www.youtube.com/embed/2-HuLX0CbT8?autoplay=1&mute=1"
   },
   {
     "name": "YouTube Live Stream 2",
     "type": "iframe",
-    "url": "https://www.youtube.com/embed/live_stream?channel=biuyKchLhOU&autoplay=1&mute=1",
-    "startTime": "2025-06-24T21:54:00+10:00",
-    "endTime": "2025-06-24T21:56:00+10:00"
+    "url": "https://www.youtube.com/embed/live_stream?channel=biuyKchLhOU&autoplay=1&mute=1"
   },
   {
     "name": "HLS Live Stream",
     "type": "hls",
-    "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-    "startTime": "2025-06-24T21:56:00+10:00",
-    "endTime": "2025-06-24T21:58:00+10:00"
+    "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
   }
 ]
