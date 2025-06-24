@@ -3,34 +3,163 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MSTV Network - Looping Playlist Player</title>
+<title>MSTV NETWORK - Looping Playlist Player</title>
 <style>
-  body { background: #000; color: #fff; font-family: Arial, sans-serif; text-align: center; margin: 0; }
-  #player-container { position: relative; width: 100vw; max-width: 960px; aspect-ratio: 16/9; margin: 20px auto; background: #222; border: 3px solid gold; border-radius: 12px; overflow: hidden; }
-  video, iframe { width: 100%; height: 100%; background: black; }
-  #placeholder-image { display: flex; align-items: center; justify-content: center; color: #999; font-size: 1.5rem; height: 100%; }
-  #loading { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; padding: 5px 10px; border-radius: 5px; display: none; font-weight: bold; }
-  #unmute-button { position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.8); color: #000; border: none; padding: 6px 12px; border-radius: 5px; font-weight: bold; cursor: pointer; display: none; }
-  #now-playing-container { max-width: 960px; margin: 0 auto 20px; font-size: 1.2rem; font-weight: bold; }
+  /* Reset and base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding-top: 80px; /* header height */
+    padding-bottom: 50px; /* footer height */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(90deg, #ffd700, #ffb700);
+    color: #000;
+    font-weight: 900;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-shadow: 0 2px 10px rgba(255, 215, 0, 0.6);
+    z-index: 1000;
+    letter-spacing: 3px;
+    user-select: none;
+  }
+  header #clock {
+    font-weight: 600;
+    font-size: 1.2rem;
+    font-family: monospace;
+  }
+  footer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 50px;
+    background: #111;
+    color: #ccc;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 1.2px;
+    box-shadow: inset 0 1px 8px #333;
+    user-select: none;
+  }
+  h1 {
+    text-align: center;
+    font-weight: 900;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #ffd700;
+    text-shadow: 0 0 8px #ffdb4d;
+  }
+  #player-container {
+    position: relative;
+    max-width: 960px;
+    width: 90vw;
+    aspect-ratio: 16 / 9;
+    margin: 0 auto 20px auto;
+    background: #222;
+    border: 3px solid #ffd700;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 20px #ffd700aa;
+  }
+  video, iframe {
+    width: 100%;
+    height: 100%;
+    background: black;
+    border-radius: 10px;
+  }
+  #placeholder-image {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 1.5rem;
+    height: 100%;
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    background: #111a;
+    z-index: 5;
+    border-radius: 10px;
+  }
+  #loading {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #000;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    display: none;
+    z-index: 10;
+  }
+  #unmute-button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #000;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    display: none;
+    z-index: 10;
+  }
+  #now-playing-container {
+    max-width: 960px;
+    margin: 0 auto 30px auto;
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    letter-spacing: 1px;
+    user-select: none;
+  }
   /* Overlay for unmute prompt on iframe streams */
   #iframe-unmute-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: red;
+    background: rgba(255, 0, 0, 0.75);
     color: white;
     font-size: 1.8rem;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    z-index: 10;
+    z-index: 20;
     user-select: none;
     display: none; /* hidden by default */
+    border-radius: 10px;
+    text-shadow: 0 0 6px black;
   }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
+
+<header>
+  MSTV NETWORK
+  <div id="clock">--:--:--</div>
+</header>
 
 <h1>MSTV Network - Looping Playlist</h1>
 
@@ -48,6 +177,10 @@
   Time Remaining: <span id="countdown-timer">--:--</span>
 </div>
 
+<footer>
+  &copy; 2025 MSTV NETWORK | All Rights Reserved
+</footer>
+
 <script>
   const videoPlayer = document.getElementById('video-player');
   const iframePlayer = document.getElementById('media-player');
@@ -57,6 +190,7 @@
   const currentChannelName = document.getElementById('current-channel-name');
   const countdownTimer = document.getElementById('countdown-timer');
   const iframeUnmuteOverlay = document.getElementById('iframe-unmute-overlay');
+  const clockEl = document.getElementById('clock');
 
   const githubJsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
 
@@ -64,8 +198,23 @@
   let playlist = [];
   let currentIndex = -1;
   let countdownInterval = null;
+  let playlistETag = null;
 
   const slotDurationSeconds = 120; // 2 minutes per slot
+
+  // Clock update every second
+  function updateClock() {
+    const now = new Date();
+    clockEl.textContent = now.toLocaleTimeString(undefined, {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      timeZoneName: 'short'
+    });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
 
   function showLoading(show) {
     loading.style.display = show ? 'block' : 'none';
@@ -155,11 +304,14 @@
     } else if (channel.type === 'iframe') {
       iframePlayer.style.display = 'block';
       // Remove mute=1 param if present, add autoplay=1 if missing
-      let url = new URL(channel.url);
-      url.searchParams.delete('mute');
-      url.searchParams.set('autoplay', '1');
-
-      iframePlayer.src = url.toString();
+      try {
+        let url = new URL(channel.url);
+        url.searchParams.delete('mute');
+        url.searchParams.set('autoplay', '1');
+        iframePlayer.src = url.toString();
+      } catch {
+        iframePlayer.src = channel.url; // fallback if URL parsing fails
+      }
       showLoading(true);
 
       // Show the unmute overlay for iframe streams
@@ -175,6 +327,7 @@
         placeholder.style.display = 'flex';
       };
     } else {
+      // Fallback plain video source (MP4, etc)
       iframeUnmuteOverlay.style.display = 'none';
       videoPlayer.style.display = 'block';
       videoPlayer.src = channel.url;
@@ -191,16 +344,18 @@
     }
   }
 
-  // When user clicks the overlay, hide it and reload iframe with autoplay and no mute param
   iframeUnmuteOverlay.addEventListener('click', () => {
     iframeUnmuteOverlay.style.display = 'none';
     if (currentIndex >= 0 && playlist[currentIndex] && playlist[currentIndex].type === 'iframe') {
       let channel = playlist[currentIndex];
-      // Reload iframe with mute param removed and autoplay=1 explicitly
-      let url = new URL(channel.url);
-      url.searchParams.delete('mute');
-      url.searchParams.set('autoplay', '1');
-      iframePlayer.src = url.toString();
+      try {
+        let url = new URL(channel.url);
+        url.searchParams.delete('mute');
+        url.searchParams.set('autoplay', '1');
+        iframePlayer.src = url.toString();
+      } catch {
+        iframePlayer.src = channel.url;
+      }
     }
   });
 
@@ -217,9 +372,7 @@
       remaining--;
     }
     updateCountdown();
-    countdownInterval = setInterval(() => {
-      updateCountdown();
-    }, 1000);
+    countdownInterval = setInterval(updateCountdown, 1000);
   }
 
   function getChannelIndexByTime() {
@@ -227,50 +380,80 @@
     const midnight = new Date(now);
     midnight.setHours(0, 0, 0, 0);
     const secondsSinceMidnight = Math.floor((now - midnight) / 1000);
-    const totalSlots = playlist.length;
+    const totalSlots = playlist.length || 1;
     const slotNumber = Math.floor(secondsSinceMidnight / slotDurationSeconds) % totalSlots;
     const secondsIntoSlot = secondsSinceMidnight % slotDurationSeconds;
     const remainingSeconds = slotDurationSeconds - secondsIntoSlot;
     return { slotNumber, remainingSeconds };
   }
 
-  async function fetchPlaylistAndStart() {
+  async function fetchPlaylist() {
     try {
-      const urlWithCacheBuster = `${githubJsonUrl}?cacheBuster=${Date.now()}`;
-      const response = await fetch(urlWithCacheBuster);
-      if (!response.ok) throw new Error('Failed to fetch playlist JSON');
-      const data = await response.json();
+      // Using HEAD request to check ETag (for detecting changes)
+      const headResp = await fetch(githubJsonUrl, { method: 'HEAD' });
+      if (!headResp.ok) throw new Error('Failed to HEAD playlist JSON');
+      const newETag = headResp.headers.get('ETag');
 
-      if (!Array.isArray(data) || data.length === 0) {
-        placeholder.textContent = 'Playlist is empty.';
-        placeholder.style.display = 'flex';
-        return;
+      if (playlistETag !== newETag) {
+        // ETag changed — fetch new playlist
+        const urlWithCacheBuster = `${githubJsonUrl}?cacheBuster=${Date.now()}`;
+        const response = await fetch(urlWithCacheBuster);
+        if (!response.ok) throw new Error('Failed to fetch playlist JSON');
+        const data = await response.json();
+        if (!Array.isArray(data) || data.length === 0) {
+          placeholder.textContent = 'Playlist is empty.';
+          placeholder.style.display = 'flex';
+          return false;
+        }
+        playlist = data;
+        playlistETag = newETag;
+        console.log('Playlist updated:', playlist);
+        return true;
       }
-
-      playlist = data;
-
-      updatePlayerByTime();
-
-      setInterval(updatePlayerByTime, 1000);
-
+      return false;
     } catch (e) {
-      console.error('Error fetching or playing playlist:', e);
+      console.error('Error fetching playlist:', e);
       placeholder.textContent = 'Error loading streams.';
       placeholder.style.display = 'flex';
-      showLoading(false);
+      return false;
     }
   }
 
-  function updatePlayerByTime() {
+  async function updatePlayerByTime() {
+    if (playlist.length === 0) {
+      clearPlayers();
+      placeholder.textContent = 'No channels to play.';
+      placeholder.style.display = 'flex';
+      return;
+    }
     const { slotNumber, remainingSeconds } = getChannelIndexByTime();
     if (slotNumber !== currentIndex) {
       currentIndex = slotNumber;
       playChannel(playlist[slotNumber], remainingSeconds);
+    } else {
+      // Keep countdown accurate even if same channel
+      startCountdown(remainingSeconds);
     }
   }
 
+  // Main loop to fetch playlist periodically and update player accordingly
+  async function mainLoop() {
+    const changed = await fetchPlaylist();
+    if (changed || currentIndex === -1) {
+      // Playlist changed or first load: update player immediately
+      updatePlayerByTime();
+    }
+  }
+
+  // Initial load & loop start
   document.addEventListener('DOMContentLoaded', () => {
-    fetchPlaylistAndStart();
+    mainLoop();
+    // Check for playlist updates every 30 seconds
+    setInterval(mainLoop, 30000);
+    // Also update countdown every second to keep timer smooth
+    setInterval(() => {
+      if (playlist.length > 0) updatePlayerByTime();
+    }, 1000);
   });
 </script>
 
