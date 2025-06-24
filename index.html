@@ -259,13 +259,13 @@
     <div id="customPlayButton" class="custom-play-button-overlay" style="display: none;">
       <img src="https://raw.githubusercontent.com/mstvnetwork/mstv3/main/Design-Studio-2025-06-24.png" alt="Play" class="play-icon">
     </div>
-  
+    </div>
 
   <div class="scrolling-text-container">
     <div class="scrolling-text">
       This is a test scrolling message for MSTV Live Channel. Stay tuned for more great content!
                           
-      Breaking News: Today is Tuesday, June 24, 2025. Current time is 10:37:18 AM AEST.
+      Breaking News: Today is Tuesday, June 24, 2025. Current time is 10:56:48 AM AEST.
                           
       Visit our social media for updates!
     </div>
@@ -334,7 +334,8 @@
     }
 
     function formatClockTime(date) {
-      return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}); // Formats to HH:MM:SS
+      // Use options for cleaner time formatting, ensuring leading zeros for hours/minutes/seconds
+      return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}); 
     }
 
     function updateClock() {
@@ -378,7 +379,11 @@
         youtubePlayer = null;
 
         // Always hide the custom play button when a new item starts playing
+        // It will be re-shown for YouTube videos if needed
         customPlayButton.style.display = 'none';
+        // Ensure to remove old event listener if it was added for a previous YT video
+        customPlayButton.removeEventListener('click', handleCustomPlayButtonClick);
+
 
         if (isYT) {
           const idMatch = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
@@ -387,7 +392,7 @@
           
           // Set autoplay to 0 and enablejsapi to 1 for custom control
           // Use controls=0 to hide YouTube's default player controls
-          playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=0&mute=0&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+          playerDiv.innerHTML = `<iframe id="youtubePlayer" width="100%" height="100%" src="http://www.youtube.com/embed/${id}?autoplay=0&mute=0&start=${Math.floor(offset)}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
           
           customPlayButton.style.display = 'flex'; // Show custom play button for YouTube videos
           // The YouTube player object will be created by the API's onYouTubeIframeAPIReady callback
@@ -444,7 +449,8 @@
     // Load YouTube Iframe API script
     function loadYouTubeAPI() {
       const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api"; // Correct YouTube API URL
+      // Correct YouTube API URL
+      tag.src = "https://www.youtube.com/iframe_api"; 
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     }
@@ -452,7 +458,8 @@
     // This function will be called by the YouTube Iframe API when it's ready
     window.onYouTubeIframeAPIReady = function() {
       console.log("YouTube Iframe API is ready.");
-      // If a YouTube iframe is present when the API is ready, initialize the player.
+      // Check if a YouTube iframe is currently in the DOM
+      // We only create a new YT.Player if the iframe is already present from playItem
       const iframeElement = document.getElementById('youtubePlayer');
       if (iframeElement) {
         youtubePlayer = new YT.Player('youtubePlayer', {
@@ -478,7 +485,10 @@
             youtubePlayer.unMute(); // Unmute when clicked
             youtubePlayer.playVideo();
             customPlayButton.style.display = 'none'; // Hide custom button after click
-            customPlayButton.removeEventListener('click', handleCustomPlayButtonClick); // Remove listener to prevent multiple bindings
+            // It's generally good practice to remove the listener if it's a one-time interaction,
+            // but in this case, we re-add it when a new YT video is cued/paused.
+            // So, leaving it here for subsequent state changes to re-trigger showing.
+            // The crucial removal happens in playItem and showOffAir for cleanup.
         }
     }
 
@@ -491,17 +501,27 @@
       // 3 (buffering)
       // 5 (video cued)
 
+      const currentItem = playlist[currentIndex];
+      const isYT = currentItem && /youtu(?:\.be|be\.com)/.test(currentItem.url);
+
+      if (!isYT) {
+          // If it's not a YouTube video, ensure the custom play button is hidden
+          customPlayButton.style.display = 'none';
+          customPlayButton.removeEventListener('click', handleCustomPlayButtonClick);
+          return;
+      }
+
       if (event.data === YT.PlayerState.PLAYING) {
         customPlayButton.style.display = 'none'; // Hide when playing
       } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.BUFFERING || event.data === YT.PlayerState.CUED || event.data === YT.PlayerState.UNSTARTED) {
         // Show the button if paused or waiting for user interaction, or unstarted
-        const currentItem = playlist[currentIndex];
-        const isYT = currentItem && /youtu(?:\.be|be\.com)/.test(currentItem.url);
-        if (isYT) {
-            customPlayButton.style.display = 'flex';
-        }
+        customPlayButton.style.display = 'flex';
+        // Re-add listener just in case it was removed or not yet added for this state
+        customPlayButton.removeEventListener('click', handleCustomPlayButtonClick); // Prevent double-adding
+        customPlayButton.addEventListener('click', handleCustomPlayButtonClick);
       } else if (event.data === YT.PlayerState.ENDED) {
           customPlayButton.style.display = 'none'; // Hide when video ends, syncToRealTime will handle next
+          customPlayButton.removeEventListener('click', handleCustomPlayButtonClick); // Clean up
       }
     }
 
@@ -533,6 +553,7 @@
 
     function syncToRealTime() {
       const now = new Date();
+      // Current time in seconds since midnight (AEST)
       const secondsSinceMidnight = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
       const timeInLoop = secondsSinceMidnight % totalDuration;
 
@@ -543,7 +564,7 @@
           currentIndex = i;
           const progress = ((timeInLoop - cursor) / dur) * 100;
           nowProgress.textContent = `${Math.floor(progress)}%`;
-          nextTitle.textContent = playlist[(i + 1) % playlist.length].title || "End";
+          nextTitle.textContent = playlist[(i + 1) % playlist.length]?.title || "End of playlist"; // Use optional chaining for safety
           playItem(playlist[i], timeInLoop - cursor);
           break;
         }
@@ -552,12 +573,14 @@
 
       // Re-sync automatically when next item starts
       const secondsToNext = parseDuration(playlist[currentIndex].duration) - (timeInLoop - cursor);
-      setTimeout(syncToRealTime, secondsToNext * 1000 + 100);
+      // Add a small buffer to ensure we don't start the next video too early
+      setTimeout(syncToRealTime, secondsToNext * 1000 + 500); 
     }
 
+    // Initial calls
     updateClock();
     updateViewers();
-    setInterval(updateClock, 1000);
+    setInterval(updateClock, 1000); // Update clock every second
     loadPlaylist();
     loadYouTubeAPI(); // Load YouTube API when script starts
   </script>
