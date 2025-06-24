@@ -99,19 +99,30 @@
     return Math.floor(secondsSinceMidnight / slotDurationSeconds) % playlist.length;
   }
 
+  function stopPlayback() {
+    if (hls) {
+      hls.destroy();
+      hls = null;
+    }
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    iframe.src = '';
+  }
+
   function playItem(index) {
     if (!playlist[index]) return;
     if (currentIndex === index) return;
     currentIndex = index;
-    const item = playlist[index];
+    stopPlayback();
 
+    const item = playlist[index];
     titleEl.textContent = item.name;
     video.style.display = 'none';
     iframe.style.display = 'none';
     placeholder.style.display = 'none';
 
     if (item.type === 'hls') {
-      if (hls) hls.destroy();
       hls = new Hls();
       hls.loadSource(item.url);
       hls.attachMedia(video);
