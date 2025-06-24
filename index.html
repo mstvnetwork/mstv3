@@ -5,100 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MSTV NETWORK</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
   <style>
-    body {
-      background: #000;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding-top: 80px;
-      padding-bottom: 60px;
-      text-align: center;
-    }
+    body { background: #000; color: #fff; font-family: Arial, sans-serif; margin: 0; text-align: center; padding-top: 80px; padding-bottom: 60px; }
     header, footer {
-      position: fixed;
-      left: 0;
-      right: 0;
-      padding: 10px 20px;
-      background: #111;
-      color: gold;
-      font-weight: bold;
-      z-index: 1000;
+      position: fixed; left: 0; right: 0; padding: 10px 20px;
+      background: #111; color: gold; font-weight: bold; z-index: 1000;
     }
     header { top: 0; }
     footer { bottom: 0; font-size: 0.9rem; color: #ccc; }
     #clock { float: right; font-size: 1rem; color: white; }
-    h1 { color: gold; }
     #player-container {
-      position: relative;
-      max-width: 960px;
-      margin: auto;
-      width: 90vw;
-      aspect-ratio: 16/9;
-      background: #222;
-      border: 2px solid gold;
-      border-radius: 10px;
-      overflow: hidden;
+      max-width: 960px; margin: auto; width: 90vw; aspect-ratio: 16/9;
+      background: #222; border: 2px solid gold; border-radius: 10px; overflow: hidden;
     }
     video, iframe {
-      width: 100%;
-      height: 100%;
-      display: none;
+      width: 100%; height: 100%; display: none;
     }
     #placeholder {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: #111;
-      color: #aaa;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #111; color: #aaa; display: flex; align-items: center;
+      justify-content: center; font-size: 1.5rem;
     }
     #now-playing {
-      margin-top: 15px;
-      font-size: 1.2rem;
+      margin-top: 15px; font-size: 1.2rem;
     }
   </style>
 </head>
 <body>
 
 <header>
-  MSTV NETWORK
-  <span id="clock"></span>
+  MSTV NETWORK <span id="clock"></span>
 </header>
 
-<h1>Looping Playlist Player</h1>
+<h1>24 Hour Looping Playlist (2 min slots)</h1>
 
 <div id="player-container">
   <video id="video" controls muted></video>
   <iframe id="iframe" frameborder="0" allowfullscreen allow="autoplay"></iframe>
-  <div id="placeholder">Loading schedule...</div>
+  <div id="placeholder">Loading...</div>
 </div>
 
 <div id="now-playing">Now Playing: <span id="current-title">None</span></div>
 
 <footer>&copy; 2025 MSTV NETWORK</footer>
+
 <script>
-  const DateTime = luxon.DateTime;
   const video = document.getElementById('video');
   const iframe = document.getElementById('iframe');
   const placeholder = document.getElementById('placeholder');
   const titleEl = document.getElementById('current-title');
   const clock = document.getElementById('clock');
 
-  const TIMEZONE = 'Australia/Melbourne';
   const playlistUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
+  const slotDurationSeconds = 120;
 
   let playlist = [];
-  let currentItem = null;
+  let currentIndex = -1;
   let hls = null;
 
   function updateClock() {
-    const now = DateTime.now().setZone(TIMEZONE);
-    clock.textContent = now.toFormat('HH:mm:ss');
+    const now = new Date();
+    clock.textContent = now.toLocaleTimeString('en-AU', { hour12: false });
   }
   setInterval(updateClock, 1000);
   updateClock();
@@ -108,47 +75,34 @@
       const res = await fetch(playlistUrl + '?t=' + Date.now());
       playlist = await res.json();
     } catch (e) {
-      placeholder.textContent = 'Failed to load schedule.';
-      console.error(e);
+      console.error('Failed to load playlist:', e);
+      placeholder.textContent = 'Error loading playlist.';
     }
   }
 
-  function findCurrentItem() {
-    const now = DateTime.now().setZone(TIMEZONE);
-    return playlist.find(item =>
-      DateTime.fromISO(item.startTime).setZone(TIMEZONE) <= now &&
-      DateTime.fromISO(item.endTime).setZone(TIMEZONE) > now
-    );
+  function getCurrentSlotIndex() {
+    const now = new Date();
+    const secondsSinceMidnight = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
+    return Math.floor(secondsSinceMidnight / slotDurationSeconds) % playlist.length;
   }
 
-  function playItem(item) {
-    if (!item) {
-      titleEl.textContent = 'Off Air';
-      video.style.display = 'none';
-      iframe.style.display = 'none';
-      placeholder.textContent = 'Off Air';
-      placeholder.style.display = 'flex';
-      if (hls) {
-        hls.destroy();
-        hls = null;
-      }
-      return;
-    }
+  function playItem(index) {
+    if (!playlist[index]) return;
 
-    if (currentItem && currentItem.url === item.url) return;
+    if (currentIndex === index) return; // already playing
+    currentIndex = index;
 
-    currentItem = item;
+    const item = playlist[index];
     titleEl.textContent = item.name;
-    placeholder.style.display = 'none';
     video.style.display = 'none';
     iframe.style.display = 'none';
+    placeholder.style.display = 'none';
 
     if (item.type === 'hls') {
       if (hls) hls.destroy();
       hls = new Hls();
       hls.loadSource(item.url);
       hls.attachMedia(video);
-      video.muted = true;
       video.play();
       video.style.display = 'block';
     } else if (item.type === 'iframe') {
@@ -158,14 +112,17 @@
   }
 
   async function loop() {
-    await loadPlaylist();
-    playItem(findCurrentItem());
+    if (!playlist.length) return;
+    const index = getCurrentSlotIndex();
+    playItem(index);
   }
 
   document.addEventListener('DOMContentLoaded', async () => {
-    await loop();
-    setInterval(loop, 15000);
+    await loadPlaylist();
+    loop();
+    setInterval(loop, 15000); // Check every 15 seconds
   });
 </script>
+
 </body>
 </html>
