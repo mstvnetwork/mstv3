@@ -63,6 +63,19 @@
       left: 0;
     }
 
+    /* Hide any default video controls */
+    video::-webkit-media-controls {
+      display: none !important;
+    }
+
+    video::-moz-media-controls {
+      display: none !important;
+    }
+
+    video::-ms-media-controls {
+      display: none !important;
+    }
+
     #nowPlaying {
       margin: 10px 0;
       font-size: 1.2em;
@@ -285,6 +298,7 @@
         }
       } else if (channel.type === "hls") {
         const video = document.createElement("video");
+        // Removed controls to hide seek bar
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
