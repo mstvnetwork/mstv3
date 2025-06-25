@@ -94,16 +94,22 @@
 
     #muteOverlay {
       position: absolute;
-      bottom: 12px;
-      right: 12px;
-      background: rgba(0,0,0,0.6);
-      color: #fff;
-      padding: 6px 10px;
+      bottom: 10px;
+      right: 14px;
+      color: white;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 4px 8px;
       border-radius: 5px;
-      cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: bold;
+      pointer-events: auto;
+      z-index: 10;
       display: none;
-      z-index: 5;
+      transition: opacity 0.3s ease;
+    }
+    #muteOverlay:hover {
+      background: rgba(255, 255, 255, 0.1);
+      cursor: pointer;
     }
   </style>
 
@@ -119,7 +125,7 @@
 
   <div id="player-container">
     <div id="videoPlayer"></div>
-    <div id="muteOverlay">🔊 Unmute</div>
+    <div id="muteOverlay">🔇 Muted</div>
   </div>
 
   <div id="nowPlaying">Loading schedule...</div>
@@ -192,7 +198,7 @@
       };
     }
 
-    function updateProgressBar() {
+    function updateProgressBar(offset = 0) {
       clearInterval(progressTimer);
       function update() {
         const nowOffset = new Date().getSeconds() % SLOT_DURATION_SECONDS;
@@ -233,7 +239,7 @@
       currentVideoEl = null;
       ytPlayer = null;
       isMuted = true;
-      muteOverlay.textContent = "🔇 Unmute";
+      muteOverlay.textContent = "🔇 Muted";
 
       if (channel.type === "iframe") {
         const videoId = extractYouTubeID(channel.url);
@@ -293,15 +299,15 @@
       if (currentVideoEl) {
         isMuted = !currentVideoEl.muted;
         currentVideoEl.muted = isMuted;
-        muteOverlay.textContent = isMuted ? "🔇 Unmute" : "🔊 Mute";
+        muteOverlay.textContent = isMuted ? "🔇 Muted" : "🔊 Unmuted";
       } else if (ytPlayer && ytPlayer.mute) {
         isMuted = !isMuted;
         if (isMuted) {
           ytPlayer.mute();
-          muteOverlay.textContent = "🔇 Unmute";
+          muteOverlay.textContent = "🔇 Muted";
         } else {
           ytPlayer.unMute();
-          muteOverlay.textContent = "🔊 Mute";
+          muteOverlay.textContent = "🔊 Unmuted";
         }
       }
     });
