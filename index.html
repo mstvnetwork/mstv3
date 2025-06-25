@@ -56,8 +56,8 @@
       box-shadow: 0 0 10px #fff;
     }
   </style>
-
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
   <h1>MSTV NETWORK - 24/7 Channel</h1>
@@ -77,9 +77,15 @@
 
     let fullDayPlaylist = [];
     let slotTimer;
-    let currentChannel = null;
-    let currentType = null;
     let currentVideo = null;
+    let currentPlayer = null;
+    let currentChannel = null;
+    let ytReady = false;
+
+    // Wait for YouTube IFrame API
+    function onYouTubeIframeAPIReady() {
+      ytReady = true;
+    }
 
     async function fetchPlaylist() {
       const response = await fetch(CHANNELS_JSON_URL);
@@ -118,34 +124,38 @@
       videoPlayer.innerHTML = "";
       playOverlay.style.display = "block";
       currentChannel = channel;
-      currentType = channel.type;
 
       if (channel.type === "iframe") {
         const ytID = extractYouTubeID(channel.url);
-        const src = ytID
-          ? `https://www.youtube.com/embed/${ytID}?enablejsapi=1&autoplay=1&mute=1&start=${offset}&controls=0&rel=0&playsinline=1`
-          : channel.url;
+        if (ytID && ytReady) {
+          const playerDiv = document.createElement("div");
+          playerDiv.id = "ytplayer";
+          videoPlayer.appendChild(playerDiv);
 
-        const iframe = document.createElement("iframe");
-        iframe.src = src;
-        iframe.id = "yt-iframe";
-        iframe.frameBorder = 0;
-        iframe.allow = "autoplay; encrypted-media";
-        iframe.allowFullscreen = true;
-        videoPlayer.appendChild(iframe);
-
-        playOverlay.onclick = () => {
-          playOverlay.style.display = "none";
-          // Send play + unmute to YouTube
-          iframe.contentWindow.postMessage(
-            JSON.stringify({ event: "command", func: "unMute", args: [] }),
-            "*"
-          );
-          iframe.contentWindow.postMessage(
-            JSON.stringify({ event: "command", func: "playVideo", args: [] }),
-            "*"
-          );
-        };
+          currentPlayer = new YT.Player("ytplayer", {
+            videoId: ytID,
+            playerVars: {
+              autoplay: 0,
+              mute: 1,
+              controls: 0,
+              rel: 0,
+              start: offset,
+              enablejsapi: 1,
+              playsinline: 1
+            },
+            events: {
+              onReady: (event) => {
+                playOverlay.onclick = () => {
+                  playOverlay.style.display = "none";
+                  event.target.unMute();
+                  event.target.playVideo();
+                };
+              }
+            }
+          });
+        } else {
+          nowPlaying.textContent = "YouTube player not ready.";
+        }
       }
 
       else if (channel.type === "hls") {
@@ -204,7 +214,13 @@
       try {
         const base = await fetchPlaylist();
         fullDayPlaylist = generateFullDayPlaylist(base);
-        scheduleNextPlayback();
+
+        // Wait for YouTube API to initialize
+        const waitForYT = () => {
+          if (ytReady) scheduleNextPlayback();
+          else setTimeout(waitForYT, 100);
+        };
+        waitForYT();
       } catch (error) {
         console.error(error);
         nowPlaying.textContent = "Error loading playlist.";
