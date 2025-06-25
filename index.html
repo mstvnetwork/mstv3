@@ -41,28 +41,30 @@
       color: lightgreen;
     }
 
-    /* Mute overlay button */
     #muteOverlay {
       position: absolute;
-      bottom: 10px;
-      right: 10px;
-      background: rgba(0, 0, 0, 0.5);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 14px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 32px;
+      padding: 20px 30px;
+      border-radius: 50px;
       cursor: pointer;
       z-index: 10;
+      display: none;
+      transition: opacity 0.3s ease;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
   <h1>MSTV NETWORK - 24/7 Channel</h1>
   <div id="player-container">
     <div id="videoPlayer"></div>
-    <button id="muteOverlay" style="display:none;">🔇 Unmute</button>
+    <div id="muteOverlay">🔇 Tap to Unmute</div>
   </div>
   <div id="nowPlaying">Loading schedule...</div>
 
@@ -77,6 +79,7 @@
     let fullDayPlaylist = [];
     let slotTimer;
     let currentVideo = null;
+    let ytPlayer = null;
 
     async function fetchPlaylist() {
       const response = await fetch(CHANNELS_JSON_URL);
@@ -111,23 +114,42 @@
       currentVideo = null;
 
       if (channel.type === "iframe") {
-        const url = channel.url.includes("?")
-          ? `${channel.url}&start=${offset}`
-          : `${channel.url}?start=${offset}`;
-        const iframe = document.createElement("iframe");
-        iframe.src = url;
-        iframe.frameBorder = 0;
-        iframe.allowFullscreen = true;
-        iframe.allow = "autoplay; encrypted-media";
-        videoPlayer.appendChild(iframe);
-        // Hide overlay for iframe (YouTube is controlled externally)
-        muteOverlay.style.display = "none";
+        const ytID = extractYouTubeID(channel.url);
+        if (ytPlayer) ytPlayer.destroy();
+
+        const div = document.createElement("div");
+        div.id = "ytplayer";
+        videoPlayer.appendChild(div);
+
+        ytPlayer = new YT.Player('ytplayer', {
+          height: '100%',
+          width: '100%',
+          videoId: ytID,
+          playerVars: {
+            autoplay: 1,
+            start: offset,
+            controls: 0,
+            mute: 1,
+            modestbranding: 1,
+            rel: 0,
+            fs: 1
+          },
+          events: {
+            onReady: (event) => {
+              event.target.mute();
+              event.target.playVideo();
+              showMuteOverlay(() => {
+                event.target.unMute();
+              });
+            }
+          }
+        });
       } else if (channel.type === "hls") {
         const video = document.createElement("video");
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
-        video.controls = false; // Hide controls including seek bar
+        video.controls = false;
 
         if (Hls.isSupported()) {
           const hls = new Hls();
@@ -137,7 +159,9 @@
             video.currentTime = offset;
             video.play();
             currentVideo = video;
-            muteOverlay.style.display = "block";
+            showMuteOverlay(() => {
+              video.muted = false;
+            });
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = channel.url;
@@ -145,7 +169,9 @@
             video.currentTime = offset;
             video.play();
             currentVideo = video;
-            muteOverlay.style.display = "block";
+            showMuteOverlay(() => {
+              video.muted = false;
+            });
           });
         } else {
           video.innerText = "HLS not supported on this device.";
@@ -157,12 +183,27 @@
       }
     }
 
-    muteOverlay.addEventListener("click", () => {
-      if (currentVideo) {
-        currentVideo.muted = !currentVideo.muted;
-        muteOverlay.textContent = currentVideo.muted ? "🔇 Unmute" : "🔊 Mute";
-      }
-    });
+    function extractYouTubeID(url) {
+      const regex = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
+      const match = url.match(regex);
+      return match ? match[1] : "";
+    }
+
+    function showMuteOverlay(onUnmute) {
+      muteOverlay.style.display = "block";
+
+      const hide = () => {
+        muteOverlay.style.display = "none";
+        if (typeof onUnmute === 'function') onUnmute();
+      };
+
+      muteOverlay.onclick = hide;
+
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        if (muteOverlay.style.display !== "none") hide();
+      }, 5000);
+    }
 
     function scheduleNextPlayback() {
       const { index, offset, timeUntilNextSlot } = getCurrentSlot();
@@ -184,7 +225,10 @@
       }
     }
 
-    init();
+    // YouTube API Ready Hook
+    function onYouTubeIframeAPIReady() {
+      init();
+    }
   </script>
 </body>
 </html>
