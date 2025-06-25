@@ -2,24 +2,30 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <!-- Prevent zooming/resizing on mobile -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>MSTV Live Channel</title>
   <style>
-    body {
+    html, body {
+      margin: 0;
+      padding: 0;
       font-family: Arial, sans-serif;
       background: #000;
       color: #fff;
       text-align: center;
-      margin: 0;
-      padding: 0;
+      overflow-x: hidden;
+      height: 100%;
+      width: 100%;
     }
+
     h1 {
       margin: 20px 0;
       color: gold;
       font-size: 2em;
     }
+
     #player-container {
-      width: 95%;
+      width: 95vw;
       max-width: 960px;
       margin: 0 auto;
       aspect-ratio: 16/9;
@@ -27,43 +33,27 @@
       border-radius: 12px;
       overflow: hidden;
       background: #111;
-      position: relative;
     }
+
     #videoPlayer iframe,
     #videoPlayer video {
       width: 100%;
       height: 100%;
     }
+
     #nowPlaying {
       margin: 15px 0;
       font-size: 1.2em;
       color: lightgreen;
-    }
-    #playOverlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(255, 255, 255, 0.9);
-      color: #000;
-      font-size: 32px;
-      font-weight: bold;
-      padding: 20px 30px;
-      border-radius: 12px;
-      cursor: pointer;
-      z-index: 10;
-      display: none;
-      box-shadow: 0 0 10px #fff;
+      word-break: break-word;
     }
   </style>
-
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
   <h1>MSTV NETWORK - 24/7 Channel</h1>
   <div id="player-container">
     <div id="videoPlayer"></div>
-    <div id="playOverlay">▶ PLAY</div>
   </div>
   <div id="nowPlaying">Loading schedule...</div>
 
@@ -73,13 +63,9 @@
 
     const videoPlayer = document.getElementById("videoPlayer");
     const nowPlaying = document.getElementById("nowPlaying");
-    const playOverlay = document.getElementById("playOverlay");
 
     let fullDayPlaylist = [];
     let slotTimer;
-    let currentChannel = null;
-    let currentType = null;
-    let currentVideo = null;
 
     async function fetchPlaylist() {
       const response = await fetch(CHANNELS_JSON_URL);
@@ -107,55 +93,26 @@
       };
     }
 
-    function extractYouTubeID(url) {
-      const regex = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&?/]+)/;
-      const match = url.match(regex);
-      return match ? match[1] : null;
-    }
-
     function playChannel(channel, offset) {
       nowPlaying.textContent = `Now Playing: ${channel.name}`;
       videoPlayer.innerHTML = "";
-      playOverlay.style.display = "block";
-      currentChannel = channel;
-      currentType = channel.type;
 
       if (channel.type === "iframe") {
-        const ytID = extractYouTubeID(channel.url);
-        const src = ytID
-          ? `https://www.youtube.com/embed/${ytID}?enablejsapi=1&autoplay=1&mute=1&start=${offset}&controls=0&rel=0&playsinline=1`
-          : channel.url;
-
+        const url = channel.url.includes("?")
+          ? `${channel.url}&start=${offset}`
+          : `${channel.url}?start=${offset}`;
         const iframe = document.createElement("iframe");
-        iframe.src = src;
-        iframe.id = "yt-iframe";
+        iframe.src = url;
         iframe.frameBorder = 0;
-        iframe.allow = "autoplay; encrypted-media";
         iframe.allowFullscreen = true;
+        iframe.allow = "autoplay; encrypted-media";
         videoPlayer.appendChild(iframe);
-
-        playOverlay.onclick = () => {
-          playOverlay.style.display = "none";
-          // Send play + unmute to YouTube
-          iframe.contentWindow.postMessage(
-            JSON.stringify({ event: "command", func: "unMute", args: [] }),
-            "*"
-          );
-          iframe.contentWindow.postMessage(
-            JSON.stringify({ event: "command", func: "playVideo", args: [] }),
-            "*"
-          );
-        };
-      }
-
-      else if (channel.type === "hls") {
+      } else if (channel.type === "hls") {
         const video = document.createElement("video");
-        video.controls = false;
+        video.controls = true;
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
-        video.style.width = "100%";
-        video.style.height = "100%";
 
         if (Hls.isSupported()) {
           const hls = new Hls();
@@ -164,27 +121,19 @@
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             video.currentTime = offset;
             video.play();
-            currentVideo = video;
-            playOverlay.onclick = () => {
-              video.muted = false;
-              playOverlay.style.display = "none";
-            };
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = channel.url;
           video.addEventListener("loadedmetadata", () => {
             video.currentTime = offset;
             video.play();
-            currentVideo = video;
-            playOverlay.onclick = () => {
-              video.muted = false;
-              playOverlay.style.display = "none";
-            };
           });
         } else {
           video.innerText = "HLS not supported on this device.";
         }
 
+        video.style.width = "100%";
+        video.style.height = "100%";
         videoPlayer.appendChild(video);
       } else {
         nowPlaying.textContent = `Unsupported type: ${channel.type}`;
