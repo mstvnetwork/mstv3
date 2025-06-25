@@ -15,9 +15,15 @@
     }
 
     h1 {
-      margin: 20px 0 10px;
+      margin: 15px 0 5px;
       color: gold;
       font-size: 2em;
+    }
+
+    #subHeader {
+      font-size: 1em;
+      color: #ccc;
+      margin-bottom: 10px;
     }
 
     #player-container {
@@ -100,10 +106,16 @@
       z-index: 5;
     }
   </style>
+
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
   <h1>MSTV NETWORK - 24/7 Channel</h1>
+  <div id="subHeader">
+    🕒 <span id="clock">Loading time...</span> |
+    📡 Viewers Online: <span id="viewerCount">--</span>
+  </div>
 
   <div id="player-container">
     <div id="videoPlayer"></div>
@@ -125,11 +137,34 @@
     const progressFill = document.getElementById("progressFill");
     const guideList = document.getElementById("guideList");
     const muteOverlay = document.getElementById("muteOverlay");
+    const clock = document.getElementById("clock");
+    const viewerCount = document.getElementById("viewerCount");
 
     let fullDayPlaylist = [];
-    let slotTimer;
-    let progressTimer;
+    let slotTimer, progressTimer;
     let currentVideoEl = null;
+    let ytPlayer = null;
+    let isMuted = true;
+
+    function updateClock() {
+      const now = new Date().toLocaleTimeString("en-AU", {
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false,
+        timeZone: 'Australia/Melbourne'
+      });
+      clock.textContent = now;
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function updateViewers() {
+      const random = Math.floor(25 + Math.random() * 75);
+      viewerCount.textContent = random;
+    }
+
+    setInterval(updateViewers, 15000);
+    updateViewers();
 
     async function fetchPlaylist() {
       const response = await fetch(CHANNELS_JSON_URL);
@@ -157,7 +192,7 @@
       };
     }
 
-    function updateProgressBar(offset) {
+    function updateProgressBar() {
       clearInterval(progressTimer);
       function update() {
         const nowOffset = new Date().getSeconds() % SLOT_DURATION_SECONDS;
@@ -170,8 +205,7 @@
 
     function updateTVGuide(currentIndex) {
       guideList.innerHTML = "";
-      const displayCount = 10;
-      const items = fullDayPlaylist.slice(currentIndex, currentIndex + displayCount);
+      const items = fullDayPlaylist.slice(currentIndex, currentIndex + 10);
       items.forEach((item, i) => {
         const div = document.createElement("div");
         div.className = "guide-item";
@@ -187,24 +221,40 @@
       return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     }
 
+    function extractYouTubeID(url) {
+      const match = url.match(/\/embed\/([^?&]+)/);
+      return match ? match[1] : null;
+    }
+
     function playChannel(channel, offset) {
       nowPlaying.textContent = `Now Playing: ${channel.name}`;
       videoPlayer.innerHTML = "";
-      muteOverlay.style.display = "none";
+      muteOverlay.style.display = "block";
       currentVideoEl = null;
+      ytPlayer = null;
+      isMuted = true;
+      muteOverlay.textContent = "🔇 Unmute";
 
       if (channel.type === "iframe") {
-        const url = channel.url.includes("?")
-          ? `${channel.url}&start=${offset}`
-          : `${channel.url}?start=${offset}`;
-        const iframe = document.createElement("iframe");
-        iframe.src = url;
-        iframe.allowFullscreen = true;
-        iframe.allow = "autoplay; encrypted-media";
-        iframe.style.width = "100%";
-        iframe.style.height = "100%";
-        iframe.style.border = "0";
-        videoPlayer.appendChild(iframe);
+        const videoId = extractYouTubeID(channel.url);
+        if (videoId) {
+          window.onYouTubeIframeAPIReady = () => {
+            ytPlayer = new YT.Player('videoPlayer', {
+              videoId,
+              playerVars: {
+                autoplay: 1,
+                start: offset,
+                controls: 1,
+                mute: 1
+              },
+              events: {
+                onReady: () => ytPlayer.mute()
+              }
+            });
+          };
+        } else {
+          videoPlayer.innerHTML = "Invalid YouTube URL.";
+        }
       } else if (channel.type === "hls") {
         const video = document.createElement("video");
         video.controls = true;
@@ -213,9 +263,7 @@
         video.playsInline = true;
         video.style.width = "100%";
         video.style.height = "100%";
-
         currentVideoEl = video;
-        muteOverlay.style.display = "block";
 
         if (Hls.isSupported()) {
           const hls = new Hls();
@@ -236,29 +284,36 @@
         }
 
         videoPlayer.appendChild(video);
-      } else {
-        nowPlaying.textContent = `Unsupported type: ${channel.type}`;
       }
 
       updateProgressBar(offset);
     }
+
+    muteOverlay.addEventListener("click", () => {
+      if (currentVideoEl) {
+        isMuted = !currentVideoEl.muted;
+        currentVideoEl.muted = isMuted;
+        muteOverlay.textContent = isMuted ? "🔇 Unmute" : "🔊 Mute";
+      } else if (ytPlayer && ytPlayer.mute) {
+        isMuted = !isMuted;
+        if (isMuted) {
+          ytPlayer.mute();
+          muteOverlay.textContent = "🔇 Unmute";
+        } else {
+          ytPlayer.unMute();
+          muteOverlay.textContent = "🔊 Mute";
+        }
+      }
+    });
 
     function scheduleNextPlayback() {
       const { index, offset, timeUntilNextSlot } = getCurrentSlot();
       const channel = fullDayPlaylist[index];
       playChannel(channel, offset);
       updateTVGuide(index);
-
       clearTimeout(slotTimer);
       slotTimer = setTimeout(scheduleNextPlayback, timeUntilNextSlot * 1000);
     }
-
-    muteOverlay.addEventListener("click", () => {
-      if (currentVideoEl) {
-        currentVideoEl.muted = !currentVideoEl.muted;
-        muteOverlay.textContent = currentVideoEl.muted ? "🔇 Unmute" : "🔊 Mute";
-      }
-    });
 
     async function init() {
       try {
