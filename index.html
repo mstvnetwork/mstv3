@@ -39,19 +39,21 @@
       font-size: 1.2em;
       color: lightgreen;
     }
-    #muteOverlay {
+    #playOverlay {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0, 0, 0, 0.5);
-      color: #fff;
-      font-size: 48px;
-      padding: 20px;
-      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      color: #000;
+      font-size: 32px;
+      font-weight: bold;
+      padding: 20px 30px;
+      border-radius: 12px;
       cursor: pointer;
       z-index: 10;
       display: none;
+      box-shadow: 0 0 10px #fff;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -60,7 +62,7 @@
   <h1>MSTV NETWORK - 24/7 Channel</h1>
   <div id="player-container">
     <div id="videoPlayer"></div>
-    <div id="muteOverlay">🔇</div>
+    <div id="playOverlay">▶ PLAY</div>
   </div>
   <div id="nowPlaying">Loading schedule...</div>
 
@@ -70,12 +72,14 @@
 
     const videoPlayer = document.getElementById("videoPlayer");
     const nowPlaying = document.getElementById("nowPlaying");
-    const muteOverlay = document.getElementById("muteOverlay");
+    const playOverlay = document.getElementById("playOverlay");
 
     let fullDayPlaylist = [];
     let slotTimer;
-    let currentVideo = null;
+    let currentChannel = null;
     let currentType = null;
+    let currentVideo = null;
+    let playerReady = false;
 
     async function fetchPlaylist() {
       const response = await fetch(CHANNELS_JSON_URL);
@@ -104,27 +108,18 @@
     }
 
     function extractYouTubeID(url) {
-      const regex = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
+      const regex = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&?/]+)/;
       const match = url.match(regex);
       return match ? match[1] : null;
-    }
-
-    function showMuteOverlay(unmuteCallback) {
-      muteOverlay.innerHTML = "🔇";
-      muteOverlay.style.display = "block";
-      muteOverlay.onclick = () => {
-        muteOverlay.innerHTML = "🔊";
-        muteOverlay.style.display = "none";
-        if (typeof unmuteCallback === "function") unmuteCallback();
-      };
     }
 
     function playChannel(channel, offset) {
       nowPlaying.textContent = `Now Playing: ${channel.name}`;
       videoPlayer.innerHTML = "";
-      muteOverlay.style.display = "none";
-      currentVideo = null;
+      playOverlay.style.display = "block";
+      currentChannel = channel;
       currentType = channel.type;
+      playerReady = false;
 
       if (channel.type === "iframe") {
         const ytID = extractYouTubeID(channel.url);
@@ -134,19 +129,21 @@
 
         const iframe = document.createElement("iframe");
         iframe.src = src;
+        iframe.id = "yt-iframe";
         iframe.frameBorder = 0;
         iframe.allow = "autoplay; encrypted-media";
         iframe.allowFullscreen = true;
-        iframe.id = "yt-iframe";
         videoPlayer.appendChild(iframe);
 
-        showMuteOverlay(() => {
-          // Try to unmute via postMessage
+        playerReady = true;
+
+        playOverlay.onclick = () => {
+          playOverlay.style.display = "none";
           iframe.contentWindow.postMessage(
             JSON.stringify({ event: "command", func: "unMute", args: [] }),
             "*"
           );
-        });
+        };
       }
 
       else if (channel.type === "hls") {
@@ -165,25 +162,30 @@
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             video.currentTime = offset;
             video.play();
-            showMuteOverlay(() => {
+            currentVideo = video;
+            playerReady = true;
+            playOverlay.onclick = () => {
               video.muted = false;
-            });
+              playOverlay.style.display = "none";
+            };
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = channel.url;
           video.addEventListener("loadedmetadata", () => {
             video.currentTime = offset;
             video.play();
-            showMuteOverlay(() => {
+            currentVideo = video;
+            playerReady = true;
+            playOverlay.onclick = () => {
               video.muted = false;
-            });
+              playOverlay.style.display = "none";
+            };
           });
         } else {
           video.innerText = "HLS not supported on this device.";
         }
 
         videoPlayer.appendChild(video);
-        currentVideo = video;
       } else {
         nowPlaying.textContent = `Unsupported type: ${channel.type}`;
       }
