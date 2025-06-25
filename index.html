@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MSTV Live Channel</title>
   <style>
     body {
@@ -30,7 +30,7 @@
       width: 95%;
       max-width: 960px;
       margin: 0 auto;
-      aspect-ratio: 16 / 9;
+      aspect-ratio: 16/9;
       border: 3px solid gold;
       border-radius: 12px;
       overflow: hidden;
@@ -55,28 +55,13 @@
       object-fit: cover;
     }
 
+    /* Fix YouTube injected wrapper */
     #videoPlayer > div {
       width: 100% !important;
       height: 100% !important;
       position: absolute;
       top: 0;
       left: 0;
-    }
-
-    /* Hide any default video controls and block interaction */
-    video::-webkit-media-controls {
-      display: none !important;
-      pointer-events: none !important;
-    }
-
-    video::-moz-media-controls {
-      display: none !important;
-      pointer-events: none !important;
-    }
-
-    video::-ms-media-controls {
-      display: none !important;
-      pointer-events: none !important;
     }
 
     #nowPlaying {
@@ -86,7 +71,20 @@
     }
 
     #progressBar {
-      display: none;
+      width: 95%;
+      max-width: 960px;
+      height: 6px;
+      margin: 4px auto 10px;
+      background: #333;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #progressFill {
+      height: 100%;
+      width: 0%;
+      background: limegreen;
+      transition: width 1s linear;
     }
 
     #guide {
@@ -114,8 +112,8 @@
 
     #muteOverlay {
       position: absolute;
-      top: 10px;
-      left: 14px;
+      bottom: 10px;
+      right: 14px;
       color: white;
       background: rgba(0, 0, 0, 0.35);
       padding: 4px 8px;
@@ -132,36 +130,6 @@
       background: rgba(255, 255, 255, 0.1);
       cursor: pointer;
     }
-
-    /* Scrolling banner */
-    #scrollingBanner {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: red;
-      color: white;
-      font-weight: bold;
-      font-size: 14px;
-      padding: 4px 0;
-      overflow: hidden;
-      z-index: 9;
-    }
-
-    #scrollingText {
-      display: inline-block;
-      white-space: nowrap;
-      animation: scroll-left 15s linear infinite;
-    }
-
-    @keyframes scroll-left {
-      0% {
-        transform: translateX(100%);
-      }
-      100% {
-        transform: translateX(-100%);
-      }
-    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -177,11 +145,6 @@
   <div id="player-container">
     <div id="videoPlayer"></div>
     <div id="muteOverlay">🔇 Muted</div>
-    <div id="scrollingBanner">
-      <div id="scrollingText">
-        📢 Welcome to MSTV 24/7 Channel – Enjoy nonstop YouTube, HLS, and more… Stay tuned!
-      </div>
-    </div>
   </div>
 
   <div id="nowPlaying">Loading schedule...</div>
@@ -189,19 +152,19 @@
   <div id="guide"><strong>TV Guide</strong><div id="guideList"></div></div>
 
   <script>
-    const CHANNELS_JSON_URL =
-      "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json";
+    const CHANNELS_JSON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json";
     const SLOT_DURATION_SECONDS = 60;
 
     const videoPlayer = document.getElementById("videoPlayer");
     const nowPlaying = document.getElementById("nowPlaying");
+    const progressFill = document.getElementById("progressFill");
     const guideList = document.getElementById("guideList");
     const muteOverlay = document.getElementById("muteOverlay");
     const clock = document.getElementById("clock");
     const viewerCount = document.getElementById("viewerCount");
 
     let fullDayPlaylist = [];
-    let slotTimer;
+    let slotTimer, progressTimer;
     let currentVideoEl = null;
     let ytPlayer = null;
     let isMuted = true;
@@ -209,11 +172,9 @@
 
     function updateClock() {
       const now = new Date().toLocaleTimeString("en-AU", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
         hour12: false,
-        timeZone: "Australia/Melbourne",
+        timeZone: 'Australia/Melbourne'
       });
       clock.textContent = now;
     }
@@ -251,8 +212,19 @@
       return {
         index: Math.floor(elapsedSeconds / SLOT_DURATION_SECONDS) % fullDayPlaylist.length,
         offset: elapsedSeconds % SLOT_DURATION_SECONDS,
-        timeUntilNextSlot: SLOT_DURATION_SECONDS - (elapsedSeconds % SLOT_DURATION_SECONDS),
+        timeUntilNextSlot: SLOT_DURATION_SECONDS - (elapsedSeconds % SLOT_DURATION_SECONDS)
       };
+    }
+
+    function updateProgressBar(offset = 0) {
+      clearInterval(progressTimer);
+      function update() {
+        const nowOffset = new Date().getSeconds() % SLOT_DURATION_SECONDS;
+        const percent = (nowOffset / SLOT_DURATION_SECONDS) * 100;
+        progressFill.style.width = percent + "%";
+      }
+      update();
+      progressTimer = setInterval(update, 1000);
     }
 
     function updateTVGuide(currentIndex) {
@@ -270,7 +242,7 @@
     function formatTime(index) {
       const hour = Math.floor(index / 60);
       const minute = index % 60;
-      return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
     }
 
     function extractYouTubeID(url) {
@@ -292,17 +264,17 @@
         if (videoId) {
           nextYouTubeId = videoId;
           if (typeof YT !== "undefined" && YT.Player) {
-            ytPlayer = new YT.Player("videoPlayer", {
+            ytPlayer = new YT.Player('videoPlayer', {
               videoId,
               playerVars: {
                 autoplay: 1,
                 start: offset,
                 controls: 1,
-                mute: 1,
+                mute: 1
               },
               events: {
-                onReady: () => ytPlayer.mute(),
-              },
+                onReady: () => ytPlayer.mute()
+              }
             });
           }
         } else {
@@ -310,7 +282,7 @@
         }
       } else if (channel.type === "hls") {
         const video = document.createElement("video");
-        // NO CONTROLS ATTRIBUTE!
+        video.controls = true;
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
@@ -338,6 +310,8 @@
 
         videoPlayer.appendChild(video);
       }
+
+      updateProgressBar(offset);
     }
 
     muteOverlay.addEventListener("click", () => {
@@ -368,16 +342,16 @@
 
     function onYouTubeIframeAPIReady() {
       if (nextYouTubeId) {
-        ytPlayer = new YT.Player("videoPlayer", {
+        ytPlayer = new YT.Player('videoPlayer', {
           videoId: nextYouTubeId,
           playerVars: {
             autoplay: 1,
             controls: 1,
-            mute: 1,
+            mute: 1
           },
           events: {
-            onReady: () => ytPlayer.mute(),
-          },
+            onReady: () => ytPlayer.mute()
+          }
         });
       }
     }
