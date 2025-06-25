@@ -4,15 +4,145 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MSTV Live Channel</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      color: #fff;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      margin: 20px 0;
+      color: gold;
+      font-size: 2em;
+    }
+
+    #player-container {
+      width: 95%;
+      max-width: 960px;
+      margin: 0 auto;
+      aspect-ratio: 16/9;
+      border: 3px solid gold;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #111;
+    }
+
+    #videoPlayer iframe,
+    #videoPlayer video {
+      width: 100%;
+      height: 100%;
+    }
+
+    #nowPlaying {
+      margin: 15px 0;
+      font-size: 1.2em;
+      color: lightgreen;
+    }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
-  <h1>MSTV NETWORK</h1>
+  <h1>MSTV NETWORK - 24/7 Channel</h1>
   <div id="player-container">
     <div id="videoPlayer"></div>
   </div>
-  <div id="nowPlaying"></div>
-  <script src="player.js"></script>
+  <div id="nowPlaying">Loading schedule...</div>
+
+  <script>
+    const CHANNELS_JSON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json";
+    const SLOT_DURATION_SECONDS = 60; // 1 minute per slot
+
+    const videoPlayer = document.getElementById("videoPlayer");
+    const nowPlaying = document.getElementById("nowPlaying");
+
+    async function fetchPlaylist() {
+      const response = await fetch(CHANNELS_JSON_URL);
+      if (!response.ok) throw new Error("Failed to load channels.json");
+      return await response.json();
+    }
+
+    function getCurrentSlotIndex(totalSlots) {
+      const now = new Date();
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      const elapsedSeconds = Math.floor((now - startOfDay) / 1000);
+      return {
+        index: Math.floor(elapsedSeconds / SLOT_DURATION_SECONDS) % totalSlots,
+        offset: elapsedSeconds % SLOT_DURATION_SECONDS
+      };
+    }
+
+    function playChannel(channel, offset) {
+      nowPlaying.textContent = `Now Playing: ${channel.name}`;
+      videoPlayer.innerHTML = "";
+
+      if (channel.type === "iframe") {
+        const url = channel.url.includes("?")
+          ? `${channel.url}&start=${offset}`
+          : `${channel.url}?start=${offset}`;
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        iframe.frameBorder = 0;
+        iframe.allowFullscreen = true;
+        iframe.allow = "autoplay; encrypted-media";
+        videoPlayer.appendChild(iframe);
+      } else if (channel.type === "hls") {
+        const video = document.createElement("video");
+        video.controls = true;
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(channel.url);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.currentTime = offset;
+            video.play();
+          });
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = channel.url;
+          video.addEventListener("loadedmetadata", () => {
+            video.currentTime = offset;
+            video.play();
+          });
+        } else {
+          video.innerText = "HLS not supported on this device.";
+        }
+
+        video.style.width = "100%";
+        video.style.height = "100%";
+        videoPlayer.appendChild(video);
+      } else {
+        nowPlaying.textContent = `Unsupported type: ${channel.type}`;
+      }
+    }
+
+    async function init() {
+      try {
+        const basePlaylist = await fetchPlaylist();
+
+        // Auto-generate 1440-slot full-day schedule
+        const fullDayPlaylist = [];
+        for (let i = 0; i < 1440; i++) {
+          fullDayPlaylist.push(basePlaylist[i % basePlaylist.length]);
+        }
+
+        const { index, offset } = getCurrentSlotIndex(fullDayPlaylist.length);
+        const currentChannel = fullDayPlaylist[index];
+        playChannel(currentChannel, offset);
+      } catch (error) {
+        console.error(error);
+        nowPlaying.textContent = "Error loading schedule.";
+      }
+    }
+
+    init();
+  </script>
 </body>
 </html>
