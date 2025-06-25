@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -48,15 +48,16 @@
       transform: translate(-50%, -50%);
       background: rgba(0, 0, 0, 0.6);
       color: #fff;
-      font-size: 32px;
-      padding: 20px 30px;
-      border-radius: 50px;
+      font-size: 48px;
+      padding: 20px;
+      border-radius: 50%;
       cursor: pointer;
       z-index: 10;
       display: none;
       transition: opacity 0.3s ease;
     }
   </style>
+
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
@@ -64,7 +65,7 @@
   <h1>MSTV NETWORK - 24/7 Channel</h1>
   <div id="player-container">
     <div id="videoPlayer"></div>
-    <div id="muteOverlay">🔇 Tap to Unmute</div>
+    <div id="muteOverlay">🔇</div>
   </div>
   <div id="nowPlaying">Loading schedule...</div>
 
@@ -107,6 +108,53 @@
       };
     }
 
+    function extractYouTubeID(url) {
+      const regex = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
+      const match = url.match(regex);
+      return match ? match[1] : "";
+    }
+
+    function showMuteOverlay(onUnmute) {
+      muteOverlay.innerHTML = "🔇";
+      muteOverlay.style.display = "block";
+
+      const hide = () => {
+        muteOverlay.style.display = "none";
+        if (typeof onUnmute === 'function') onUnmute();
+      };
+
+      muteOverlay.onclick = hide;
+
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        if (muteOverlay.style.display !== "none") hide();
+      }, 5000);
+    }
+
+    function monitorMuteState(playerType, mediaObj) {
+      if (playerType === "youtube") {
+        setInterval(() => {
+          if (ytPlayer && ytPlayer.isMuted()) {
+            muteOverlay.innerHTML = "🔇";
+            muteOverlay.style.display = "block";
+            setTimeout(() => {
+              muteOverlay.style.display = "none";
+            }, 5000);
+          }
+        }, 3000);
+      } else if (playerType === "hls" && mediaObj) {
+        mediaObj.addEventListener("volumechange", () => {
+          if (mediaObj.muted) {
+            muteOverlay.innerHTML = "🔇";
+            muteOverlay.style.display = "block";
+            setTimeout(() => {
+              muteOverlay.style.display = "none";
+            }, 5000);
+          }
+        });
+      }
+    }
+
     function playChannel(channel, offset) {
       nowPlaying.textContent = `Now Playing: ${channel.name}`;
       videoPlayer.innerHTML = "";
@@ -126,7 +174,7 @@
           width: '100%',
           videoId: ytID,
           playerVars: {
-            autoplay: 1,
+            autoplay: 0,
             start: offset,
             controls: 0,
             mute: 1,
@@ -141,6 +189,7 @@
               showMuteOverlay(() => {
                 event.target.unMute();
               });
+              monitorMuteState("youtube", ytPlayer);
             }
           }
         });
@@ -162,6 +211,7 @@
             showMuteOverlay(() => {
               video.muted = false;
             });
+            monitorMuteState("hls", video);
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = channel.url;
@@ -172,6 +222,7 @@
             showMuteOverlay(() => {
               video.muted = false;
             });
+            monitorMuteState("hls", video);
           });
         } else {
           video.innerText = "HLS not supported on this device.";
@@ -181,28 +232,6 @@
       } else {
         nowPlaying.textContent = `Unsupported type: ${channel.type}`;
       }
-    }
-
-    function extractYouTubeID(url) {
-      const regex = /(?:youtube\.com\/.*v=|youtu\.be\/)([^&]+)/;
-      const match = url.match(regex);
-      return match ? match[1] : "";
-    }
-
-    function showMuteOverlay(onUnmute) {
-      muteOverlay.style.display = "block";
-
-      const hide = () => {
-        muteOverlay.style.display = "none";
-        if (typeof onUnmute === 'function') onUnmute();
-      };
-
-      muteOverlay.onclick = hide;
-
-      // Auto-hide after 5 seconds
-      setTimeout(() => {
-        if (muteOverlay.style.display !== "none") hide();
-      }, 5000);
     }
 
     function scheduleNextPlayback() {
@@ -225,7 +254,7 @@
       }
     }
 
-    // YouTube API Ready Hook
+    // YouTube API entrypoint
     function onYouTubeIframeAPIReady() {
       init();
     }
