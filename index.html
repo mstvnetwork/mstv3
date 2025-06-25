@@ -55,7 +55,6 @@
       object-fit: cover;
     }
 
-    /* Fix YouTube injected wrapper */
     #videoPlayer > div {
       width: 100% !important;
       height: 100% !important;
@@ -71,20 +70,7 @@
     }
 
     #progressBar {
-      width: 95%;
-      max-width: 960px;
-      height: 6px;
-      margin: 4px auto 10px;
-      background: #333;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    #progressFill {
-      height: 100%;
-      width: 0%;
-      background: limegreen;
-      transition: width 1s linear;
+      display: none;
     }
 
     #guide {
@@ -112,8 +98,8 @@
 
     #muteOverlay {
       position: absolute;
-      bottom: 10px;
-      right: 14px;
+      top: 10px;
+      left: 14px;
       color: white;
       background: rgba(0, 0, 0, 0.35);
       padding: 4px 8px;
@@ -130,6 +116,32 @@
       background: rgba(255, 255, 255, 0.1);
       cursor: pointer;
     }
+
+    /* Scrolling banner */
+    #scrollingBanner {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: red;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      padding: 4px 0;
+      overflow: hidden;
+      z-index: 9;
+    }
+
+    #scrollingText {
+      display: inline-block;
+      white-space: nowrap;
+      animation: scroll-left 15s linear infinite;
+    }
+
+    @keyframes scroll-left {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
@@ -145,6 +157,9 @@
   <div id="player-container">
     <div id="videoPlayer"></div>
     <div id="muteOverlay">🔇 Muted</div>
+    <div id="scrollingBanner">
+      <div id="scrollingText">📢 Welcome to MSTV 24/7 Channel – Enjoy nonstop YouTube, HLS, and more… Stay tuned!</div>
+    </div>
   </div>
 
   <div id="nowPlaying">Loading schedule...</div>
@@ -157,14 +172,13 @@
 
     const videoPlayer = document.getElementById("videoPlayer");
     const nowPlaying = document.getElementById("nowPlaying");
-    const progressFill = document.getElementById("progressFill");
     const guideList = document.getElementById("guideList");
     const muteOverlay = document.getElementById("muteOverlay");
     const clock = document.getElementById("clock");
     const viewerCount = document.getElementById("viewerCount");
 
     let fullDayPlaylist = [];
-    let slotTimer, progressTimer;
+    let slotTimer;
     let currentVideoEl = null;
     let ytPlayer = null;
     let isMuted = true;
@@ -214,17 +228,6 @@
         offset: elapsedSeconds % SLOT_DURATION_SECONDS,
         timeUntilNextSlot: SLOT_DURATION_SECONDS - (elapsedSeconds % SLOT_DURATION_SECONDS)
       };
-    }
-
-    function updateProgressBar(offset = 0) {
-      clearInterval(progressTimer);
-      function update() {
-        const nowOffset = new Date().getSeconds() % SLOT_DURATION_SECONDS;
-        const percent = (nowOffset / SLOT_DURATION_SECONDS) * 100;
-        progressFill.style.width = percent + "%";
-      }
-      update();
-      progressTimer = setInterval(update, 1000);
     }
 
     function updateTVGuide(currentIndex) {
@@ -282,7 +285,6 @@
         }
       } else if (channel.type === "hls") {
         const video = document.createElement("video");
-        video.controls = true;
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
@@ -310,8 +312,6 @@
 
         videoPlayer.appendChild(video);
       }
-
-      updateProgressBar(offset);
     }
 
     muteOverlay.addEventListener("click", () => {
