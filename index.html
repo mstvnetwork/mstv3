@@ -1,166 +1,629 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <!-- Prevent zooming/resizing on mobile -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>MSTV Live Channel</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      background: #000;
-      color: #fff;
-      text-align: center;
-      overflow-x: hidden;
-      height: 100%;
-      width: 100%;
-    }
-
-    h1 {
-      margin: 20px 0;
-      color: gold;
-      font-size: 2em;
-    }
-
-    #player-container {
-      width: 95vw;
-      max-width: 960px;
-      margin: 0 auto;
-      aspect-ratio: 16/9;
-      border: 3px solid gold;
-      border-radius: 12px;
-      overflow: hidden;
-      background: #111;
-    }
-
-    #videoPlayer iframe,
-    #videoPlayer video {
-      width: 100%;
-      height: 100%;
-    }
-
-    #nowPlaying {
-      margin: 15px 0;
-      font-size: 1.2em;
-      color: lightgreen;
-      word-break: break-word;
-    }
-  </style>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-</head>
-<body>
-  <h1>MSTV NETWORK - 24/7 Channel</h1>
-  <div id="player-container">
-    <div id="videoPlayer"></div>
-  </div>
-  <div id="nowPlaying">Loading schedule...</div>
-
-  <script>
-    const CHANNELS_JSON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json";
-    const SLOT_DURATION_SECONDS = 60;
-
-    const videoPlayer = document.getElementById("videoPlayer");
-    const nowPlaying = document.getElementById("nowPlaying");
-
-    let fullDayPlaylist = [];
-    let slotTimer;
-
-    async function fetchPlaylist() {
-      const response = await fetch(CHANNELS_JSON_URL);
-      if (!response.ok) throw new Error("Failed to load channels.json");
-      return await response.json();
-    }
-
-    function generateFullDayPlaylist(base) {
-      const result = [];
-      for (let i = 0; i < 1440; i++) {
-        result.push(base[i % base.length]);
-      }
-      return result;
-    }
-
-    function getCurrentSlot() {
-      const now = new Date();
-      const startOfDay = new Date(now);
-      startOfDay.setHours(0, 0, 0, 0);
-      const elapsedSeconds = Math.floor((now - startOfDay) / 1000);
-      return {
-        index: Math.floor(elapsedSeconds / SLOT_DURATION_SECONDS) % fullDayPlaylist.length,
-        offset: elapsedSeconds % SLOT_DURATION_SECONDS,
-        timeUntilNextSlot: SLOT_DURATION_SECONDS - (elapsedSeconds % SLOT_DURATION_SECONDS)
-      };
-    }
-
-    function playChannel(channel, offset) {
-      nowPlaying.textContent = `Now Playing: ${channel.name}`;
-      videoPlayer.innerHTML = "";
-
-      if (channel.type === "iframe") {
-        const url = channel.url.includes("?")
-          ? `${channel.url}&start=${offset}`
-          : `${channel.url}?start=${offset}`;
-        const iframe = document.createElement("iframe");
-        iframe.src = url;
-        iframe.frameBorder = 0;
-        iframe.allowFullscreen = true;
-        iframe.allow = "autoplay; encrypted-media";
-        videoPlayer.appendChild(iframe);
-      } else if (channel.type === "hls") {
-        const video = document.createElement("video");
-        video.controls = true;
-        video.autoplay = true;
-        video.muted = true;
-        video.playsInline = true;
-
-        if (Hls.isSupported()) {
-          const hls = new Hls();
-          hls.loadSource(channel.url);
-          hls.attachMedia(video);
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            video.currentTime = offset;
-            video.play();
-          });
-        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-          video.src = channel.url;
-          video.addEventListener("loadedmetadata", () => {
-            video.currentTime = offset;
-            video.play();
-          });
-        } else {
-          video.innerText = "HLS not supported on this device.";
+    <meta charset="UTF-8">
+    <!-- Updated Viewport Meta Tag for Fixed Scaling and No Zooming -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>24/7 Live TV Channel</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply Inter font family */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+        }
+        /* Prevent horizontal scrolling on the entire page */
+        html, body {
+            overflow-x: hidden;
         }
 
-        video.style.width = "100%";
-        video.style.height = "100%";
-        videoPlayer.appendChild(video);
-      } else {
-        nowPlaying.textContent = `Unsupported type: ${channel.type}`;
-      }
-    }
+        /* Custom styles for the video container to ensure responsiveness */
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background-color: black;
+            overflow: hidden;
+            border-radius: 0.75rem; /* rounded-xl */
+        }
+        .video-container iframe,
+        .video-container video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
 
-    function scheduleNextPlayback() {
-      const { index, offset, timeUntilNextSlot } = getCurrentSlot();
-      const channel = fullDayPlaylist[index];
-      playChannel(channel, offset);
+        /* Overlay for "Click to play" */
+        .play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 10;
+            border-radius: 0.75rem; /* rounded-xl */
+            text-align: center;
+        }
 
-      clearTimeout(slotTimer);
-      slotTimer = setTimeout(scheduleNextPlayback, timeUntilNextSlot * 1000);
-    }
+        /* Scrolling text animation */
+        .scrolling-text-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: red;
+            color: white;
+            padding: 0.5rem 0;
+            overflow: hidden;
+            white-space: nowrap;
+            box-sizing: border-box;
+            z-index: 15; /* Ensure it's above the video and YouTube icon */
+        }
 
-    async function init() {
-      try {
-        const base = await fetchPlaylist();
-        fullDayPlaylist = generateFullDayPlaylist(base);
-        scheduleNextPlayback();
-      } catch (error) {
-        console.error(error);
-        nowPlaying.textContent = "Error loading playlist.";
-      }
-    }
+        .scrolling-text-content {
+            display: inline-block;
+            padding-left: 100%; /* Start off-screen */
+            animation: scroll-left 30s linear infinite; /* Adjust duration for speed */
+        }
 
-    init();
-  </script>
+        @keyframes scroll-left {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(-100%);
+            }
+        }
+
+        /* Custom scrollbar for EPG */
+        .epg-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        .epg-list::-webkit-scrollbar-track {
+            background: #2d3748; /* bg-gray-700 */
+            border-radius: 4px;
+        }
+        .epg-list::-webkit-scrollbar-thumb {
+            background: #4a5568; /* bg-gray-600 */
+            border-radius: 4px;
+        }
+        .epg-list::-webkit-scrollbar-thumb:hover {
+            background: #6a768e; /* Darker on hover */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="container mx-auto max-w-6xl bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col lg:flex-row">
+        <!-- Main Content Area (Video Player) -->
+        <div class="flex-1 lg:pr-6 mb-6 lg:mb-0">
+            <h1 class="text-3xl font-bold text-center mb-6 text-red-500">24/7 Live TV Channel</h1>
+
+            <!-- Video Player Container -->
+            <div id="player-container" class="relative video-container mb-4">
+                <div id="play-overlay" class="play-overlay rounded-xl">
+                    <span class="text-white text-2xl md:text-3xl font-bold p-4 bg-black bg-opacity-50 rounded-lg">
+                        Click to Watch Channel
+                    </span>
+                </div>
+                <div id="scrolling-text-container" class="scrolling-text-container hidden">
+                    <div id="scrolling-text-content" class="scrolling-text-content">
+                        <!-- Scrolling text will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Now Playing & Progress Bar -->
+            <div class="bg-gray-700 rounded-lg p-4 mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xl font-semibold" id="now-playing-title">Now Playing: Loading...</span>
+                    <span class="text-lg text-gray-300" id="viewer-count">Viewers: --</span>
+                </div>
+                <div id="progress-bar-container" class="w-full bg-gray-600 rounded-full h-2.5 overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-500 h-2.5 transition-all duration-100 ease-linear" style="width: 0%;"></div>
+                </div>
+                <div class="text-right text-sm text-gray-400 mt-1" id="time-left-display"></div>
+            </div>
+        </div>
+
+        <!-- EPG Section -->
+        <div class="lg:w-1/3 bg-gray-700 rounded-xl p-4 flex flex-col">
+            <h2 class="text-2xl font-bold mb-4 text-green-400">Today's Schedule (EPG)</h2>
+            <div id="epg-list" class="epg-list flex-1 overflow-y-auto pr-2">
+                <!-- EPG items will be dynamically loaded here -->
+                <p class="text-gray-400">Loading schedule...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="w-full bg-gray-900 text-gray-500 text-center py-4 mt-6">
+        <p>&copy; 2025 Live TV Channel. All rights reserved. Designed for immersive viewing.</p>
+    </footer>
+
+    <!-- HLS.js library for M3U8 playback -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- YouTube Iframe API loader -->
+    <script>
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    </script>
+
+    <script>
+        // --- Global Variables and Constants ---
+        // Your channels.json file URL updated here
+        const channelsGitHubUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json';
+        const playerContainer = document.getElementById('player-container');
+        const playOverlay = document.getElementById('play-overlay');
+        const scrollingTextContainer = document.getElementById('scrolling-text-container');
+        const scrollingTextContent = document.getElementById('scrolling-text-content');
+        const nowPlayingTitle = document.getElementById('now-playing-title');
+        const viewerCountDisplay = document.getElementById('viewer-count');
+        const progressBar = document.getElementById('progress-bar');
+        const timeLeftDisplay = document.getElementById('time-left-display');
+        const epgList = document.getElementById('epg-list');
+
+        let channels = [];
+        let currentChannelIndex = 0;
+        let player = null; // Stores the current YouTube player or HTML5 video element
+        let hls = null;    // Stores the HLS.js instance for M3U8 streams
+        let playbackStarted = false; // Flag to indicate if user has initiated playback
+        let progressInterval = null; // Interval for updating progress bar
+
+        // Constants for localStorage keys
+        const LAST_PLAYED_CHANNEL_KEY = 'lastPlayedChannelIndex';
+        const LAST_PLAYED_TIME_KEY = 'lastPlayedTime';
+        const LAST_PLAYED_TYPE_KEY = 'lastPlayedChannelType';
+
+        // --- Utility Functions ---
+
+        /**
+         * Fetches the channels.json file from the specified GitHub URL.
+         * @returns {Promise<Array>} A promise that resolves with an array of channel objects.
+         */
+        async function fetchChannels() {
+            try {
+                const response = await fetch(channelsGitHubUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                console.log('Channels fetched:', data);
+                return data;
+            } catch (error) {
+                console.error('Error fetching channels:', error);
+                // Provide a fallback or user message if channels cannot be loaded
+                const messageBox = document.createElement('div');
+                messageBox.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-800 text-white p-6 rounded-lg shadow-lg z-50 text-center';
+                messageBox.innerHTML = '<p>Failed to load channels. Please check the GitHub URL and your network connection.</p><button onclick="this.parentNode.remove()" class="mt-4 px-4 py-2 bg-red-600 rounded">Close</button>';
+                document.body.appendChild(messageBox);
+                return [];
+            }
+        }
+
+        /**
+         * Saves the current playback state to localStorage.
+         * This includes the current channel index and the current playback time for YouTube videos.
+         */
+        function savePlaybackState() {
+            localStorage.setItem(LAST_PLAYED_CHANNEL_KEY, currentChannelIndex);
+            if (channels[currentChannelIndex]?.type === 'youtube' && player && typeof player.getCurrentTime === 'function') {
+                localStorage.setItem(LAST_PLAYED_TIME_KEY, player.getCurrentTime());
+            } else {
+                localStorage.removeItem(LAST_PLAYED_TIME_KEY); // Clear if not YouTube VOD
+            }
+            localStorage.setItem(LAST_PLAYED_TYPE_KEY, channels[currentChannelIndex]?.type || '');
+            console.log('Playback state saved:', {
+                index: currentChannelIndex,
+                time: localStorage.getItem(LAST_PLAYED_TIME_KEY),
+                type: localStorage.getItem(LAST_PLAYED_TYPE_KEY)
+            });
+        }
+
+        /**
+         * Loads the saved playback state from localStorage.
+         * @returns {object|null} An object containing the index and time, or null if no state is found.
+         */
+        function loadPlaybackState() {
+            const savedIndex = localStorage.getItem(LAST_PLAYED_CHANNEL_KEY);
+            const savedTime = localStorage.getItem(LAST_PLAYED_TIME_KEY);
+            const savedType = localStorage.getItem(LAST_PLAYED_TYPE_KEY);
+
+            if (savedIndex !== null && savedIndex >= 0 && savedIndex < channels.length) {
+                console.log('Loaded playback state:', { index: savedIndex, time: savedTime, type: savedType });
+                return {
+                    index: parseInt(savedIndex, 10),
+                    time: parseFloat(savedTime) || 0,
+                    type: savedType
+                };
+            }
+            return null;
+        }
+
+        /**
+         * Destroys the current player instance (YouTube or HLS.js video).
+         */
+        function destroyCurrentPlayer() {
+            clearInterval(progressInterval); // Clear any active progress interval
+            if (player) {
+                if (typeof player.destroy === 'function') { // YouTube player
+                    player.destroy();
+                } else if (player.parentNode) { // HTML5 video element
+                    player.parentNode.removeChild(player);
+                }
+                player = null;
+            }
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+            playerContainer.innerHTML = ''; // Clear container content
+            // Re-add the overlay after clearing the player
+            playerContainer.appendChild(playOverlay);
+            playOverlay.classList.remove('hidden'); // Ensure overlay is visible if needed
+            playerContainer.appendChild(scrollingTextContainer); // Re-add scrolling text container
+            scrollingTextContainer.classList.add('hidden'); // Hide until playing
+            console.log('Current player destroyed.');
+        }
+
+        /**
+         * Loads and plays a specific channel.
+         * @param {object} channel - The channel object to play.
+         * @param {number} startTime - The time in seconds to start playback from (for YouTube VOD).
+         */
+        function loadChannel(channel, startTime = 0) {
+            destroyCurrentPlayer(); // Clean up existing player
+
+            const channelId = `player-${Date.now()}`; // Unique ID for the player element
+            let newPlayerElement;
+
+            nowPlayingTitle.textContent = `Now Playing: ${channel.name || 'Unknown Channel'}`;
+            viewerCountDisplay.textContent = `Viewers: ${Math.floor(Math.random() * 500) + 100}`; // Mock viewer count
+            scrollingTextContent.textContent = `Now Playing: ${channel.name || channel.url} | Enjoy your favorite shows 24/7! | New content added daily!`;
+            scrollingTextContainer.classList.remove('hidden'); // Show scrolling text
+
+            if (channel.type === 'youtube' || channel.type === 'youtube_live') {
+                newPlayerElement = document.createElement('div');
+                newPlayerElement.id = channelId;
+                playerContainer.appendChild(newPlayerElement);
+
+                // For YouTube videos/live streams
+                player = new YT.Player(channelId, {
+                    videoId: getYouTubeVideoId(channel.url),
+                    playerVars: {
+                        autoplay: playbackStarted ? 1 : 0, // Autoplay only after initial user interaction
+                        controls: 0,    // Remove controls (and seek bar)
+                        disablekb: 1,   // Disable keyboard controls
+                        fs: 0,          // Disable fullscreen button
+                        modestbranding: 1, // Remove YouTube logo for cleaner look
+                        rel: 0,         // Do not show related videos
+                        showinfo: 0,    // Hide video title and uploader info
+                        loop: 0,        // Handled by JS
+                        start: startTime // Set start time for VOD
+                    },
+                    events: {
+                        'onReady': (event) => {
+                            console.log('YouTube player ready:', event.target);
+                            if (playbackStarted) {
+                                event.target.playVideo();
+                            }
+                            // Ensure fullscreen is disabled by trying to remove the button if it appears
+                            const fullscreenButton = playerContainer.querySelector('.ytp-fullscreen-button');
+                            if (fullscreenButton) {
+                                fullscreenButton.style.display = 'none';
+                            }
+                        },
+                        'onStateChange': (event) => {
+                            // YT.PlayerState.ENDED is 0
+                            if (event.data === YT.PlayerState.ENDED) {
+                                console.log('YouTube video ended. Playing next channel.');
+                                savePlaybackState(); // Save current state before moving to next
+                                playNextChannel();
+                            } else if (event.data === YT.PlayerState.PLAYING) {
+                                console.log('YouTube video playing.');
+                                // Update progress bar only for VODs
+                                if (channel.type === 'youtube') {
+                                    clearInterval(progressInterval); // Clear any previous interval
+                                    progressInterval = setInterval(updateProgressBar, 1000); // Update every second
+                                } else {
+                                    // For live streams, show "LIVE"
+                                    progressBar.style.width = '100%'; // Full bar indicates live
+                                    timeLeftDisplay.textContent = 'LIVE';
+                                }
+                            } else if (event.data === YT.PlayerState.PAUSED) {
+                                console.log('YouTube video paused.');
+                                clearInterval(progressInterval);
+                            }
+                        },
+                        'onError': (event) => {
+                            console.error('YouTube player error:', event);
+                            // Try next channel on error
+                            playNextChannel();
+                        }
+                    }
+                });
+                console.log(`Loading YouTube channel: ${channel.url}`);
+
+            } else if (channel.type === 'm3u8') {
+                newPlayerElement = document.createElement('video');
+                newPlayerElement.id = channelId;
+                newPlayerElement.className = 'w-full h-full';
+                newPlayerElement.autoplay = playbackStarted ? true : false;
+                newPlayerElement.controls = false; // Disable controls including seek bar and fullscreen button
+                newPlayerElement.setAttribute('playsinline', ''); // Important for iOS
+                playerContainer.appendChild(newPlayerElement);
+                player = newPlayerElement; // Assign the video element to 'player'
+
+                if (Hls.isSupported()) {
+                    hls = new Hls();
+                    hls.loadSource(channel.url);
+                    hls.attachMedia(newPlayerElement);
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        console.log('HLS manifest parsed. Video ready.');
+                        if (playbackStarted) {
+                            newPlayerElement.play().catch(e => console.error("Error playing HLS video:", e));
+                        }
+                    });
+                    hls.on(Hls.Events.ERROR, (event, data) => {
+                        console.error('HLS.js error:', data);
+                        if (data.fatal) {
+                            switch (data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    console.log('Fatal network error encountered, trying to recover...');
+                                    hls.startLoad();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    console.log('Fatal media error encountered, trying to recover...');
+                                    hls.recoverMediaError();
+                                    break;
+                                default:
+                                    // Cannot recover
+                                    hls.destroy();
+                                    playNextChannel(); // Try next channel
+                                    break;
+                            }
+                        }
+                    });
+                } else if (newPlayerElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Native HLS support (Safari)
+                    newPlayerElement.src = channel.url;
+                    if (playbackStarted) {
+                        newPlayerElement.play().catch(e => console.error("Error playing native HLS video:", e));
+                    }
+                } else {
+                    console.error('HLS is not supported in this browser and native playback is not available.');
+                    const messageBox = document.createElement('div');
+                    messageBox.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-800 text-white p-6 rounded-lg shadow-lg z-50 text-center';
+                    messageBox.innerHTML = '<p>Your browser does not support HLS video streams.</p><button onclick="this.parentNode.remove()" class="mt-4 px-4 py-2 bg-red-600 rounded">Close</button>';
+                    document.body.appendChild(messageBox);
+                    playNextChannel(); // Try next channel
+                }
+
+                // For M3U8 (typically live), progress bar indicates LIVE
+                progressBar.style.width = '100%'; // Full bar indicates live
+                timeLeftDisplay.textContent = 'LIVE';
+                clearInterval(progressInterval); // Ensure no interval is running for live streams
+
+                // Listen for 'ended' event on native video element for M3U8
+                newPlayerElement.addEventListener('ended', () => {
+                    console.log('M3U8 stream ended. Playing next channel.');
+                    playNextChannel();
+                });
+                console.log(`Loading M3U8 channel: ${channel.url}`);
+            } else {
+                console.warn('Unsupported channel type:', channel.type);
+                playNextChannel(); // Skip unsupported type
+            }
+            savePlaybackState(); // Save the state for the newly loaded channel
+        }
+
+        /**
+         * Plays the channel at the currentChannelIndex.
+         * If a saved state exists, it attempts to resume from that point.
+         */
+        function playCurrentChannel() {
+            if (channels.length === 0) {
+                nowPlayingTitle.textContent = "No channels loaded.";
+                viewerCountDisplay.textContent = "Viewers: N/A";
+                epgList.innerHTML = '<p class="text-gray-400">No schedule available.</p>';
+                console.warn('No channels loaded.');
+                return;
+            }
+
+            const savedState = loadPlaybackState();
+            let startTime = 0;
+            let targetIndex = currentChannelIndex;
+
+            if (savedState) {
+                // Check if the saved channel is still valid and if its type matches
+                // For YouTube VOD, also check if it's the same video ID to resume time accurately
+                const savedChannel = channels[savedState.index];
+                const currentChannel = channels[currentChannelIndex];
+                const isYouTubeVODAndSameVideo = savedState.type === 'youtube' && savedChannel && currentChannel &&
+                                                 getYouTubeVideoId(savedChannel.url) === getYouTubeVideoId(currentChannel.url);
+
+                if (savedState.index < channels.length && savedState.type === channels[savedState.index].type && (savedState.type !== 'youtube' || isYouTubeVODAndSameVideo)) {
+                    targetIndex = savedState.index;
+                    currentChannelIndex = targetIndex; // Update global index
+                    if (channels[targetIndex].type === 'youtube') {
+                        startTime = savedState.time;
+                        console.log(`Resuming YouTube channel at index ${targetIndex} from ${startTime} seconds.`);
+                    } else {
+                        // For M3U8 (live streams), resume time is typically not applicable
+                        console.log(`Loading M3U8 live stream at index ${targetIndex}. Resume time ignored.`);
+                    }
+                } else {
+                    console.log('Saved channel is invalid, type mismatch, or different YouTube video. Starting from beginning or current channel index.');
+                    // If the saved state is invalid, we proceed with the default currentChannelIndex (0 or what was set initially)
+                }
+            }
+
+            const channelToPlay = channels[currentChannelIndex];
+            if (channelToPlay) {
+                loadChannel(channelToPlay, startTime);
+            } else {
+                console.error('No channel found at current index:', currentChannelIndex);
+                // Reset to first channel if index is out of bounds
+                currentChannelIndex = 0;
+                playNextChannel(); // This will try to play the first channel
+            }
+        }
+
+        /**
+         * Switches to the next channel in the playlist and plays it.
+         * Loops back to the beginning if at the end of the list.
+         */
+        function playNextChannel() {
+            currentChannelIndex = (currentChannelIndex + 1) % channels.length;
+            console.log('Playing next channel. New index:', currentChannelIndex);
+            playCurrentChannel();
+            updateEPGDisplay(currentChannelIndex); // Update EPG to highlight current/next
+        }
+
+        /**
+         * Extracts YouTube video ID from a given URL.
+         * @param {string} url - The YouTube video URL.
+         * @returns {string|null} The video ID or null if not found.
+         */
+        function getYouTubeVideoId(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|\/(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+            const match = url.match(regex);
+            return match && match[1] ? match[1] : null;
+        }
+
+        /**
+         * Updates the progress bar and time left display.
+         */
+        function updateProgressBar() {
+            if (player && typeof player.getCurrentTime === 'function' && typeof player.getDuration === 'function') {
+                const currentTime = player.getCurrentTime();
+                const duration = player.getDuration();
+
+                if (duration > 0) {
+                    const percentage = (currentTime / duration) * 100;
+                    progressBar.style.width = `${percentage}%`;
+
+                    const timeLeftSeconds = duration - currentTime;
+                    const minutes = Math.floor(timeLeftSeconds / 60);
+                    const seconds = Math.floor(timeLeftSeconds % 60);
+                    timeLeftDisplay.textContent = `Time Left: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    progressBar.style.width = '0%';
+                    timeLeftDisplay.textContent = 'LIVE'; // Or N/A for videos without duration
+                }
+            } else {
+                progressBar.style.width = '0%';
+                timeLeftDisplay.textContent = 'LIVE'; // Default for non-YouTube VOD
+            }
+        }
+
+        /**
+         * Populates the EPG section.
+         * For simplicity, this will list upcoming channels from the channels array.
+         * @param {number} highlightIndex - The index of the channel currently playing to highlight.
+         */
+        function updateEPGDisplay(highlightIndex = 0) {
+            epgList.innerHTML = ''; // Clear existing EPG
+            if (channels.length === 0) {
+                epgList.innerHTML = '<p class="text-gray-400">No schedule available.</p>';
+                return;
+            }
+
+            const now = new Date();
+            // A very simple mock for EPG times - just sequential
+            let mockHour = now.getHours();
+            let mockMinute = now.getMinutes();
+
+            for (let i = 0; i < channels.length; i++) {
+                const channel = channels[i];
+                const isCurrent = (i === highlightIndex);
+                const isNext = (i === (highlightIndex + 1) % channels.length); // Highlight the very next one
+
+                const startTime = new Date(now);
+                startTime.setHours(mockHour, mockMinute, 0, 0);
+
+                const endTime = new Date(startTime);
+                endTime.setHours(startTime.getHours() + 1); // Assume 1 hour per slot for mock
+                // Advance mock time for next entry
+                mockMinute += 30; // Every 30 minutes
+                if (mockMinute >= 60) {
+                    mockHour++;
+                    mockMinute %= 60;
+                }
+
+                const item = document.createElement('div');
+                item.className = `p-3 mb-2 rounded-lg transition duration-200 ease-in-out ${
+                    isCurrent ? 'bg-blue-600 shadow-md text-white border-l-4 border-blue-300' :
+                    isNext ? 'bg-gray-600 hover:bg-gray-500 border-l-4 border-gray-400' :
+                    'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                } cursor-pointer`;
+                item.innerHTML = `
+                    <p class="font-semibold text-lg">${channel.name || 'Unknown Program'}</p>
+                    <p class="text-sm ${isCurrent ? 'text-blue-200' : 'text-gray-400'}">${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p class="text-xs ${isCurrent ? 'text-blue-100' : 'text-gray-500'}">${isCurrent ? 'Now Playing' : 'Upcoming'}</p>
+                `;
+                item.dataset.channelIndex = i; // Store index for click handling
+                item.addEventListener('click', () => {
+                    currentChannelIndex = parseInt(item.dataset.channelIndex, 10);
+                    playbackStarted = true; // Assume interaction means playback is started
+                    playOverlay.classList.add('hidden'); // Hide overlay immediately
+                    playCurrentChannel();
+                    updateEPGDisplay(currentChannelIndex); // Re-highlight EPG
+                });
+                epgList.appendChild(item);
+            }
+        }
+
+
+        // --- Event Listeners and Initial Setup ---
+
+        // Called automatically by the YouTube Iframe API when it's ready
+        function onYouTubeIframeAPIReady() {
+            console.log('YouTube Iframe API is ready.');
+            // This function exists globally so the YouTube API can call it.
+            // We don't load the initial channel here directly, we wait for user interaction or load state.
+        }
+
+        // Initial fetch and setup when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            channels = await fetchChannels();
+            if (channels.length > 0) {
+                const savedState = loadPlaybackState();
+                if (savedState && savedState.index < channels.length) {
+                    currentChannelIndex = savedState.index;
+                } else {
+                    currentChannelIndex = 0; // Start from the first channel if no state or invalid state
+                }
+                console.log('Initial channel index set to:', currentChannelIndex);
+                updateEPGDisplay(currentChannelIndex);
+                // Initial state is just showing the overlay. Video will only load after user interaction.
+            } else {
+                console.error('No channels available to play.');
+                nowPlayingTitle.textContent = "No channels available.";
+                epgList.innerHTML = '<p class="text-gray-400">No schedule available.</p>';
+            }
+        });
+
+        // Event listener for the "Click to play" overlay
+        playOverlay.addEventListener('click', () => {
+            if (!playbackStarted) {
+                playOverlay.classList.add('hidden');
+                playbackStarted = true;
+                playCurrentChannel();
+            }
+        });
+
+        // Save playback state before user leaves page
+        window.addEventListener('beforeunload', savePlaybackState);
+    </script>
 </body>
 </html>
