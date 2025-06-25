@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="="en">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -137,9 +137,7 @@
           if (ytPlayer && ytPlayer.isMuted()) {
             muteOverlay.innerHTML = "🔇";
             muteOverlay.style.display = "block";
-            setTimeout(() => {
-              muteOverlay.style.display = "none";
-            }, 5000);
+            setTimeout(() => muteOverlay.style.display = "none", 5000);
           }
         }, 3000);
       } else if (playerType === "hls" && mediaObj) {
@@ -147,9 +145,7 @@
           if (mediaObj.muted) {
             muteOverlay.innerHTML = "🔇";
             muteOverlay.style.display = "block";
-            setTimeout(() => {
-              muteOverlay.style.display = "none";
-            }, 5000);
+            setTimeout(() => muteOverlay.style.display = "none", 5000);
           }
         });
       }
@@ -254,10 +250,27 @@
       }
     }
 
-    // YouTube API entrypoint
+    // YouTube API hook + fallback for HLS
+    let youtubeAPIReady = false;
     function onYouTubeIframeAPIReady() {
-      init();
+      youtubeAPIReady = true;
+      if (!initCalled) {
+        init();
+        initCalled = true;
+      }
     }
+
+    let initCalled = false;
+    function startApp() {
+      if (!initCalled) {
+        init();
+        initCalled = true;
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      setTimeout(startApp, 1000);
+    });
   </script>
 </body>
 </html>
