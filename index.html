@@ -13,11 +13,13 @@
       margin: 0;
       padding: 0;
     }
+
     h1 {
-      margin: 20px 0;
+      margin: 20px 0 10px;
       color: gold;
       font-size: 2em;
     }
+
     #player-container {
       width: 95%;
       max-width: 960px;
@@ -27,26 +29,92 @@
       border-radius: 12px;
       overflow: hidden;
       background: #111;
+      position: relative;
     }
+
     #videoPlayer iframe,
     #videoPlayer video {
       width: 100%;
       height: 100%;
+      border: 0;
+      display: block;
     }
+
     #nowPlaying {
-      margin: 15px 0;
+      margin: 10px 0;
       font-size: 1.2em;
       color: lightgreen;
+    }
+
+    #progressBar {
+      width: 95%;
+      max-width: 960px;
+      height: 6px;
+      margin: 4px auto 10px;
+      background: #333;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #progressFill {
+      height: 100%;
+      width: 0%;
+      background: limegreen;
+      transition: width 1s linear;
+    }
+
+    #guide {
+      width: 95%;
+      max-width: 960px;
+      margin: 10px auto 30px;
+      text-align: left;
+      font-size: 0.9em;
+      background: #111;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .guide-item {
+      padding: 4px 0;
+    }
+
+    .current {
+      color: gold;
+      font-weight: bold;
+    }
+
+    #muteOverlay {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      display: none;
+      z-index: 5;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
   <h1>MSTV NETWORK - 24/7 Channel</h1>
+
   <div id="player-container">
     <div id="videoPlayer"></div>
+    <div id="muteOverlay">🔊 Unmute</div>
   </div>
+
   <div id="nowPlaying">Loading schedule...</div>
+
+  <div id="progressBar"><div id="progressFill"></div></div>
+
+  <div id="guide"><strong>TV Guide</strong><div id="guideList"></div></div>
 
   <script>
     const CHANNELS_JSON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json";
@@ -54,9 +122,14 @@
 
     const videoPlayer = document.getElementById("videoPlayer");
     const nowPlaying = document.getElementById("nowPlaying");
+    const progressFill = document.getElementById("progressFill");
+    const guideList = document.getElementById("guideList");
+    const muteOverlay = document.getElementById("muteOverlay");
 
     let fullDayPlaylist = [];
     let slotTimer;
+    let progressTimer;
+    let currentVideoEl = null;
 
     async function fetchPlaylist() {
       const response = await fetch(CHANNELS_JSON_URL);
@@ -84,9 +157,41 @@
       };
     }
 
+    function updateProgressBar(offset) {
+      clearInterval(progressTimer);
+      function update() {
+        const nowOffset = new Date().getSeconds() % SLOT_DURATION_SECONDS;
+        const percent = (nowOffset / SLOT_DURATION_SECONDS) * 100;
+        progressFill.style.width = percent + "%";
+      }
+      update();
+      progressTimer = setInterval(update, 1000);
+    }
+
+    function updateTVGuide(currentIndex) {
+      guideList.innerHTML = "";
+      const displayCount = 10;
+      const items = fullDayPlaylist.slice(currentIndex, currentIndex + displayCount);
+      items.forEach((item, i) => {
+        const div = document.createElement("div");
+        div.className = "guide-item";
+        if (i === 0) div.classList.add("current");
+        div.textContent = `${formatTime(currentIndex + i)} — ${item.name}`;
+        guideList.appendChild(div);
+      });
+    }
+
+    function formatTime(index) {
+      const hour = Math.floor(index / 60);
+      const minute = index % 60;
+      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    }
+
     function playChannel(channel, offset) {
       nowPlaying.textContent = `Now Playing: ${channel.name}`;
       videoPlayer.innerHTML = "";
+      muteOverlay.style.display = "none";
+      currentVideoEl = null;
 
       if (channel.type === "iframe") {
         const url = channel.url.includes("?")
@@ -94,9 +199,11 @@
           : `${channel.url}?start=${offset}`;
         const iframe = document.createElement("iframe");
         iframe.src = url;
-        iframe.frameBorder = 0;
         iframe.allowFullscreen = true;
         iframe.allow = "autoplay; encrypted-media";
+        iframe.style.width = "100%";
+        iframe.style.height = "100%";
+        iframe.style.border = "0";
         videoPlayer.appendChild(iframe);
       } else if (channel.type === "hls") {
         const video = document.createElement("video");
@@ -104,6 +211,11 @@
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
+        video.style.width = "100%";
+        video.style.height = "100%";
+
+        currentVideoEl = video;
+        muteOverlay.style.display = "block";
 
         if (Hls.isSupported()) {
           const hls = new Hls();
@@ -120,25 +232,33 @@
             video.play();
           });
         } else {
-          video.innerText = "HLS not supported on this device.";
+          video.innerText = "HLS not supported.";
         }
 
-        video.style.width = "100%";
-        video.style.height = "100%";
         videoPlayer.appendChild(video);
       } else {
         nowPlaying.textContent = `Unsupported type: ${channel.type}`;
       }
+
+      updateProgressBar(offset);
     }
 
     function scheduleNextPlayback() {
       const { index, offset, timeUntilNextSlot } = getCurrentSlot();
       const channel = fullDayPlaylist[index];
       playChannel(channel, offset);
+      updateTVGuide(index);
 
       clearTimeout(slotTimer);
       slotTimer = setTimeout(scheduleNextPlayback, timeUntilNextSlot * 1000);
     }
+
+    muteOverlay.addEventListener("click", () => {
+      if (currentVideoEl) {
+        currentVideoEl.muted = !currentVideoEl.muted;
+        muteOverlay.textContent = currentVideoEl.muted ? "🔇 Unmute" : "🔊 Mute";
+      }
+    });
 
     async function init() {
       try {
