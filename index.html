@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MSTV Live Channel</title>
   <style>
     body {
@@ -13,13 +13,11 @@
       margin: 0;
       padding: 0;
     }
-
     h1 {
       margin: 20px 0;
       color: gold;
       font-size: 2em;
     }
-
     #player-container {
       width: 95%;
       max-width: 960px;
@@ -30,13 +28,11 @@
       overflow: hidden;
       background: #111;
     }
-
     #videoPlayer iframe,
     #videoPlayer video {
       width: 100%;
       height: 100%;
     }
-
     #nowPlaying {
       margin: 15px 0;
       font-size: 1.2em;
@@ -54,10 +50,13 @@
 
   <script>
     const CHANNELS_JSON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json";
-    const SLOT_DURATION_SECONDS = 60; // 1 minute per slot
+    const SLOT_DURATION_SECONDS = 60;
 
     const videoPlayer = document.getElementById("videoPlayer");
     const nowPlaying = document.getElementById("nowPlaying");
+
+    let fullDayPlaylist = [];
+    let slotTimer;
 
     async function fetchPlaylist() {
       const response = await fetch(CHANNELS_JSON_URL);
@@ -65,14 +64,23 @@
       return await response.json();
     }
 
-    function getCurrentSlotIndex(totalSlots) {
+    function generateFullDayPlaylist(base) {
+      const result = [];
+      for (let i = 0; i < 1440; i++) {
+        result.push(base[i % base.length]);
+      }
+      return result;
+    }
+
+    function getCurrentSlot() {
       const now = new Date();
       const startOfDay = new Date(now);
       startOfDay.setHours(0, 0, 0, 0);
       const elapsedSeconds = Math.floor((now - startOfDay) / 1000);
       return {
-        index: Math.floor(elapsedSeconds / SLOT_DURATION_SECONDS) % totalSlots,
-        offset: elapsedSeconds % SLOT_DURATION_SECONDS
+        index: Math.floor(elapsedSeconds / SLOT_DURATION_SECONDS) % fullDayPlaylist.length,
+        offset: elapsedSeconds % SLOT_DURATION_SECONDS,
+        timeUntilNextSlot: SLOT_DURATION_SECONDS - (elapsedSeconds % SLOT_DURATION_SECONDS)
       };
     }
 
@@ -123,22 +131,23 @@
       }
     }
 
+    function scheduleNextPlayback() {
+      const { index, offset, timeUntilNextSlot } = getCurrentSlot();
+      const channel = fullDayPlaylist[index];
+      playChannel(channel, offset);
+
+      clearTimeout(slotTimer);
+      slotTimer = setTimeout(scheduleNextPlayback, timeUntilNextSlot * 1000);
+    }
+
     async function init() {
       try {
-        const basePlaylist = await fetchPlaylist();
-
-        // Auto-generate 1440-slot full-day schedule
-        const fullDayPlaylist = [];
-        for (let i = 0; i < 1440; i++) {
-          fullDayPlaylist.push(basePlaylist[i % basePlaylist.length]);
-        }
-
-        const { index, offset } = getCurrentSlotIndex(fullDayPlaylist.length);
-        const currentChannel = fullDayPlaylist[index];
-        playChannel(currentChannel, offset);
+        const base = await fetchPlaylist();
+        fullDayPlaylist = generateFullDayPlaylist(base);
+        scheduleNextPlayback();
       } catch (error) {
         console.error(error);
-        nowPlaying.textContent = "Error loading schedule.";
+        nowPlaying.textContent = "Error loading playlist.";
       }
     }
 
