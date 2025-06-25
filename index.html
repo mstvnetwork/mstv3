@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MSTV Live Channel</title>
   <style>
     body {
@@ -30,7 +30,7 @@
       width: 95%;
       max-width: 960px;
       margin: 0 auto;
-      aspect-ratio: 16/9;
+      aspect-ratio: 16 / 9;
       border: 3px solid gold;
       border-radius: 12px;
       overflow: hidden;
@@ -63,17 +63,20 @@
       left: 0;
     }
 
-    /* Hide any default video controls */
+    /* Hide any default video controls and block interaction */
     video::-webkit-media-controls {
       display: none !important;
+      pointer-events: none !important;
     }
 
     video::-moz-media-controls {
       display: none !important;
+      pointer-events: none !important;
     }
 
     video::-ms-media-controls {
       display: none !important;
+      pointer-events: none !important;
     }
 
     #nowPlaying {
@@ -152,8 +155,12 @@
     }
 
     @keyframes scroll-left {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
+      0% {
+        transform: translateX(100%);
+      }
+      100% {
+        transform: translateX(-100%);
+      }
     }
   </style>
 
@@ -171,7 +178,9 @@
     <div id="videoPlayer"></div>
     <div id="muteOverlay">🔇 Muted</div>
     <div id="scrollingBanner">
-      <div id="scrollingText">📢 Welcome to MSTV 24/7 Channel – Enjoy nonstop YouTube, HLS, and more… Stay tuned!</div>
+      <div id="scrollingText">
+        📢 Welcome to MSTV 24/7 Channel – Enjoy nonstop YouTube, HLS, and more… Stay tuned!
+      </div>
     </div>
   </div>
 
@@ -180,7 +189,8 @@
   <div id="guide"><strong>TV Guide</strong><div id="guideList"></div></div>
 
   <script>
-    const CHANNELS_JSON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json";
+    const CHANNELS_JSON_URL =
+      "https://raw.githubusercontent.com/mstvnetwork/mstv3/refs/heads/main/channels.json";
     const SLOT_DURATION_SECONDS = 60;
 
     const videoPlayer = document.getElementById("videoPlayer");
@@ -199,9 +209,11 @@
 
     function updateClock() {
       const now = new Date().toLocaleTimeString("en-AU", {
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
         hour12: false,
-        timeZone: 'Australia/Melbourne'
+        timeZone: "Australia/Melbourne",
       });
       clock.textContent = now;
     }
@@ -239,7 +251,7 @@
       return {
         index: Math.floor(elapsedSeconds / SLOT_DURATION_SECONDS) % fullDayPlaylist.length,
         offset: elapsedSeconds % SLOT_DURATION_SECONDS,
-        timeUntilNextSlot: SLOT_DURATION_SECONDS - (elapsedSeconds % SLOT_DURATION_SECONDS)
+        timeUntilNextSlot: SLOT_DURATION_SECONDS - (elapsedSeconds % SLOT_DURATION_SECONDS),
       };
     }
 
@@ -258,7 +270,7 @@
     function formatTime(index) {
       const hour = Math.floor(index / 60);
       const minute = index % 60;
-      return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
     }
 
     function extractYouTubeID(url) {
@@ -280,17 +292,17 @@
         if (videoId) {
           nextYouTubeId = videoId;
           if (typeof YT !== "undefined" && YT.Player) {
-            ytPlayer = new YT.Player('videoPlayer', {
+            ytPlayer = new YT.Player("videoPlayer", {
               videoId,
               playerVars: {
                 autoplay: 1,
                 start: offset,
                 controls: 1,
-                mute: 1
+                mute: 1,
               },
               events: {
-                onReady: () => ytPlayer.mute()
-              }
+                onReady: () => ytPlayer.mute(),
+              },
             });
           }
         } else {
@@ -298,7 +310,7 @@
         }
       } else if (channel.type === "hls") {
         const video = document.createElement("video");
-        // Removed controls to hide seek bar
+        // NO CONTROLS ATTRIBUTE!
         video.autoplay = true;
         video.muted = true;
         video.playsInline = true;
@@ -356,16 +368,16 @@
 
     function onYouTubeIframeAPIReady() {
       if (nextYouTubeId) {
-        ytPlayer = new YT.Player('videoPlayer', {
+        ytPlayer = new YT.Player("videoPlayer", {
           videoId: nextYouTubeId,
           playerVars: {
             autoplay: 1,
             controls: 1,
-            mute: 1
+            mute: 1,
           },
           events: {
-            onReady: () => ytPlayer.mute()
-          }
+            onReady: () => ytPlayer.mute(),
+          },
         });
       }
     }
