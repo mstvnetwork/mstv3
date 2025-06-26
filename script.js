@@ -1,51 +1,96 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>24h Live Broadcast</title>
-<style>
-  body, html {
-    margin: 0; padding: 0; height: 100%;
-    background: black;
-    overflow: hidden;
-  }
-  #video-player {
-    width: 100vw;
-    height: 100vh;
-    background: black;
-  }
-  /* Scrolling text at bottom */
-  #scrolling-text {
-    position: absolute;
-    bottom: 0;
-    width: 100vw;
-    background: red;
-    color: white;
-    font-weight: bold;
-    padding: 5px 10px;
-    overflow: hidden;
-    white-space: nowrap;
-    box-sizing: border-box;
-  }
-  #scrolling-text span {
-    display: inline-block;
-    padding-left: 100%;
-    animation: scroll-left 15s linear infinite;
-  }
-  @keyframes scroll-left {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-100%); }
-  }
-</style>
-</head>
-<body>
+let player;
+let channels = [];
 
-<div id="video-player"></div>
-<div id="scrolling-text"><span>Welcome to MSTV Network — Your 24h Live Broadcast Channel</span></div>
+async function loadChannels() {
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/mstvnetwork/mstv3/main/channels.json');
+    if (!res.ok) {
+      console.error('Failed to load channels.json from GitHub:', res.status);
+      return;
+    }
+    channels = await res.json();
 
-<script src="https://www.youtube.com/iframe_api"></script>
-<script src="script.js"></script>
+    const now = new Date();
+    const secondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const currentSlot = Math.floor(secondsToday / 50);
 
-</body>
-</html>
+    const videoIndex = currentSlot % channels.length;
+    const currentVideo = channels[videoIndex];
+    const elapsedInSlot = secondsToday % 50;
+
+    initPlayer(currentVideo.url, elapsedInSlot);
+  } catch (err) {
+    console.error('Error loading channels:', err);
+  }
+}
+
+function initPlayer(videoUrl, startSeconds) {
+  if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
+    let videoId = null;
+    try {
+      if(videoUrl.includes("v=")) {
+        videoId = new URL(videoUrl).searchParams.get("v");
+      } else {
+        const parts = videoUrl.split("/");
+        videoId = parts[parts.length - 1];
+      }
+    } catch {
+      console.error("Invalid YouTube URL:", videoUrl);
+      return;
+    }
+    if(!videoId) {
+      console.error("YouTube videoId extraction failed:", videoUrl);
+      return;
+    }
+
+    if(player) {
+      player.destroy();
+    }
+
+    player = new YT.Player('video-player', {
+      videoId: videoId,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        disablekb: 1,
+        modestbranding: 1,
+        start: startSeconds,
+        fs: 0,
+        mute: 1
+      },
+      events: {
+        onReady: (e) => e.target.playVideo(),
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.ENDED) {
+            loadChannels();
+          }
+        }
+      }
+    });
+  } else if (videoUrl.endsWith(".m3u8")) {
+    loadHLS(videoUrl);
+  } else {
+    console.error("Unsupported video URL format:", videoUrl);
+  }
+}
+
+function loadHLS(streamUrl) {
+  const container = document.getElementById("video-player");
+  const video = document.createElement("video");
+  video.src = streamUrl;
+  video.controls = false;
+  video.autoplay = true;
+  video.muted = true;
+  video.style.width = "100%";
+  video.style.height = "100%";
+  container.innerHTML = '';
+  container.appendChild(video);
+
+  video.play().catch(e => console.error("HLS video play error:", e));
+
+  setTimeout(() => {
+    loadChannels();
+  }, 50000);
+}
+
+window.onYouTubeIframeAPIReady = loadChannels;
