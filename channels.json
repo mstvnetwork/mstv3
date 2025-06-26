@@ -1,18 +1,16 @@
-[
-  {
-    "title": "Clip 1 (YouTube)",
-    "url": "https://www.youtube.com/watch?v=abc123XYZ"
-  },
-  {
-    "title": "Clip 2 (YouTube)",
-    "url": "https://www.youtube.com/watch?v=def456UVW"
-  },
-  {
-    "title": "Big Buck Bunny (HLS)",
-    "url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
-  },
-  {
-    "title": "Clip 3 (YouTube)",
-    "url": "https://www.youtube.com/watch?v=ghi789RST"
-  }
-]
+{
+  "channels": [
+    {
+      "name": "Channel Name 1",
+      "url": "https://youtube.com/watch?v=VIDEO_ID",
+      "type": "youtube",
+      "duration": 300
+    },
+    {
+      "name": "Live Stream",
+      "url": "https://example.com/stream.m3u8",
+      "type": "stream",
+      "duration": 600
+    }
+  ]
+}
