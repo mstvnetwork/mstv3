@@ -2,100 +2,124 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MSTV 24/7 YouTube Channel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>MSTV Network</title>
+  <meta name="description" content="Watch MSTV Network - Live streaming of YouTube videos in 24/7 TV format." />
+  <meta name="keywords" content="MSTV, Live TV, YouTube stream, MSTV Network, 24/7, continuous playlist, autoplay" />
+  <meta name="robots" content="index, follow" />
+  <meta property="og:title" content="MSTV Network - Live YouTube TV" />
+  <meta property="og:description" content="Watch MSTV Network with live scheduled videos playing 24/7 in a TV-like format." />
+  <meta property="og:image" content="https://raw.githubusercontent.com/mstvnetwork/mstv/main/logo.img/mstv_logo.png" />
+  <meta property="og:url" content="https://mstvnet.netlify.app/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="MSTV Network - Live YouTube TV" />
+  <meta name="twitter:description" content="Live YouTube-based scheduled stream experience. Auto-play in sequence. TV guide included." />
+  <meta name="twitter:image" content="https://raw.githubusercontent.com/mstvnetwork/mstv/main/logo.img/mstv_logo.png" />
+
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6MHRH7TE5Y"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-6MHRH7TE5Y');
+  </script>
+
   <style>
     body {
       margin: 0;
-      background: #111;
+      background: #000;
+      font-family: 'Poppins', sans-serif;
       color: #fff;
-      font-family: Arial, sans-serif;
       text-align: center;
     }
-    h1 {
-      margin: 20px 0;
-      color: #00ffe7;
-    }
+
     .player-wrapper {
-      width: 95%;
-      max-width: 960px;
-      margin: auto;
       position: relative;
-    }
-    #ytPlayer {
       width: 100%;
+      max-width: 960px;
       aspect-ratio: 16 / 9;
+      margin: 20px auto;
+      background: #000;
+      border: 3px solid #00ffe7;
       border-radius: 12px;
       overflow: hidden;
-      position: relative;
-      z-index: 1;
+      box-shadow: 0 0 20px #00ffe7;
     }
-    #ytPlayer iframe {
-      pointer-events: none !important;
-    }
-    #click-blocker {
+
+    #ytPlayer {
       position: absolute;
-      top: 0;
-      left: 0;
       width: 100%;
       height: 100%;
-      z-index: 9999;
-      background: rgba(0, 0, 0, 0.6);
+    }
+
+    #click-blocker {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 10;
+      background: rgba(0, 0, 0, 0.85);
+      color: #00ffe7;
+      font-size: 1.5em;
+      font-weight: bold;
       display: flex;
       align-items: center;
       justify-content: center;
+      text-align: center;
+      padding: 20px;
       cursor: pointer;
-      font-size: 1.4em;
-      font-weight: bold;
-      color: #ffcc00;
-      transition: opacity 0.3s ease;
     }
-    #click-blocker:hover {
-      background: rgba(0, 0, 0, 0.75);
-    }
+
     .logo-overlay {
       position: absolute;
       bottom: 10px;
       right: 10px;
       width: 60px;
-      z-index: 10;
-      opacity: 0.85;
+      opacity: 0.9;
+      z-index: 5;
     }
-    .now-playing {
+
+    #nowPlaying {
       font-size: 1.2em;
-      color: #ffcc00;
       margin-top: 10px;
+      color: #ffcc00;
     }
-    .tv-guide {
-      margin-top: 20px;
+
+    #tvGuide {
+      margin: 20px auto;
       overflow-x: auto;
       white-space: nowrap;
-      background: #222;
+      max-width: 960px;
       padding: 10px;
-      border-top: 2px solid #00ffe7;
-      border-bottom: 2px solid #00ffe7;
+      background: rgba(255, 255, 255, 0.05);
+      border-top: 2px solid #0ff;
+      border-bottom: 2px solid #0ff;
     }
+
     .guide-item {
       display: inline-block;
-      padding: 0 20px;
-      font-size: 0.95em;
-      color: #0ff;
+      margin: 0 20px;
+      font-size: 1em;
+      color: #00ffe7;
     }
   </style>
-  <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
-  <h1>MSTV 24/7 YouTube Channel</h1>
+  <h1 style="color: #00ffe7; margin-top: 20px;">MSTV NETWORK - 24/7 LIVE</h1>
 
   <div class="player-wrapper">
     <div id="ytPlayer"></div>
-    <div id="click-blocker">🔊 Tap to Unmute</div>
-    <img src="logo.img/mstv_logo.png" alt="MSTV Logo" class="logo-overlay" />
+    <div id="click-blocker">🎬 Click here to watch live</div>
+    <img src="https://raw.githubusercontent.com/mstvnetwork/mstv/main/logo.img/mstv_logo.png" class="logo-overlay" alt="MSTV Logo" />
   </div>
 
-  <div class="now-playing" id="nowPlaying">Loading...</div>
-  <div class="tv-guide" id="tvGuide">Loading guide...</div>
+  <div id="nowPlaying">Loading...</div>
 
+  <div id="tvGuide">Loading TV Guide...</div>
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script src="script.js"></script>
 </body>
 </html>
