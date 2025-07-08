@@ -30,8 +30,9 @@
       aspect-ratio: 16 / 9;
       border: none;
       border-radius: 12px;
-      pointer-events: none; /* Disable interaction */
-      touch-action: none;
+      /* Disable pointer events on iframe */
+      pointer-events: none !important;
+      touch-action: none !important;
     }
 
     .unmute-overlay {
@@ -46,7 +47,7 @@
       align-items: center;
       justify-content: center;
       font-size: 1.2em;
-      z-index: 2;
+      z-index: 9999 !important;
       cursor: pointer;
       user-select: none;
     }
