@@ -21,9 +21,8 @@ function totalDuration(list) {
 
 function selectCurrentVideo() {
   const now = new Date();
-  const melOffset = 10 * 60; // Melbourne UTC+10 offset in minutes
+  const melOffset = 10 * 60;
   let minutesNow = now.getUTCHours() * 60 + now.getUTCMinutes() + melOffset;
-  // Fix overflow past midnight
   minutesNow = minutesNow % totalDuration(playlist);
 
   let elapsed = 0;
@@ -107,7 +106,6 @@ function loadYouTubePlayer() {
             document.getElementById("click-blocker").style.display = "none";
           }
           if (event.data === YT.PlayerState.ENDED) {
-            // Play next video in playlist loop
             currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
             currentVideo = playlist[currentVideoIndex];
             updateNowPlaying();
@@ -136,19 +134,17 @@ function savePlaybackTime() {
 }
 
 function extractVideoId(url) {
-  // Extract YouTube video ID from embed URL
   const match = url.match(/embed\/([a-zA-Z0-9_-]+)/);
   return match ? match[1] : "";
 }
 
-// Unmute overlay click triggers
 document.getElementById("click-blocker").addEventListener("click", () => {
   try {
     player.unMute();
     player.setVolume(100);
     document.getElementById("click-blocker").style.display = "none";
   } catch (e) {
-    // Ignore errors
+    // ignore
   }
 });
 
