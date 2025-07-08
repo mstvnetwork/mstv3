@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MSTV 24/7 YouTube Channel</title>
   <style>
     body {
@@ -12,65 +12,48 @@
       font-family: Arial, sans-serif;
       text-align: center;
     }
-
     h1 {
       margin: 20px 0;
       color: #00ffe7;
     }
-
     .player-wrapper {
       width: 95%;
       max-width: 960px;
       margin: auto;
       position: relative;
     }
-
     #ytPlayer {
       width: 100%;
       aspect-ratio: 16 / 9;
-      border: none;
       border-radius: 12px;
-      /* Disable pointer events on iframe */
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+    #ytPlayer iframe {
       pointer-events: none !important;
-      touch-action: none !important;
     }
-
-    .unmute-overlay {
+    #click-blocker {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      background: rgba(0, 0, 0, 0.6);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2em;
-      z-index: 9999 !important;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 9999;
       cursor: pointer;
-      user-select: none;
+      background: transparent;
     }
-
-    .unmute-overlay.hidden {
-      display: none;
-    }
-
     .logo-overlay {
       position: absolute;
       bottom: 10px;
       right: 10px;
       width: 60px;
-      z-index: 3;
+      z-index: 10;
       opacity: 0.85;
     }
-
     .now-playing {
       font-size: 1.2em;
       color: #ffcc00;
       margin-top: 10px;
     }
-
     .tv-guide {
       margin-top: 20px;
       overflow-x: auto;
@@ -80,7 +63,6 @@
       border-top: 2px solid #00ffe7;
       border-bottom: 2px solid #00ffe7;
     }
-
     .guide-item {
       display: inline-block;
       padding: 0 20px;
@@ -89,7 +71,6 @@
     }
   </style>
 
-  <!-- YouTube API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
@@ -97,7 +78,7 @@
 
   <div class="player-wrapper">
     <div id="ytPlayer"></div>
-    <div class="unmute-overlay" id="unmuteOverlay">🔊 Tap to Unmute</div>
+    <div id="click-blocker" title="Tap to unmute"></div>
     <img src="logo.img/mstv_logo.png" alt="MSTV Logo" class="logo-overlay" />
   </div>
 
