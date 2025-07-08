@@ -4,7 +4,6 @@ let currentVideoIndex = 0;
 let player = null;
 const STORAGE_KEY = "mstv_last_play_time";
 
-// Load the playlist JSON
 async function loadPlaylist() {
   try {
     const res = await fetch("playlist.json");
@@ -16,7 +15,6 @@ async function loadPlaylist() {
   }
 }
 
-// Total duration in minutes
 function totalDuration(list) {
   return list.reduce((sum, item) => sum + item.duration, 0);
 }
@@ -24,17 +22,18 @@ function totalDuration(list) {
 function selectCurrentVideo() {
   const now = new Date();
   const melOffset = 10 * 60; // Melbourne UTC+10 offset in minutes
-  const minutesNow = now.getUTCHours() * 60 + now.getUTCMinutes() + melOffset;
-  const dayMinutes = minutesNow % totalDuration(playlist);
+  let minutesNow = now.getUTCHours() * 60 + now.getUTCMinutes() + melOffset;
+  // Fix overflow past midnight
+  minutesNow = minutesNow % totalDuration(playlist);
 
   let elapsed = 0;
 
   for (let i = 0; i < playlist.length; i++) {
     const item = playlist[i];
-    if (dayMinutes >= elapsed && dayMinutes < elapsed + item.duration) {
+    if (minutesNow >= elapsed && minutesNow < elapsed + item.duration) {
       currentVideo = item;
       currentVideoIndex = i;
-      currentVideo.startOffset = (dayMinutes - elapsed) * 60;
+      currentVideo.startOffset = (minutesNow - elapsed) * 60;
       break;
     }
     elapsed += item.duration;
@@ -92,9 +91,10 @@ function loadYouTubePlayer() {
         modestbranding: 1,
         disablekb: 1,
         fs: 0,
-        rel: 0,              // No related videos
+        rel: 0,
         showinfo: 0,
         iv_load_policy: 3,
+        origin: window.location.origin,
         start: savedTime || 0
       },
       events: {
@@ -104,7 +104,15 @@ function loadYouTubePlayer() {
             player.unMute();
             player.setVolume(100);
             savePlaybackTime();
-            document.getElementById("unmuteOverlay").classList.add("hidden");
+            document.getElementById("click-blocker").style.display = "none";
+          }
+          if (event.data === YT.PlayerState.ENDED) {
+            // Play next video in playlist loop
+            currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
+            currentVideo = playlist[currentVideoIndex];
+            updateNowPlaying();
+            player.loadVideoById(currentVideo.url.split("embed/")[1], 0);
+            document.getElementById("click-blocker").style.display = "block";
           }
         }
       }
@@ -112,7 +120,6 @@ function loadYouTubePlayer() {
   }
 }
 
-// Save playback time every 5 seconds
 function savePlaybackTime() {
   setInterval(() => {
     if (player && typeof player.getCurrentTime === "function") {
@@ -129,22 +136,22 @@ function savePlaybackTime() {
 }
 
 function extractVideoId(url) {
-  const match = url.match(/\/embed\/([a-zA-Z0-9_-]+)/);
+  // Extract YouTube video ID from embed URL
+  const match = url.match(/embed\/([a-zA-Z0-9_-]+)/);
   return match ? match[1] : "";
 }
 
-// Unmute overlay for mobile tap
-document.getElementById("unmuteOverlay").addEventListener("click", () => {
+// Unmute overlay click triggers
+document.getElementById("click-blocker").addEventListener("click", () => {
   try {
     player.unMute();
     player.setVolume(100);
-    document.getElementById("unmuteOverlay").classList.add("hidden");
+    document.getElementById("click-blocker").style.display = "none";
   } catch (e) {
     // Ignore errors
   }
 });
 
-// YouTube API ready
 window.onYouTubeIframeAPIReady = function () {
   if (playlist.length > 0) {
     selectCurrentVideo();
