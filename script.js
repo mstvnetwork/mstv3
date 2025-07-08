@@ -84,7 +84,7 @@ function loadYouTubePlayer() {
     player = new YT.Player("ytPlayer", {
       videoId: videoId,
       playerVars: {
-        autoplay: 1,
+        autoplay: 0,
         mute: 1,
         controls: 0,
         modestbranding: 1,
@@ -100,10 +100,7 @@ function loadYouTubePlayer() {
         onReady: () => {},
         onStateChange: (event) => {
           if (event.data === YT.PlayerState.PLAYING) {
-            player.unMute();
-            player.setVolume(100);
-            savePlaybackTime();
-            document.getElementById("click-blocker").style.display = "none";
+            savePlaybackTime(); // Only save; don't hide overlay
           }
           if (event.data === YT.PlayerState.ENDED) {
             currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
@@ -142,9 +139,10 @@ document.getElementById("click-blocker").addEventListener("click", () => {
   try {
     player.unMute();
     player.setVolume(100);
+    player.playVideo();
     document.getElementById("click-blocker").style.display = "none";
   } catch (e) {
-    // ignore
+    console.warn("Unmute failed", e);
   }
 });
 
