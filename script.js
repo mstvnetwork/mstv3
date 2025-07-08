@@ -1,58 +1,119 @@
-async function loadSchedule() {
-  const res = await fetch("playlist.json");
-  const playlist = await res.json();
+let playlist = [];
+let currentVideo = null;
+let player;
+let currentVideoIndex = 0;
+const STORAGE_KEY = "mstv_last_play_time";
 
+async function loadPlaylist() {
+  const res = await fetch("playlist.json");
+  playlist = await res.json();
+  selectCurrentVideo();
+}
+
+// Select video based on time
+function selectCurrentVideo() {
   const now = new Date();
   const melbourneOffset = 10 * 60; // Melbourne UTC+10
   const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes() + melbourneOffset;
-  const timeInDay = currentMinutes % totalDuration(playlist);
 
+  const loopMinutes = currentMinutes % totalDuration(playlist);
   let elapsed = 0;
-  let currentItem = null;
-  let startMinute = 0;
 
-  for (const item of playlist) {
-    if (timeInDay >= elapsed && timeInDay < elapsed + item.duration) {
-      currentItem = item;
-      startMinute = elapsed;
+  for (let i = 0; i < playlist.length; i++) {
+    const item = playlist[i];
+    if (loopMinutes >= elapsed && loopMinutes < elapsed + item.duration) {
+      currentVideo = item;
+      currentVideoIndex = i;
+      currentVideo.startOffset = loopMinutes - elapsed;
       break;
     }
     elapsed += item.duration;
   }
 
-  const player = document.getElementById("ytPlayer");
-  const title = document.getElementById("nowPlaying");
-
-  if (currentItem) {
-    player.src = currentItem.url + "?autoplay=1&mute=1";
-    title.textContent = `Now Playing: ${currentItem.title}`;
-  } else {
-    player.src = "";
-    title.textContent = "Off Air";
+  updateNowPlaying();
+  if (typeof YT !== "undefined" && YT.Player) {
+    loadYouTubePlayer();
   }
-
-  generateGuide(playlist);
 }
 
 function totalDuration(list) {
   return list.reduce((sum, item) => sum + item.duration, 0);
 }
 
-function generateGuide(playlist) {
+function updateNowPlaying() {
+  const title = document.getElementById("nowPlaying");
+  title.textContent = currentVideo ? `Now Playing: ${currentVideo.title}` : "Off Air";
+}
+
+function generateGuide() {
   const guide = document.getElementById("tvGuide");
   let clock = 0;
-  let content = "";
+  let html = "";
 
   playlist.forEach(item => {
-    let hrs = Math.floor(clock / 60);
-    let mins = clock % 60;
-    let label = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-    content += `<span class="guide-item">${label} - ${item.title}</span>`;
+    const hrs = String(Math.floor(clock / 60)).padStart(2, "0");
+    const mins = String(clock % 60).padStart(2, "0");
+    html += `<span class="guide-item">${hrs}:${mins} - ${item.title}</span>`;
     clock += item.duration;
   });
 
-  guide.innerHTML = content;
+  guide.innerHTML = html;
 }
 
-loadSchedule();
-setInterval(loadSchedule, 60000); // update every 1 minute
+function loadYouTubePlayer() {
+  if (!currentVideo) return;
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  const resumeTime = saved.video === currentVideo.url ? saved.time : currentVideo.startOffset * 60;
+
+  if (player) {
+    player.loadVideoById({
+      videoId: extractVideoId(currentVideo.url),
+      startSeconds: resumeTime || 0
+    });
+  } else {
+    player = new YT.Player("ytPlayer", {
+      videoId: extractVideoId(currentVideo.url),
+      playerVars: {
+        autoplay: 1,
+        mute: 1,
+        start: resumeTime || 0
+      },
+      events: {
+        onReady: () => {},
+        onStateChange: (event) => {
+          if (event.data === YT.PlayerState.PLAYING) {
+            startSavingProgress();
+          }
+        }
+      }
+    });
+  }
+}
+
+// Save video + time every 5 sec
+function startSavingProgress() {
+  setInterval(() => {
+    if (player && typeof player.getCurrentTime === "function") {
+      const time = Math.floor(player.getCurrentTime());
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        video: currentVideo.url,
+        time
+      }));
+    }
+  }, 5000);
+}
+
+// Extract video ID from embed URL
+function extractVideoId(url) {
+  const parts = url.split("/embed/");
+  return parts[1]?.split("?")[0];
+}
+
+// Called by YouTube API when ready
+window.onYouTubeIframeAPIReady = function () {
+  selectCurrentVideo();
+};
+
+loadPlaylist();
+generateGuide();
+setInterval(selectCurrentVideo, 60000); // Check every minute
