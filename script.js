@@ -1,96 +1,58 @@
-let player;
-let channels = [];
+async function loadSchedule() {
+  const res = await fetch("playlist.json");
+  const playlist = await res.json();
 
-async function loadChannels() {
-  try {
-    const res = await fetch('https://raw.githubusercontent.com/mstvnetwork/mstv3/main/channels.json');
-    if (!res.ok) {
-      console.error('Failed to load channels.json from GitHub:', res.status);
-      return;
+  const now = new Date();
+  const melbourneOffset = 10 * 60; // Melbourne UTC+10
+  const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes() + melbourneOffset;
+  const timeInDay = currentMinutes % totalDuration(playlist);
+
+  let elapsed = 0;
+  let currentItem = null;
+  let startMinute = 0;
+
+  for (const item of playlist) {
+    if (timeInDay >= elapsed && timeInDay < elapsed + item.duration) {
+      currentItem = item;
+      startMinute = elapsed;
+      break;
     }
-    channels = await res.json();
-
-    const now = new Date();
-    const secondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-    const currentSlot = Math.floor(secondsToday / 50);
-
-    const videoIndex = currentSlot % channels.length;
-    const currentVideo = channels[videoIndex];
-    const elapsedInSlot = secondsToday % 50;
-
-    initPlayer(currentVideo.url, elapsedInSlot);
-  } catch (err) {
-    console.error('Error loading channels:', err);
+    elapsed += item.duration;
   }
-}
 
-function initPlayer(videoUrl, startSeconds) {
-  if (videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be")) {
-    let videoId = null;
-    try {
-      if(videoUrl.includes("v=")) {
-        videoId = new URL(videoUrl).searchParams.get("v");
-      } else {
-        const parts = videoUrl.split("/");
-        videoId = parts[parts.length - 1];
-      }
-    } catch {
-      console.error("Invalid YouTube URL:", videoUrl);
-      return;
-    }
-    if(!videoId) {
-      console.error("YouTube videoId extraction failed:", videoUrl);
-      return;
-    }
+  const player = document.getElementById("ytPlayer");
+  const title = document.getElementById("nowPlaying");
 
-    if(player) {
-      player.destroy();
-    }
-
-    player = new YT.Player('video-player', {
-      videoId: videoId,
-      playerVars: {
-        autoplay: 1,
-        controls: 0,
-        disablekb: 1,
-        modestbranding: 1,
-        start: startSeconds,
-        fs: 0,
-        mute: 1
-      },
-      events: {
-        onReady: (e) => e.target.playVideo(),
-        onStateChange: (e) => {
-          if (e.data === YT.PlayerState.ENDED) {
-            loadChannels();
-          }
-        }
-      }
-    });
-  } else if (videoUrl.endsWith(".m3u8")) {
-    loadHLS(videoUrl);
+  if (currentItem) {
+    player.src = currentItem.url + "?autoplay=1&mute=1";
+    title.textContent = `Now Playing: ${currentItem.title}`;
   } else {
-    console.error("Unsupported video URL format:", videoUrl);
+    player.src = "";
+    title.textContent = "Off Air";
   }
+
+  generateGuide(playlist);
 }
 
-function loadHLS(streamUrl) {
-  const container = document.getElementById("video-player");
-  const video = document.createElement("video");
-  video.src = streamUrl;
-  video.controls = false;
-  video.autoplay = true;
-  video.muted = true;
-  video.style.width = "100%";
-  video.style.height = "100%";
-  container.innerHTML = '';
-  container.appendChild(video);
-
-  video.play().catch(e => console.error("HLS video play error:", e));
-
-  setTimeout(() => {
-    loadChannels();
-  }, 50000);
+function totalDuration(list) {
+  return list.reduce((sum, item) => sum + item.duration, 0);
 }
 
-window.onYouTubeIframeAPIReady = loadChannels;
+function generateGuide(playlist) {
+  const guide = document.getElementById("tvGuide");
+  let clock = 0;
+  let content = "";
+
+  playlist.forEach(item => {
+    let hrs = Math.floor(clock / 60);
+    let mins = clock % 60;
+    let label = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+    content += `<span class="guide-item">${label} - ${item.title}</span>`;
+    clock += item.duration;
+  });
+
+  guide.innerHTML = content;
+}
+
+loadSchedule();
+setInterval(loadSchedule, 60000); // update every 1 minute
