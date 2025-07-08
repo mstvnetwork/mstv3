@@ -22,6 +22,7 @@
       width: 95%;
       max-width: 960px;
       margin: auto;
+      position: relative;
     }
 
     #ytPlayer {
@@ -29,6 +30,38 @@
       aspect-ratio: 16 / 9;
       border: none;
       border-radius: 12px;
+      pointer-events: none; /* Disable interaction */
+      touch-action: none;
+    }
+
+    .unmute-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2em;
+      z-index: 2;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .unmute-overlay.hidden {
+      display: none;
+    }
+
+    .logo-overlay {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      width: 60px;
+      z-index: 3;
+      opacity: 0.85;
     }
 
     .now-playing {
@@ -55,7 +88,7 @@
     }
   </style>
 
-  <!-- YouTube API for programmatic control -->
+  <!-- YouTube API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
@@ -63,9 +96,11 @@
 
   <div class="player-wrapper">
     <div id="ytPlayer"></div>
-    <div class="now-playing" id="nowPlaying">Loading...</div>
+    <div class="unmute-overlay" id="unmuteOverlay">🔊 Tap to Unmute</div>
+    <img src="logo.img/mstv_logo.png" alt="MSTV Logo" class="logo-overlay" />
   </div>
 
+  <div class="now-playing" id="nowPlaying">Loading...</div>
   <div class="tv-guide" id="tvGuide">Loading guide...</div>
 
   <script src="script.js"></script>
