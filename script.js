@@ -1,30 +1,41 @@
 let playlist = [];
 let currentVideo = null;
-let player;
 let currentVideoIndex = 0;
+let player = null;
 const STORAGE_KEY = "mstv_last_play_time";
 
+// Load the playlist JSON
 async function loadPlaylist() {
-  const res = await fetch("playlist.json");
-  playlist = await res.json();
-  selectCurrentVideo();
+  try {
+    const res = await fetch("playlist.json");
+    playlist = await res.json();
+    generateGuide();
+    selectCurrentVideo();
+  } catch (err) {
+    console.error("Failed to load playlist.json", err);
+  }
 }
 
-// Select video based on time
+// Calculate total duration of playlist
+function totalDuration(list) {
+  return list.reduce((sum, item) => sum + item.duration, 0);
+}
+
+// Find which video should be playing now based on Melbourne time
 function selectCurrentVideo() {
   const now = new Date();
-  const melbourneOffset = 10 * 60; // Melbourne UTC+10
+  const melbourneOffset = 10 * 60; // UTC+10 in minutes
   const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes() + melbourneOffset;
+  const timeInDay = currentMinutes % totalDuration(playlist);
 
-  const loopMinutes = currentMinutes % totalDuration(playlist);
   let elapsed = 0;
 
   for (let i = 0; i < playlist.length; i++) {
     const item = playlist[i];
-    if (loopMinutes >= elapsed && loopMinutes < elapsed + item.duration) {
+    if (timeInDay >= elapsed && timeInDay < elapsed + item.duration) {
       currentVideo = item;
       currentVideoIndex = i;
-      currentVideo.startOffset = loopMinutes - elapsed;
+      currentVideo.startOffset = (timeInDay - elapsed) * 60; // in seconds
       break;
     }
     elapsed += item.duration;
@@ -36,15 +47,15 @@ function selectCurrentVideo() {
   }
 }
 
-function totalDuration(list) {
-  return list.reduce((sum, item) => sum + item.duration, 0);
-}
-
+// Update the "Now Playing" text
 function updateNowPlaying() {
   const title = document.getElementById("nowPlaying");
-  title.textContent = currentVideo ? `Now Playing: ${currentVideo.title}` : "Off Air";
+  title.textContent = currentVideo
+    ? `Now Playing: ${currentVideo.title}`
+    : "Off Air";
 }
 
+// Show scrolling TV guide
 function generateGuide() {
   const guide = document.getElementById("tvGuide");
   let clock = 0;
@@ -60,29 +71,36 @@ function generateGuide() {
   guide.innerHTML = html;
 }
 
+// Create/load/resume YouTube player
 function loadYouTubePlayer() {
   if (!currentVideo) return;
+
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  const resumeTime = saved.video === currentVideo.url ? saved.time : currentVideo.startOffset * 60;
+  const savedTime =
+    saved.video === currentVideo.url ? saved.time : currentVideo.startOffset;
+
+  const videoId = extractVideoId(currentVideo.url);
 
   if (player) {
     player.loadVideoById({
-      videoId: extractVideoId(currentVideo.url),
-      startSeconds: resumeTime || 0
+      videoId: videoId,
+      startSeconds: savedTime || 0
     });
   } else {
     player = new YT.Player("ytPlayer", {
-      videoId: extractVideoId(currentVideo.url),
+      height: "390",
+      width: "640",
+      videoId: videoId,
       playerVars: {
         autoplay: 1,
         mute: 1,
-        start: resumeTime || 0
+        start: savedTime || 0
       },
       events: {
         onReady: () => {},
-        onStateChange: (event) => {
+        onStateChange: event => {
           if (event.data === YT.PlayerState.PLAYING) {
-            startSavingProgress();
+            savePlaybackTime();
           }
         }
       }
@@ -90,30 +108,36 @@ function loadYouTubePlayer() {
   }
 }
 
-// Save video + time every 5 sec
-function startSavingProgress() {
+// Save progress every 5 seconds
+function savePlaybackTime() {
   setInterval(() => {
     if (player && typeof player.getCurrentTime === "function") {
       const time = Math.floor(player.getCurrentTime());
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        video: currentVideo.url,
-        time
-      }));
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          video: currentVideo.url,
+          time
+        })
+      );
     }
   }, 5000);
 }
 
-// Extract video ID from embed URL
+// Extract YouTube video ID from embed URL
 function extractVideoId(url) {
-  const parts = url.split("/embed/");
-  return parts[1]?.split("?")[0];
+  const match = url.match(/\/embed\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : "";
 }
 
-// Called by YouTube API when ready
+// Triggered by YouTube API once it's loaded
 window.onYouTubeIframeAPIReady = function () {
-  selectCurrentVideo();
+  if (playlist.length > 0) {
+    selectCurrentVideo();
+  } else {
+    loadPlaylist();
+  }
 };
 
 loadPlaylist();
-generateGuide();
-setInterval(selectCurrentVideo, 60000); // Check every minute
+setInterval(selectCurrentVideo, 60000); // refresh every 60s
