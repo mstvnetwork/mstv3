@@ -100,10 +100,7 @@ function loadYouTubePlayer() {
         onReady: () => {},
         onStateChange: (event) => {
           if (event.data === YT.PlayerState.PLAYING) {
-            player.unMute();
-            player.setVolume(100);
-            savePlaybackTime();
-            document.getElementById("click-blocker").style.display = "none";
+            savePlaybackTime(); // Don't hide overlay here
           }
           if (event.data === YT.PlayerState.ENDED) {
             currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
@@ -142,9 +139,9 @@ document.getElementById("click-blocker").addEventListener("click", () => {
   try {
     player.unMute();
     player.setVolume(100);
-    document.getElementById("click-blocker").style.display = "none";
+    document.getElementById("click-blocker").style.display = "none"; // Only hidden after user clicks
   } catch (e) {
-    // ignore
+    // fallback silently
   }
 });
 
