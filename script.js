@@ -23,18 +23,18 @@ function totalDuration(list) {
 
 function selectCurrentVideo() {
   const now = new Date();
-  const melOffset = 10 * 60; // Melbourne UTC+10
+  const melOffset = 10 * 60; // Melbourne UTC+10 offset in minutes
   const minutesNow = now.getUTCHours() * 60 + now.getUTCMinutes() + melOffset;
-  const timeInDay = minutesNow % totalDuration(playlist);
+  const dayMinutes = minutesNow % totalDuration(playlist);
 
   let elapsed = 0;
 
   for (let i = 0; i < playlist.length; i++) {
     const item = playlist[i];
-    if (timeInDay >= elapsed && timeInDay < elapsed + item.duration) {
+    if (dayMinutes >= elapsed && dayMinutes < elapsed + item.duration) {
       currentVideo = item;
       currentVideoIndex = i;
-      currentVideo.startOffset = (timeInDay - elapsed) * 60;
+      currentVideo.startOffset = (dayMinutes - elapsed) * 60;
       break;
     }
     elapsed += item.duration;
@@ -92,7 +92,8 @@ function loadYouTubePlayer() {
         modestbranding: 1,
         disablekb: 1,
         fs: 0,
-        rel: 0,
+        rel: 0,              // No related videos
+        showinfo: 0,
         iv_load_policy: 3,
         start: savedTime || 0
       },
@@ -111,7 +112,7 @@ function loadYouTubePlayer() {
   }
 }
 
-// Save playback time
+// Save playback time every 5 seconds
 function savePlaybackTime() {
   setInterval(() => {
     if (player && typeof player.getCurrentTime === "function") {
@@ -132,13 +133,15 @@ function extractVideoId(url) {
   return match ? match[1] : "";
 }
 
-// Unmute overlay for mobile
+// Unmute overlay for mobile tap
 document.getElementById("unmuteOverlay").addEventListener("click", () => {
   try {
     player.unMute();
     player.setVolume(100);
     document.getElementById("unmuteOverlay").classList.add("hidden");
-  } catch (e) {}
+  } catch (e) {
+    // Ignore errors
+  }
 });
 
 // YouTube API ready
