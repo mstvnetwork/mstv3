@@ -16,7 +16,9 @@ function savePlayerState() {
     if (player && player.getCurrentTime) {
         localStorage.setItem('lastVideoIndex', currentVideoIndex);
         localStorage.setItem('lastVideoTime', player.getCurrentTime());
-        console.log('State saved:', { index: currentVideoIndex, time: player.getCurrentTime() });
+        // Also save if the player was unmuted before closing (for a more robust resume)
+        localStorage.setItem('playerWasUnmuted', player.isMuted() ? 'false' : 'true');
+        console.log('State saved:', { index: currentVideoIndex, time: player.getCurrentTime(), unmuted: !player.isMuted() });
     }
 }
 
@@ -24,13 +26,15 @@ function savePlayerState() {
 function loadPlayerState() {
     const lastVideoIndex = localStorage.getItem('lastVideoIndex');
     const lastVideoTime = localStorage.getItem('lastVideoTime');
+    const playerWasUnmuted = localStorage.getItem('playerWasUnmuted');
 
     if (lastVideoIndex !== null && lastVideoTime !== null) {
         currentVideoIndex = parseInt(lastVideoIndex, 10);
-        console.log('State loaded:', { index: currentVideoIndex, time: parseFloat(lastVideoTime) });
+        console.log('State loaded:', { index: currentVideoIndex, time: parseFloat(lastVideoTime), unmuted: playerWasUnmuted === 'true' });
         return {
             index: currentVideoIndex,
-            time: parseFloat(lastVideoTime)
+            time: parseFloat(lastVideoTime),
+            wasUnmuted: playerWasUnmuted === 'true'
         };
     }
     return null;
@@ -60,8 +64,8 @@ function onYouTubeIframeAPIReady() {
             rel: 0,              // Do not show related videos
             showinfo: 0,         // Hide video title and uploader info
             start: initialStartTime, // Set initial start time
-            autoplay: 0,         // Don't autoplay initially, wait for user click
-            mute: 1              // Start muted
+            autoplay: 0,         // IMPORTANT: Never autoplay directly here. Always wait for user interaction.
+            mute: 1              // IMPORTANT: Always start muted to comply with browser policies.
         },
         events: {
             'onReady': onPlayerReady,
@@ -73,22 +77,27 @@ function onYouTubeIframeAPIReady() {
 
 function onPlayerReady(event) {
     console.log('Player ready!');
-    const savedState = loadPlayerState();
 
-    // Check if the user has clicked the overlay before
-    if (localStorage.getItem('hasClickedOverlay') === 'true') {
-        overlay.classList.add('hidden'); // Keep it hidden if already clicked
-        // Attempt to play and unmute only if it was previously clicked
-        player.unMute(); // Unmute immediately if user has interacted before
-        event.target.playVideo(); // Auto-play if previously clicked
+    // Always ensure the overlay is shown initially unless it has been clicked before
+    if (localStorage.getItem('hasClickedOverlay') !== 'true') {
+        overlay.classList.remove('hidden'); // Show the overlay
+        player.mute(); // Ensure video is muted
+        player.pauseVideo(); // Ensure video is paused
     } else {
-        overlay.classList.remove('hidden'); // Ensure overlay is visible if no previous interaction
-        // If it's the first time or not clicked, ensure video is muted and not playing until interaction
-        player.mute();
-        player.pauseVideo();
+        // If already clicked, hide overlay
+        overlay.classList.add('hidden');
+
+        // Try to resume play and unmute based on saved state
+        const savedState = loadPlayerState();
+        if (savedState && savedState.wasUnmuted) {
+            player.unMute();
+        } else {
+            player.mute(); // Ensure it stays muted if it was muted before
+        }
+        player.playVideo(); // Resume playing
     }
 
-    // Continuously save the current time
+    // Continuously save the current time and mute state
     setInterval(savePlayerState, 5000); // Save every 5 seconds
 }
 
@@ -98,10 +107,13 @@ function onPlayerStateChange(event) {
         // Video has ended, play the next one
         currentVideoIndex = (currentVideoIndex + 1) % videoPlaylist.length;
         player.loadVideoById(videoPlaylist[currentVideoIndex], 0); // Load next video from start
-        player.unMute(); // Ensure next video plays unmuted if previously unmuted
+        // After loading next video, if the player was previously unmuted, try to unmute it again.
+        // The browser might re-mute it, so the user might need to click again.
+        if (localStorage.getItem('playerWasUnmuted') === 'true') {
+             player.unMute();
+        }
         savePlayerState(); // Save state after video change
     }
-    // No specific actions for PLAYING or PAUSED states as overlay is handled by click.
 }
 
 function onPlayerError(event) {
@@ -112,21 +124,22 @@ function onPlayerError(event) {
     savePlayerState();
 }
 
-// Handle overlay click
+// Handle overlay click - THIS IS THE ONLY PLACE WE START PLAYING AND UNMUTING
 playerContainer.addEventListener('click', () => {
     // Only act if the overlay is currently visible (meaning it hasn't been clicked yet)
     // or if the 'hasClickedOverlay' flag is not set in localStorage.
-    if (overlay.classList.contains('visible') || localStorage.getItem('hasClickedOverlay') !== 'true') {
+    if (localStorage.getItem('hasClickedOverlay') !== 'true') {
         overlay.classList.add('hidden'); // Hide the overlay
         localStorage.setItem('hasClickedOverlay', 'true'); // Mark that the user has clicked
-        if (player.isMuted()) {
-            player.unMute(); // Unmute the video
-        }
+        player.unMute(); // Unmute the video
         player.playVideo(); // Start playing the video
     }
+    // If the overlay is already hidden (i.e., hasClickedOverlay is true),
+    // this click handler won't do anything regarding the overlay.
+    // It also won't re-mute/re-pause the video if the user clicks randomly after starting.
 });
 
-// Logic to show overlay on page reload if not previously clicked
+// Logic to show overlay on page load based on past interaction
 window.addEventListener('load', () => {
     if (localStorage.getItem('hasClickedOverlay') !== 'true') {
         overlay.classList.remove('hidden'); // Ensure overlay is visible
