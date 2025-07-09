@@ -65,10 +65,10 @@
             background: rgba(0, 0, 0, 0.6);
             color: white;
             border: none;
-            padding: 15px;
+            padding: 15px; /* Adjust padding as needed */
             border-radius: 50%; /* Make it circular */
             cursor: pointer;
-            font-size: 4.0em;
+            font-size: 4.5em; /* ICON SIZE SET TO 4.5em */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -85,10 +85,6 @@
         .unmute-button.muted .unmute-icon { display: none; }
         .unmute-button:not(.muted) .mute-icon { display: none; }
         .unmute-button:not(.muted) .unmute-icon { display: inline-block; }
-        .unmute-button .unmute-icon {
-    font-size: 4.0em; /* Adjust this value to make the icon bigger */
-}
-
 
         /* Scrolling Text Container */
         .scrolling-text-container {
@@ -112,7 +108,6 @@
             font-weight: bold;
             padding-left: 100%; /* Start text off-screen to the right */
             animation: scroll-left 40s linear infinite; /* Animation duration and loop */
-            /* You can make it slower or faster by changing the 40s */
         }
 
         /* Keyframe animation for scrolling */
@@ -131,7 +126,7 @@
                 top: 10px;
                 right: 10px;
                 padding: 10px;
-                font-size: 4.0em;
+                font-size: 3.0em; /* Adjusted for smaller screens */
             }
 
             .scrolling-text-container {
@@ -153,7 +148,7 @@
                 top: 5px;
                 right: 5px;
                 padding: 8px;
-                font-size: 1.2em;
+                font-size: 2.0em; /* Adjusted for very small screens */
             }
 
             .scrolling-text-container {
@@ -180,8 +175,8 @@
             <div class="scrolling-text-container">
                 <div class="scrolling-text" id="newsTicker">
                     Welcome to My Live TV Channel! Tune in 24/7 for great content. Stay tuned for exciting upcoming programs! This is a demo of scrolling text.
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Breaking News: Live broadcast continues! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-                    Remember to unmute for sound! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+                                  Breaking News: Live broadcast continues!               
+                    Remember to unmute for sound!               
                     Enjoy the show!
                 </div>
             </div>
