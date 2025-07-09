@@ -23,11 +23,11 @@
             height: 500px; /* Set as needed */
         }
 
-        /* Video player - hide controls */
+        /* Iframe for YouTube Video */
         #tv-player {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            border: none;
         }
 
         /* Unmute Icon */
@@ -78,10 +78,7 @@
 <body>
 
     <div class="player-container">
-        <video id="tv-player" width="100%" height="auto" preload="auto" controls="false">
-            <!-- Video sources will be dynamically inserted -->
-        </video>
-
+        <iframe id="tv-player" src="" allow="autoplay; encrypted-media" frameborder="0"></iframe>
         <div class="unmute-icon" id="unmute-icon">🔊</div>
     </div>
 
@@ -99,18 +96,19 @@
 
         // Array of YouTube video URLs for 24/7 loop
         const videoUrls = [
-            'https://www.youtube.com/watch?v=XALBGkjkUPQ', // Replace with actual video URLs
-            'https://www.youtube.com/watch?v=CxwJrzEdw1U', // Replace with actual video URLs
+            'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Replace with actual video URLs
+            'https://www.youtube.com/watch?v=3JZ_D3ELwOQ', // Replace with actual video URLs
             // Add more URLs here
         ];
 
         let currentVideoIndex = 0;
         let currentTime = localStorage.getItem('currentTime') || 0; // Retrieve saved time
 
-        // Load the current video
+        // Load the current video in the iframe
         function loadVideo(url) {
-            player.src = `https://www.youtube.com/embed/${url.split('v=')[1]}?autoplay=1&controls=0&showinfo=0&modestbranding=1&loop=1&playlist=${url.split('v=')[1]}`;
-            player.currentTime = currentTime; // Resume from last saved time
+            const videoId = url.split('v=')[1]; // Extract video ID
+            player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&showinfo=0&modestbranding=1&loop=1&playlist=${videoId}`;
+            player.onload = () => player.contentWindow.postMessage('{"event":"command","func":"seekTo","args":["' + currentTime + '", true]}', '*');
         }
 
         // Update programme guide
@@ -118,7 +116,7 @@
             programList.innerHTML = '';
             videoUrls.forEach((url, index) => {
                 const listItem = document.createElement('li');
-                listItem.textContent = `Video ${index + 1} - Start at ${Math.floor(player.currentTime / 60)} min`;
+                listItem.textContent = `Video ${index + 1} - Start at ${Math.floor(currentTime / 60)} min`;
                 programList.appendChild(listItem);
             });
         }
@@ -132,16 +130,17 @@
 
         // Handle unmute click
         unmuteIcon.addEventListener('click', () => {
-            if (player.muted) {
-                player.muted = false;
-            } else {
-                player.muted = true;
-            }
+            const iframe = player;
+            const playerWindow = iframe.contentWindow;
+            const isMuted = iframe.contentWindow.document.querySelector('video').muted;
+            iframe.contentWindow.postMessage('{"event":"command","func":"toggleMute","args":[' + !isMuted + ']}', '*');
         });
 
         // Save current time to localStorage every 5 seconds
         setInterval(() => {
-            localStorage.setItem('currentTime', player.currentTime);
+            // Get the current video time
+            const time = currentTime;
+            localStorage.setItem('currentTime', time);
         }, 5000);
 
         // Load the first video
