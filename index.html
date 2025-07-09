@@ -13,54 +13,44 @@
       margin: 0;
       padding: 0;
     }
-
     #video-container {
       position: relative;
       width: 80%;
       margin: 20px auto;
     }
-
     video, iframe {
       width: 100%;
       height: auto;
       background: #000;
     }
-
     #mute-icon {
       position: absolute;
       bottom: 10px;
       right: 10px;
       cursor: pointer;
       z-index: 2;
+      width: 32px;
+      height: 32px;
     }
-
     #program-guide {
       margin-top: 20px;
       background-color: rgba(255, 255, 255, 0.1);
       padding: 10px;
       border-radius: 5px;
     }
-
     iframe {
       border: none;
     }
-
     #video-info {
       margin-bottom: 10px;
       font-size: 1.2em;
       font-weight: bold;
     }
-
     #yt-container {
       display: none;
       width: 100%;
-      height: auto;
-    }
-
-    #yt-player iframe {
-      width: 100% !important;
-      height: 360px !important;
-      display: block;
+      height: 360px;
+      position: relative;
     }
   </style>
 </head>
@@ -95,8 +85,8 @@
   <script>
     const video = document.getElementById('live-video');
     const ytContainer = document.getElementById('yt-container');
-    const ytPlayerDiv = document.getElementById('yt-player');
     const titleEl = document.getElementById('video-title');
+    const muteIcon = document.getElementById('mute-icon');
 
     const playlist = [
       {
@@ -116,7 +106,10 @@
     let ytReady = false;
     let hls = null;
     let ytMonitorInterval = null;
+    let isYouTubeMuted = true;
+    let isUserInteracted = false;
 
+    // Restore saved index/time if available
     const savedIndex = parseInt(localStorage.getItem("videoIndex"));
     const savedTime = parseFloat(localStorage.getItem("videoTime"));
 
@@ -160,7 +153,11 @@
         const setupYouTube = () => {
           if (ytPlayer) {
             ytPlayer.loadVideoById(videoId);
-            ytPlayer.mute(); // Autoplay
+            if (isYouTubeMuted) {
+              ytPlayer.mute();
+            } else {
+              ytPlayer.unMute();
+            }
             if (!isNaN(savedTime)) ytPlayer.seekTo(savedTime, true);
             ytPlayer.playVideo();
             monitorYouTubeEnd();
@@ -177,7 +174,9 @@
               },
               events: {
                 'onReady': (event) => {
-                  event.target.mute(); // Autoplay
+                  ytReady = true;
+                  event.target.mute(); // Start muted for autoplay
+                  isYouTubeMuted = true;
                   if (!isNaN(savedTime)) {
                     event.target.seekTo(savedTime, true);
                   }
@@ -253,7 +252,8 @@
 
         localStorage.setItem("videoTime", current);
 
-        if (state === YT.PlayerState.PLAYING && duration - current <= 1) {
+        // Consider video ended if less than 1.5s left and playing for >2s
+        if (state === YT.PlayerState.PLAYING && duration - current <= 1.5) {
           clearInterval(ytMonitorInterval);
           nextVideo();
         }
@@ -269,21 +269,38 @@
 
     video.addEventListener('ended', nextVideo);
     video.addEventListener('error', nextVideo);
-    video.addEventListener('timeupdate', function () {
+    video.addEventListener('timeupdate', () => {
       localStorage.setItem('videoTime', video.currentTime);
     });
 
     function toggleMute() {
+      isUserInteracted = true; // Mark user interaction to allow unmute
+
       if (playlist[currentIndex].type === "youtube" && ytPlayer && ytReady) {
-        if (ytPlayer.isMuted()) {
+        if (isYouTubeMuted) {
           ytPlayer.unMute();
+          isYouTubeMuted = false;
+          muteIcon.src = "unmute-icon.png"; // change icon accordingly
         } else {
           ytPlayer.mute();
+          isYouTubeMuted = true;
+          muteIcon.src = "mute-icon.png";
         }
       } else {
         video.muted = !video.muted;
+        muteIcon.src = video.muted ? "mute-icon.png" : "unmute-icon.png";
       }
     }
+
+    // Detect first user interaction to enable unmuting YouTube reliably
+    window.addEventListener('click', () => {
+      if (!isUserInteracted && playlist[currentIndex].type === "youtube" && ytPlayer && ytReady) {
+        ytPlayer.unMute();
+        isYouTubeMuted = false;
+        muteIcon.src = "unmute-icon.png";
+        isUserInteracted = true;
+      }
+    }, { once: true });
 
     function onYouTubeIframeAPIReady() {
       ytReady = true;
