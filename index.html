@@ -1,154 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MSTV Live</title>
-
-  <!-- Google Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-6MHRH7TE5Y"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){ dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('config', 'G-6MHRH7TE5Y');
-  </script>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #000;
-      color: #fff;
-      text-align: center;
-    }
-    .player-wrapper {
-      position: relative;
-      width: 100%;
-      max-width: 960px;
-      aspect-ratio: 16 / 9;
-      margin: 30px auto;
-      background: #000;
-      border: 4px solid #00ffe7;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    #ytPlayerContainer {
-      width: 100%;
-      height: 100%;
-    }
-    .overlay {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.95);
-      color: #0ff;
-      font-size: 1.8em;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      cursor: pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Stream Player</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="player-container">
+        <div id="player"></div>
+        <div id="overlay" class="visible">
+            Click screen to watch live
+        </div>
+    </div>
 
-<h1 style="color:#00ffe7">MSTV NETWORK - LIVE</h1>
-
-<div class="player-wrapper">
-  <div id="ytPlayerContainer"></div>
-  <div id="overlay" class="overlay">🎬 Click here to watch live</div>
-</div>
-
-<div id="nowPlaying">Loading...</div>
-
-<script src="https://www.youtube.com/iframe_api"></script>
-<script>
-  const playlist = [
-    { title: "Test Clip 1", url: "https://www.youtube.com/watch?v=ysz5S6PUM-U", duration: 2 },
-    { title: "Test Clip 2", url: "https://www.youtube.com/watch?v=jNQXAC9IVRw", duration: 2 }
-  ];
-
-  let currentIndex = 0;
-  let offset = 0;
-  let ytReady = false;
-  let overlayClicked = false;
-  let player;
-
-  function getVideoId(url) {
-    const match = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
-    return match ? match[1] : null;
-  }
-
-  function syncToTime() {
-    const now = new Date();
-    const secs = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
-    let total = 0;
-    for (let i = 0; i < playlist.length; i++) {
-      const dur = playlist[i].duration * 60;
-      if (total + dur > secs % 86400) {
-        currentIndex = i;
-        offset = (secs % 86400) - total;
-        break;
-      }
-      total += dur;
-    }
-    document.getElementById("nowPlaying").innerText = "Now Playing: " + playlist[currentIndex].title;
-  }
-
-  function loadPlayer() {
-    const container = document.getElementById("ytPlayerContainer");
-    container.innerHTML = ""; // remove previous iframe
-    const newDiv = document.createElement("div");
-    newDiv.id = "ytPlayer";
-    container.appendChild(newDiv);
-
-    const videoId = getVideoId(playlist[currentIndex].url);
-
-    player = new YT.Player("ytPlayer", {
-      videoId: videoId,
-      playerVars: {
-        autoplay: 1,
-        start: offset,
-        controls: 0,
-        mute: 0,
-        modestbranding: 1,
-        rel: 0,
-        playsinline: 1
-      },
-      events: {
-        onReady: (e) => {
-          e.target.unMute();
-          document.getElementById("overlay").style.display = "none";
-        },
-        onStateChange: (e) => {
-          if (e.data === YT.PlayerState.ENDED) {
-            currentIndex = (currentIndex + 1) % playlist.length;
-            offset = 0;
-            loadPlayer();
-          }
-        }
-      }
-    });
-  }
-
-  function onYouTubeIframeAPIReady() {
-    ytReady = true;
-    if (overlayClicked) {
-      syncToTime();
-      loadPlayer();
-    }
-  }
-
-  document.getElementById("overlay").addEventListener("click", () => {
-    overlayClicked = true;
-    if (ytReady) {
-      syncToTime();
-      loadPlayer();
-    }
-  });
-</script>
-
+    <script src="script.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
