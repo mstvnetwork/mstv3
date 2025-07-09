@@ -4,7 +4,7 @@ let currentIndex = 0;
 let startTimeOffset = 0;
 
 function getVideoId(url) {
-  const match = url.match(/(?:youtube\\.com\\/watch\\?v=|youtube\\.com\\/embed\\/|youtu\\.be\\/)([\\w-]{11})/);
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
   return match ? match[1] : null;
 }
 
@@ -16,11 +16,10 @@ function generateTVGuide() {
   const guide = document.getElementById("tvGuide");
   guide.innerHTML = "";
   let timeCursor = new Date();
-  for (let i = 0; i < playlist.length; i++) {
-    const entry = playlist[i];
+  for (let item of playlist) {
     const start = new Date(timeCursor);
-    const end = new Date(start.getTime() + entry.duration * 60000);
-    guide.innerHTML += `<span class="guide-item">${formatTime(start)} - ${entry.title}</span>`;
+    const end = new Date(start.getTime() + item.duration * 60000);
+    guide.innerHTML += `<span class="guide-item">${formatTime(start)} - ${item.title}</span>`;
     timeCursor = end;
   }
 }
@@ -28,43 +27,6 @@ function generateTVGuide() {
 function updateNowPlaying() {
   const nowTitle = playlist[currentIndex]?.title || "Unknown";
   document.getElementById("nowPlaying").innerText = "Now Playing: " + nowTitle;
-}
-
-function createPlayer(videoId, startSeconds) {
-  if (player) player.destroy();
-
-  player = new YT.Player('ytPlayer', {
-    videoId: videoId,
-    playerVars: {
-      autoplay: 1,
-      controls: 0,
-      disablekb: 1,
-      modestbranding: 1,
-      rel: 0,
-      playsinline: 1,
-      start: startSeconds
-    },
-    events: {
-      onReady: (e) => {
-        e.target.mute(); // for autoplay policy
-        const blocker = document.getElementById("click-blocker");
-        blocker.style.display = "flex";
-
-        blocker.onclick = () => {
-          e.target.unMute();
-          blocker.style.display = "none";
-        };
-      },
-      onStateChange: (e) => {
-        if (e.data === YT.PlayerState.ENDED) {
-          currentIndex = (currentIndex + 1) % playlist.length;
-          updateNowPlaying();
-          const nextId = getVideoId(playlist[currentIndex].url);
-          createPlayer(nextId, 0);
-        }
-      }
-    }
-  });
 }
 
 function syncPlayback() {
@@ -82,9 +44,40 @@ function syncPlayback() {
     accumulated += duration;
   }
 
-  const videoId = getVideoId(playlist[currentIndex].url);
   updateNowPlaying();
-  createPlayer(videoId, startTimeOffset);
+}
+
+function startPlayer() {
+  const videoId = getVideoId(playlist[currentIndex].url);
+  if (!videoId) return alert("Invalid video URL");
+
+  if (player) player.destroy();
+
+  player = new YT.Player("ytPlayer", {
+    videoId,
+    playerVars: {
+      autoplay: 1,
+      start: startTimeOffset,
+      controls: 0,
+      modestbranding: 1,
+      rel: 0,
+      disablekb: 1,
+      playsinline: 1
+    },
+    events: {
+      onReady: (e) => {
+        e.target.unMute();
+        document.getElementById("overlay").style.display = "none";
+      },
+      onStateChange: (e) => {
+        if (e.data === YT.PlayerState.ENDED) {
+          currentIndex = (currentIndex + 1) % playlist.length;
+          updateNowPlaying();
+          startPlayer();
+        }
+      }
+    }
+  });
 }
 
 function loadPlaylist() {
@@ -94,13 +87,14 @@ function loadPlaylist() {
       playlist = data;
       generateTVGuide();
       syncPlayback();
-    })
-    .catch(err => {
-      console.error("Failed to load playlist:", err);
     });
 }
 
-// YouTube API callback
-function onYouTubeIframeAPIReady() {
+// Wait until API + page is ready
+window.onYouTubeIframeAPIReady = () => {
   loadPlaylist();
-}
+  document.getElementById("overlay").addEventListener("click", () => {
+    syncPlayback();
+    startPlayer();
+  });
+};
