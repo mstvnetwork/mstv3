@@ -17,9 +17,9 @@
   <style>
     body {
       margin: 0;
+      font-family: sans-serif;
       background: #000;
       color: #fff;
-      font-family: 'Poppins', sans-serif;
       text-align: center;
     }
     .player-wrapper {
@@ -27,16 +27,13 @@
       width: 100%;
       max-width: 960px;
       aspect-ratio: 16 / 9;
-      margin: 20px auto;
+      margin: 30px auto;
       background: #000;
-      border: 3px solid #00ffe7;
+      border: 4px solid #00ffe7;
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 0 20px #00ffe7;
     }
     #ytPlayer {
-      position: absolute;
-      top: 0; left: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
@@ -45,177 +42,106 @@
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      z-index: 10;
-      background: rgba(0, 0, 0, 0.9);
-      color: #00ffe7;
-      font-size: 1.5em;
-      font-weight: bold;
+      background: rgba(0,0,0,0.95);
+      color: #0ff;
+      font-size: 1.8em;
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
-    }
-    .logo-overlay {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      width: 60px;
-      opacity: 0.9;
       z-index: 5;
-    }
-    #nowPlaying {
-      font-size: 1.2em;
-      margin-top: 15px;
-      color: #ffcc00;
-    }
-    #tvGuide {
-      margin: 15px auto;
-      padding: 10px;
-      max-width: 960px;
-      background: rgba(255, 255, 255, 0.05);
-      border-top: 2px solid #0ff;
-      border-bottom: 2px solid #0ff;
-      white-space: nowrap;
-      overflow-x: auto;
-    }
-    .guide-item {
-      display: inline-block;
-      margin: 0 20px;
-      font-size: 1em;
-      color: #00ffe7;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1 style="color: #00ffe7; margin-top: 20px;">MSTV NETWORK - 24/7 LIVE</h1>
 
-  <div class="player-wrapper">
-    <div id="ytPlayer"></div>
-    <div id="overlay">🎬 Click here to watch live</div>
-    <img src="https://raw.githubusercontent.com/mstvnetwork/mstv/main/logo.img/mstv_logo.png" class="logo-overlay" />
-  </div>
+<h1 style="color:#00ffe7">MSTV LIVE BROADCAST</h1>
 
-  <div id="nowPlaying">Loading...</div>
-  <div id="tvGuide">Loading TV Guide...</div>
+<div class="player-wrapper">
+  <div id="ytPlayer"></div>
+  <div id="overlay">🎬 Click here to watch live</div>
+</div>
 
-  <!-- YouTube API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <script>
-    let player;
-    let playlist = [];
-    let currentIndex = 0;
-    let startTimeOffset = 0;
-    let apiReady = false;
-    let playlistLoaded = false;
+<div id="nowPlaying">Loading...</div>
 
-    function getVideoId(url) {
-      const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/);
-      return match ? match[1] : null;
-    }
+<!-- YouTube Iframe API -->
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+  let playlist = [
+    { title: "Test Clip 1", url: "https://www.youtube.com/watch?v=ysz5S6PUM-U", duration: 2 },
+    { title: "Test Clip 2", url: "https://www.youtube.com/watch?v=jNQXAC9IVRw", duration: 2 }
+  ];
 
-    function formatTime(date) {
-      return date.toTimeString().slice(0, 5);
-    }
+  let player;
+  let currentIndex = 0;
+  let offset = 0;
+  let apiReady = false;
+  let overlayClicked = false;
 
-    function generateTVGuide() {
-      const guide = document.getElementById("tvGuide");
-      guide.innerHTML = "";
-      let timeCursor = new Date();
-      for (let item of playlist) {
-        const start = new Date(timeCursor);
-        const end = new Date(start.getTime() + item.duration * 60000);
-        guide.innerHTML += `<span class="guide-item">${formatTime(start)} - ${item.title}</span>`;
-        timeCursor = end;
+  function getVideoId(url) {
+    const match = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+    return match ? match[1] : null;
+  }
+
+  function syncPlaylist() {
+    const now = new Date();
+    const seconds = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) % 86400;
+    let total = 0;
+    for (let i = 0; i < playlist.length; i++) {
+      const duration = playlist[i].duration * 60;
+      if (total + duration > seconds) {
+        currentIndex = i;
+        offset = seconds - total;
+        break;
       }
+      total += duration;
     }
+    document.getElementById('nowPlaying').innerText = "Now Playing: " + playlist[currentIndex].title;
+  }
 
-    function updateNowPlaying() {
-      const nowTitle = playlist[currentIndex]?.title || "Unknown";
-      document.getElementById("nowPlaying").innerText = "Now Playing: " + nowTitle;
-    }
+  function onYouTubeIframeAPIReady() {
+    apiReady = true;
+    maybeStartPlayer();
+  }
 
-    function syncPlayback() {
-      const now = new Date();
-      const secondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-      let accumulated = 0;
+  function maybeStartPlayer() {
+    if (!apiReady || !overlayClicked) return;
 
-      for (let i = 0; i < playlist.length; i++) {
-        const duration = playlist[i].duration * 60;
-        if (accumulated + duration > secondsToday % 86400) {
-          currentIndex = i;
-          startTimeOffset = (secondsToday % 86400) - accumulated;
-          break;
-        }
-        accumulated += duration;
-      }
+    const videoId = getVideoId(playlist[currentIndex].url);
+    if (!videoId) return;
 
-      updateNowPlaying();
-    }
-
-    function startPlayer() {
-      const videoId = getVideoId(playlist[currentIndex].url);
-      if (!videoId) return alert("Invalid video URL");
-
-      if (player) player.destroy();
-
-      player = new YT.Player("ytPlayer", {
-        videoId,
-        playerVars: {
-          autoplay: 1,
-          start: startTimeOffset,
-          controls: 0,
-          modestbranding: 1,
-          rel: 0,
-          disablekb: 1,
-          playsinline: 1
+    player = new YT.Player('ytPlayer', {
+      videoId: videoId,
+      playerVars: {
+        autoplay: 1,
+        start: offset,
+        controls: 0,
+        mute: 0,
+        modestbranding: 1,
+        rel: 0,
+        playsinline: 1
+      },
+      events: {
+        onReady: (event) => {
+          event.target.unMute();
+          document.getElementById('overlay').style.display = 'none';
         },
-        events: {
-          onReady: (e) => {
-            e.target.unMute();
-            document.getElementById("overlay").style.display = "none";
-          },
-          onStateChange: (e) => {
-            if (e.data === YT.PlayerState.ENDED) {
-              currentIndex = (currentIndex + 1) % playlist.length;
-              updateNowPlaying();
-              startPlayer();
-            }
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.ENDED) {
+            currentIndex = (currentIndex + 1) % playlist.length;
+            offset = 0;
+            maybeStartPlayer();
           }
         }
-      });
-    }
-
-    function initOverlay() {
-      const overlay = document.getElementById("overlay");
-      overlay.style.display = "flex";
-      overlay.onclick = () => {
-        syncPlayback();
-        startPlayer();
-      };
-    }
-
-    function tryInitPlayer() {
-      if (apiReady && playlistLoaded) {
-        generateTVGuide();
-        updateNowPlaying();
-        initOverlay();
       }
-    }
+    });
+  }
 
-    // YouTube API callback
-    function onYouTubeIframeAPIReady() {
-      apiReady = true;
-      tryInitPlayer();
-    }
-
-    // Load playlist
-    fetch("playlist.json")
-      .then(res => res.json())
-      .then(data => {
-        playlist = data;
-        playlistLoaded = true;
-        tryInitPlayer();
-      });
-  </script>
+  document.getElementById("overlay").addEventListener("click", () => {
+    overlayClicked = true;
+    syncPlaylist();
+    maybeStartPlayer();
+  });
+</script>
 </body>
 </html>
