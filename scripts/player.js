@@ -1,9 +1,8 @@
 let player;
 let videoPlaylist = [
-    'VIDEO_ID_1', // Replace with actual YouTube video IDs
-    'VIDEO_ID_2',
-    'VIDEO_ID_3',
-    // ... more video IDs
+    '9xwazD5SyVg', // Added YouTube video ID
+    '4In4ry2fN5E', // Added YouTube video ID
+    // Add more video IDs here if you have them, e.g., 'VIDEO_ID_3', 'VIDEO_ID_4', etc.
 ];
 let currentVideoIndex = 0;
 let lastKnownTime = 0;
@@ -76,9 +75,9 @@ window.addEventListener('load', () => {
 document.getElementById('unmuteButton').addEventListener('click', () => {
     if (player.isMuted()) {
         player.unMute();
-        document.getElementById('unmuteButton').textContent = '🔊';
+        document.getElementById('unmuteButton').textContent = '🔊'; // Change to speaker icon
     } else {
         player.mute();
-        document.getElementById('unmuteButton').textContent = '🔇';
+        document.getElementById('unmuteButton').textContent = '🔇'; // Change to muted speaker icon
     }
 });
