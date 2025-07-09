@@ -3,25 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Live TV Channel</title>
+  <title>YouTube Playlist Player</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #000;
       color: #fff;
       text-align: center;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
     }
     #video-container {
       position: relative;
       width: 80%;
       margin: 20px auto;
+      height: 360px;
     }
-    video, iframe {
+    #yt-player {
       width: 100%;
-      height: auto;
-      background: #000;
+      height: 100%;
     }
     #mute-icon {
       position: absolute;
@@ -32,80 +31,44 @@
       width: 32px;
       height: 32px;
     }
-    #program-guide {
-      margin-top: 20px;
-      background-color: rgba(255, 255, 255, 0.1);
-      padding: 10px;
-      border-radius: 5px;
-    }
-    iframe {
-      border: none;
-    }
     #video-info {
       margin-bottom: 10px;
       font-size: 1.2em;
       font-weight: bold;
     }
-    #yt-container {
-      display: none;
-      width: 100%;
-      height: 360px;
-      position: relative;
-    }
   </style>
 </head>
 <body>
 
-  <h1>Welcome to Our Live TV Channel</h1>
+  <h1>YouTube Playlist Player</h1>
 
   <div id="video-info">
     <h2 id="video-title">Loading...</h2>
   </div>
 
   <div id="video-container">
-    <video id="live-video" controls autoplay muted playsinline></video>
-    <div id="yt-container">
-      <div id="yt-player"></div>
-    </div>
+    <div id="yt-player"></div>
     <img id="mute-icon" src="mute-icon.png" alt="Mute" onclick="toggleMute()" />
-  </div>
-
-  <div id="program-guide">
-    <h2>Program Guide</h2>
-    <p>1. Program Title 1 - 10:00 AM</p>
-    <p>2. Program Title 2 - 11:00 AM</p>
-    <p>3. Program Title 3 - 12:00 PM</p>
   </div>
 
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <!-- hls.js for HLS playback -->
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
   <script>
-    const video = document.getElementById('live-video');
-    const ytContainer = document.getElementById('yt-container');
+    const ytPlayerDiv = document.getElementById('yt-player');
     const titleEl = document.getElementById('video-title');
     const muteIcon = document.getElementById('mute-icon');
 
+    // Playlist of YouTube URLs with titles
     const playlist = [
-      {
-        url: "https://www.youtube.com/watch?v=XALBGkjkUPQ",
-        title: "Mux HLS Stream",
-        type: "you tube"
-      },
-      {
-        url: "https://www.youtube.com/watch?v=-HT3JdpKUCQ",
-        title: "YouTube Live Stream",
-        type: "youtube"
-      }
+      { url: "https://www.youtube.com/watch?v=-HT3JdpKUCQ", title: "YouTube Live Stream 1" },
+      { url: "https://www.youtube.com/watch?v=ysz5S6PUM-U", title: "YouTube Video 2" },
+      { url: "https://youtu.be/dQw4w9WgXcQ", title: "YouTube Video 3" }
     ];
 
     let currentIndex = 0;
     let ytPlayer = null;
     let ytReady = false;
-    let hls = null;
-    let ytMonitorInterval = null;
     let isYouTubeMuted = true;
     let isUserInteracted = false;
 
@@ -138,123 +101,34 @@
       const item = playlist[index];
       updateInfo(item);
 
-      if (item.type === "youtube") {
-        if (hls) {
-          hls.destroy();
-          hls = null;
-        }
+      const videoId = extractYouTubeID(item.url);
 
-        video.pause();
-        video.style.display = "none";
-        ytContainer.style.display = "block";
-
-        const videoId = extractYouTubeID(item.url);
-
-        const setupYouTube = () => {
-          if (ytPlayer) {
-            ytPlayer.loadVideoById(videoId);
-            if (isYouTubeMuted) {
-              ytPlayer.mute();
-            } else {
-              ytPlayer.unMute();
-            }
-            if (!isNaN(savedTime)) ytPlayer.seekTo(savedTime, true);
-            ytPlayer.playVideo();
-            monitorYouTubeEnd();
-          } else {
-            ytPlayer = new YT.Player('yt-player', {
-              height: '360',
-              width: '640',
-              videoId: videoId,
-              playerVars: {
-                autoplay: 1,
-                controls: 1,
-                mute: 1,
-                rel: 0
-              },
-              events: {
-                'onReady': (event) => {
-                  ytReady = true;
-                  event.target.mute(); // Start muted for autoplay
-                  isYouTubeMuted = true;
-                  if (!isNaN(savedTime)) {
-                    event.target.seekTo(savedTime, true);
-                  }
-                  event.target.playVideo();
-                  monitorYouTubeEnd();
-                },
-                'onStateChange': function (event) {
-                  if (event.data === YT.PlayerState.ENDED) {
-                    clearInterval(ytMonitorInterval);
-                    nextVideo();
-                  }
-                },
-                'onError': () => nextVideo()
-              }
-            });
-          }
-        };
-
-        if (ytReady) {
-          setupYouTube();
-        }
-
-      } else if (item.type === "hls") {
-        ytContainer.style.display = "none";
-        if (ytPlayer && ytReady) ytPlayer.stopVideo();
-        clearInterval(ytMonitorInterval);
-
-        video.style.display = "block";
-
-        if (hls) {
-          hls.destroy();
-          hls = null;
-        }
-
-        if (Hls.isSupported()) {
-          hls = new Hls();
-          hls.loadSource(item.url);
-          hls.attachMedia(video);
-          hls.on(Hls.Events.MANIFEST_PARSED, function () {
-            if (!isNaN(savedTime)) {
-              video.currentTime = savedTime;
-            }
-            video.play().catch(console.warn);
-          });
-          hls.on(Hls.Events.ERROR, function (event, data) {
-            if (data.fatal) {
-              console.error("HLS fatal error:", data);
-              nextVideo();
-            }
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = item.url;
-          video.addEventListener('loadedmetadata', function () {
-            if (!isNaN(savedTime)) {
-              video.currentTime = savedTime;
-            }
-            video.play().catch(console.warn);
-          });
+      if (ytPlayer) {
+        ytPlayer.loadVideoById(videoId);
+        if (isYouTubeMuted) {
+          ytPlayer.mute();
         } else {
-          console.error("HLS not supported");
-          nextVideo();
+          ytPlayer.unMute();
         }
+        if (!isNaN(savedTime)) ytPlayer.seekTo(savedTime, true);
+        ytPlayer.playVideo();
+        monitorYouTubeEnd();
       }
     }
 
     function monitorYouTubeEnd() {
       if (!ytPlayer || !ytPlayer.getDuration) return;
-      clearInterval(ytMonitorInterval);
-      ytMonitorInterval = setInterval(() => {
+      clearInterval(window.ytMonitorInterval);
+      window.ytMonitorInterval = setInterval(() => {
         const duration = ytPlayer.getDuration();
         const current = ytPlayer.getCurrentTime();
         const state = ytPlayer.getPlayerState();
 
         localStorage.setItem("videoTime", current);
 
-        // Consider video ended if less than 1.5s left and playing for >2s
+        // Consider video ended if less than 1.5s left and playing
         if (state === YT.PlayerState.PLAYING && duration - current <= 1.5) {
-          clearInterval(ytMonitorInterval);
+          clearInterval(window.ytMonitorInterval);
           nextVideo();
         }
       }, 1000);
@@ -267,34 +141,58 @@
       loadVideo(currentIndex);
     }
 
-    video.addEventListener('ended', nextVideo);
-    video.addEventListener('error', nextVideo);
-    video.addEventListener('timeupdate', () => {
-      localStorage.setItem('videoTime', video.currentTime);
-    });
-
     function toggleMute() {
-      isUserInteracted = true; // Mark user interaction to allow unmute
+      isUserInteracted = true;
+      if (!ytPlayer || !ytReady) return;
 
-      if (playlist[currentIndex].type === "youtube" && ytPlayer && ytReady) {
-        if (isYouTubeMuted) {
-          ytPlayer.unMute();
-          isYouTubeMuted = false;
-          muteIcon.src = "unmute-icon.png"; // change icon accordingly
-        } else {
-          ytPlayer.mute();
-          isYouTubeMuted = true;
-          muteIcon.src = "mute-icon.png";
-        }
+      if (isYouTubeMuted) {
+        ytPlayer.unMute();
+        isYouTubeMuted = false;
+        muteIcon.src = "unmute-icon.png"; // Your unmute icon path here
       } else {
-        video.muted = !video.muted;
-        muteIcon.src = video.muted ? "mute-icon.png" : "unmute-icon.png";
+        ytPlayer.mute();
+        isYouTubeMuted = true;
+        muteIcon.src = "mute-icon.png"; // Your mute icon path here
       }
     }
 
-    // Detect first user interaction to enable unmuting YouTube reliably
+    function onYouTubeIframeAPIReady() {
+      ytReady = true;
+      ytPlayer = new YT.Player('yt-player', {
+        height: '360',
+        width: '640',
+        videoId: extractYouTubeID(playlist[currentIndex].url),
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          mute: 1,
+          rel: 0
+        },
+        events: {
+          'onReady': (event) => {
+            isYouTubeMuted = true;
+            event.target.mute();
+            if (!isNaN(savedTime)) {
+              event.target.seekTo(savedTime, true);
+            }
+            event.target.playVideo();
+            updateInfo(playlist[currentIndex]);
+            monitorYouTubeEnd();
+          },
+          'onStateChange': function (event) {
+            if (event.data === YT.PlayerState.ENDED) {
+              clearInterval(window.ytMonitorInterval);
+              nextVideo();
+            }
+          },
+          'onError': () => nextVideo()
+        }
+      });
+    }
+
+    // Allow unmute only after user interacts anywhere on page
     window.addEventListener('click', () => {
-      if (!isUserInteracted && playlist[currentIndex].type === "youtube" && ytPlayer && ytReady) {
+      if (!isUserInteracted && ytReady) {
         ytPlayer.unMute();
         isYouTubeMuted = false;
         muteIcon.src = "unmute-icon.png";
@@ -302,18 +200,6 @@
       }
     }, { once: true });
 
-    function onYouTubeIframeAPIReady() {
-      ytReady = true;
-      if (playlist[currentIndex].type === "youtube") {
-        loadVideo(currentIndex);
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      if (playlist[currentIndex].type !== "youtube") {
-        loadVideo(currentIndex);
-      }
-    });
   </script>
 
 </body>
