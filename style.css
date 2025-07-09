@@ -16,13 +16,9 @@ body {
 #player {
     width: 100%;
     height: 100%;
-    /* The YouTube API handles the iframe itself. We're just giving it a container */
 }
 
 /* Hide YouTube controls - This is partially done by the API, but some CSS helps */
-/* Note: YouTube heavily restricts modification of its player's internal DOM.
-   The best way to achieve 'no seek bar' and 'unresponsive to touch' is via API parameters.
-   However, we'll try to hide any remaining default UI elements. */
 #player iframe {
     pointer-events: none; /* Disable pointer events on the iframe itself */
 }
