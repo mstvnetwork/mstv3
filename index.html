@@ -184,16 +184,54 @@
     </div>
 
     <script>
-        // Define your YouTube playlist with video IDs
-        // IMPORTANT: Replace 'VIDEO_ID_...' with your actual YouTube video IDs
+        // Helper function to parse various YouTube URLs/IDs
+        function parseYouTubeLink(link) {
+            // Regex to match standard 11-character video IDs from various URL formats
+            const videoRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            // Regex to match YouTube playlist IDs
+            const playlistRegex = /(?:youtube\.com\/(?:playlist\?list=|embed\/videoseries\?list=))([a-zA-Z0-9_-]+)/;
+            // Regex for the specific googleusercontent.com format, ensuring it captures an 11-char ID if present
+            const googleUserContentVideoRegex = /googleusercontent\.com\/youtube\.com\/([a-zA-Z0-9_-]{11})/;
+            // Regex for the specific googleusercontent.com playlist format
+            const googleUserContentPlaylistRegex = /googleusercontent\.com\/youtube\.com\/playlist\?list=([a-zA-Z0-9_-]+)/;
+
+
+            let match;
+
+            // Try to match standard playlist URL first, including googleusercontent.com version
+            match = link.match(playlistRegex);
+            if (match && match[1]) {
+                return { type: 'playlist', id: match[1] };
+            }
+            match = link.match(googleUserContentPlaylistRegex);
+            if (match && match[1]) {
+                return { type: 'playlist', id: match[1] };
+            }
+
+            // Then try to match standard video URLs, including googleusercontent.com version
+            match = link.match(videoRegex);
+            if (match && match[1]) {
+                return { type: 'video', id: match[1] };
+            }
+            match = link.match(googleUserContentVideoRegex);
+            if (match && match[1]) {
+                return { type: 'video', id: match[1] };
+            }
+
+            // Finally, check if it's just a plain 11-character ID
+            if (link.length === 11 && /^[a-zA-Z0-9_-]+$/.test(link)) {
+                return { type: 'video', id: link };
+            }
+
+            // If none of the above matched, it's an unrecognized format
+            console.warn(`Unrecognized YouTube link format: ${link}`);
+            return null;
+        }
+
+        // Define your YouTube playlist with various video IDs or URLs
+        // This playlist now contains ONLY the specified URL for testing.
         const youtubePlaylist = [
-            '', // Example: Rick Astley
-            '', // Example: Lofi Hip Hop Radio
-            '', // Example: Epic Nature Documentary
-            '', // Example: Cozy Fireplace Sounds
-            'BBvod49uySQ',
-            'vgLBZ-AkLiw' // <--- Added the video ID '4' here based on your request
-            // Add more video IDs here
+            'https://www.youtube.com/watch?v=d4_hEBI46cE&list=RD05u84PwUMeA&index=2' // Exclusive playlist URL for testing
         ];
 
         const LAST_PLAYED_KEY = 'lastPlayedVideo'; // Key for localStorage
@@ -204,13 +242,56 @@
         const unmuteButton = document.getElementById('unmuteButton');
         const newsTicker = document.getElementById('newsTicker'); // Get the news ticker element
 
+        // Function to load the current item from the playlist
+        function loadCurrentPlaylistItem() {
+            if (youtubePlaylist.length === 0) {
+                console.error("YouTube playlist is empty. Please add video/playlist URLs or IDs.");
+                return;
+            }
+
+            // Loop back to the beginning if index is out of bounds
+            if (currentVideoIndex >= youtubePlaylist.length) {
+                currentVideoIndex = 0;
+            }
+
+            const itemToPlay = youtubePlaylist[currentVideoIndex];
+            const parsedItem = parseYouTubeLink(itemToPlay);
+
+            if (parsedItem) {
+                if (parsedItem.type === 'video') {
+                    console.log(`Loading video: ${parsedItem.id}`);
+                    // If returning from localStorage, start at saved time
+                    const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
+                    if (lastPlayed && lastPlayed.index === currentVideoIndex && lastPlayed.type === 'video') {
+                        player.loadVideoById(parsedItem.id, lastPlayed.time);
+                    } else {
+                        player.loadVideoById(parsedItem.id);
+                    }
+                } else if (parsedItem.type === 'playlist') {
+                    console.log(`Loading playlist: ${parsedItem.id}`);
+                    // When loading a playlist, we typically start from the beginning of it.
+                    // The YouTube API doesn't easily allow saving/resuming a specific position within a loaded playlist.
+                    player.loadPlaylist({
+                        list: parsedItem.id,
+                        listType: 'playlist'
+                    });
+                }
+            } else {
+                console.error(`Skipping unrecognized item in playlist at index ${currentVideoIndex}: ${itemToPlay}`);
+                // Skip to the next item if the current one is unrecognized
+                currentVideoIndex++;
+                loadCurrentPlaylistItem(); // Try loading the next item
+            }
+        }
+
+
         // This function creates an <iframe> (and YouTube player)
         // after the API code downloads.
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
                 height: '390', // Default height (will be overridden by CSS)
                 width: '640',  // Default width (will be overridden by CSS)
-                videoId: youtubePlaylist[currentVideoIndex],
+                // We'll load the initial video/playlist in onPlayerReady
                 playerVars: {
                     'autoplay': 1,      // Autoplay the video (will be muted due to browser policy)
                     'controls': 0,      // Hide all default controls (seek bar, timestamp, etc.)
@@ -234,12 +315,11 @@
             const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
             if (lastPlayed && youtubePlaylist[lastPlayed.index]) {
                 currentVideoIndex = lastPlayed.index;
-                // Load video by ID and start at the saved time
-                player.loadVideoById(youtubePlaylist[currentVideoIndex], lastPlayed.time);
             } else {
-                // If no saved state, start with the first video from the beginning
-                event.target.playVideo();
+                currentVideoIndex = 0; // Start from the beginning if no saved state
             }
+
+            loadCurrentPlaylistItem(); // Load the determined item
 
             // Mute the player initially to comply with autoplay policies
             player.mute();
@@ -247,10 +327,22 @@
 
             // Start periodically saving current time to localStorage
             saveInterval = setInterval(() => {
-                if (player && player.getCurrentTime) {
+                const currentPlayingItem = youtubePlaylist[currentVideoIndex];
+                const parsedPlayingItem = parseYouTubeLink(currentPlayingItem);
+
+                if (player && player.getCurrentTime && parsedPlayingItem && parsedPlayingItem.type === 'video') {
+                    // Only save time for individual videos, not for playlists
                     localStorage.setItem(LAST_PLAYED_KEY, JSON.stringify({
                         index: currentVideoIndex,
-                        time: player.getCurrentTime()
+                        time: player.getCurrentTime(),
+                        type: 'video' // Store type to know if it was a video or playlist
+                    }));
+                } else if (parsedPlayingItem && parsedPlayingItem.type === 'playlist') {
+                     // For playlists, just save the index, not a specific time within the playlist
+                    localStorage.setItem(LAST_PLAYED_KEY, JSON.stringify({
+                        index: currentVideoIndex,
+                        time: 0, // Reset time for playlists, as specific video tracking is complex
+                        type: 'playlist'
                     }));
                 }
             }, 5000); // Save every 5 seconds
@@ -258,25 +350,18 @@
 
         // The API calls this function when the player's state changes.
         function onPlayerStateChange(event) {
-            // If the video has ended, play the next one in the playlist
+            // If the video (or the last video in a playlist) has ended, play the next one in our custom playlist
             if (event.data === YT.PlayerState.ENDED) {
                 currentVideoIndex++;
-                if (currentVideoIndex >= youtubePlaylist.length) {
-                    currentVideoIndex = 0; // Loop back to the beginning
-                }
-                player.loadVideoById(youtubePlaylist[currentVideoIndex]);
+                loadCurrentPlaylistItem();
             }
         }
 
-        // Handle player errors (e.g., video not found, private video)
+        // Handle player errors (e.g., video not found, private video, playback issue)
         function onPlayerError(event) {
-            console.error('YouTube Player Error:', event.data);
-            // Attempt to skip to the next video
+            console.error('YouTube Player Error:', event.data, 'Attempting to skip to next item.');
             currentVideoIndex++;
-            if (currentVideoIndex >= youtubePlaylist.length) {
-                currentVideoIndex = 0; // Loop back
-            }
-            player.loadVideoById(youtubePlaylist[currentVideoIndex]);
+            loadCurrentPlaylistItem(); // Try loading the next item
         }
 
         // Unmute button functionality
@@ -292,7 +377,7 @@
 
         // Load the IFrame Player API asynchronously.
         var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
+        tag.src = "https://www.youtube.com/iframe_api"; // This is the standard YouTube API script URL
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
