@@ -2,21 +2,302 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>MSTV Live Channel</title>
-  <link rel="stylesheet" href="styles/styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live TV Channel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: #fff;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    #video-container {
+      position: relative;
+      width: 80%;
+      margin: 20px auto;
+    }
+
+    video, iframe {
+      width: 100%;
+      height: auto;
+      background: #000;
+    }
+
+    #mute-icon {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    #program-guide {
+      margin-top: 20px;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 5px;
+    }
+
+    iframe {
+      border: none;
+    }
+
+    #video-info {
+      margin-bottom: 10px;
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+
+    #yt-container {
+      display: none;
+      width: 100%;
+      height: auto;
+    }
+
+    #yt-player iframe {
+      width: 100% !important;
+      height: 360px !important;
+      display: block;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div class="player-wrapper">
-      <div id="player"></div>
-      <div id="muteOverlay" onclick="unmuteVideo()">🔊 Tap to Unmute</div>
-    </div>
-    <div id="now-playing"></div>
-    <div id="tv-guide"></div>
+
+  <h1>Welcome to Our Live TV Channel</h1>
+
+  <div id="video-info">
+    <h2 id="video-title">Loading...</h2>
   </div>
 
+  <div id="video-container">
+    <video id="live-video" controls autoplay muted playsinline></video>
+    <div id="yt-container">
+      <div id="yt-player"></div>
+    </div>
+    <img id="mute-icon" src="mute-icon.png" alt="Mute" onclick="toggleMute()" />
+  </div>
+
+  <div id="program-guide">
+    <h2>Program Guide</h2>
+    <p>1. Program Title 1 - 10:00 AM</p>
+    <p>2. Program Title 2 - 11:00 AM</p>
+    <p>3. Program Title 3 - 12:00 PM</p>
+  </div>
+
+  <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
-  <script src="scripts/player.js"></script>
+  <!-- hls.js for HLS playback -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+  <script>
+    const video = document.getElementById('live-video');
+    const ytContainer = document.getElementById('yt-container');
+    const ytPlayerDiv = document.getElementById('yt-player');
+    const titleEl = document.getElementById('video-title');
+
+    const playlist = [
+      {
+        url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+        title: "Mux HLS Stream",
+        type: "hls"
+      },
+      {
+        url: "https://www.youtube.com/watch?v=-HT3JdpKUCQ",
+        title: "YouTube Live Stream",
+        type: "youtube"
+      }
+    ];
+
+    let currentIndex = 0;
+    let ytPlayer = null;
+    let ytReady = false;
+    let hls = null;
+    let ytMonitorInterval = null;
+
+    const savedIndex = parseInt(localStorage.getItem("videoIndex"));
+    const savedTime = parseFloat(localStorage.getItem("videoTime"));
+
+    if (!isNaN(savedIndex) && savedIndex < playlist.length) {
+      currentIndex = savedIndex;
+    }
+
+    function extractYouTubeID(url) {
+      if (url.includes("youtu.be/")) {
+        return url.split("youtu.be/")[1].split(/[?&]/)[0];
+      } else if (url.includes("v=")) {
+        return url.split("v=")[1].split("&")[0];
+      }
+      return "";
+    }
+
+    function updateInfo(item) {
+      titleEl.textContent = item.title || "Now Playing";
+    }
+
+    function loadVideo(index) {
+      if (index >= playlist.length) index = 0;
+      currentIndex = index;
+      localStorage.setItem("videoIndex", index);
+      localStorage.setItem("videoTime", "0");
+      const item = playlist[index];
+      updateInfo(item);
+
+      if (item.type === "youtube") {
+        if (hls) {
+          hls.destroy();
+          hls = null;
+        }
+
+        video.pause();
+        video.style.display = "none";
+        ytContainer.style.display = "block";
+
+        const videoId = extractYouTubeID(item.url);
+
+        const setupYouTube = () => {
+          if (ytPlayer) {
+            ytPlayer.loadVideoById(videoId);
+            ytPlayer.mute(); // Autoplay
+            if (!isNaN(savedTime)) ytPlayer.seekTo(savedTime, true);
+            ytPlayer.playVideo();
+            monitorYouTubeEnd();
+          } else {
+            ytPlayer = new YT.Player('yt-player', {
+              height: '360',
+              width: '640',
+              videoId: videoId,
+              playerVars: {
+                autoplay: 1,
+                controls: 1,
+                mute: 1,
+                rel: 0
+              },
+              events: {
+                'onReady': (event) => {
+                  event.target.mute(); // Autoplay
+                  if (!isNaN(savedTime)) {
+                    event.target.seekTo(savedTime, true);
+                  }
+                  event.target.playVideo();
+                  monitorYouTubeEnd();
+                },
+                'onStateChange': function (event) {
+                  if (event.data === YT.PlayerState.ENDED) {
+                    clearInterval(ytMonitorInterval);
+                    nextVideo();
+                  }
+                },
+                'onError': () => nextVideo()
+              }
+            });
+          }
+        };
+
+        if (ytReady) {
+          setupYouTube();
+        }
+
+      } else if (item.type === "hls") {
+        ytContainer.style.display = "none";
+        if (ytPlayer && ytReady) ytPlayer.stopVideo();
+        clearInterval(ytMonitorInterval);
+
+        video.style.display = "block";
+
+        if (hls) {
+          hls.destroy();
+          hls = null;
+        }
+
+        if (Hls.isSupported()) {
+          hls = new Hls();
+          hls.loadSource(item.url);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, function () {
+            if (!isNaN(savedTime)) {
+              video.currentTime = savedTime;
+            }
+            video.play().catch(console.warn);
+          });
+          hls.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal) {
+              console.error("HLS fatal error:", data);
+              nextVideo();
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = item.url;
+          video.addEventListener('loadedmetadata', function () {
+            if (!isNaN(savedTime)) {
+              video.currentTime = savedTime;
+            }
+            video.play().catch(console.warn);
+          });
+        } else {
+          console.error("HLS not supported");
+          nextVideo();
+        }
+      }
+    }
+
+    function monitorYouTubeEnd() {
+      if (!ytPlayer || !ytPlayer.getDuration) return;
+      clearInterval(ytMonitorInterval);
+      ytMonitorInterval = setInterval(() => {
+        const duration = ytPlayer.getDuration();
+        const current = ytPlayer.getCurrentTime();
+        const state = ytPlayer.getPlayerState();
+
+        localStorage.setItem("videoTime", current);
+
+        if (state === YT.PlayerState.PLAYING && duration - current <= 1) {
+          clearInterval(ytMonitorInterval);
+          nextVideo();
+        }
+      }, 1000);
+    }
+
+    function nextVideo() {
+      currentIndex = (currentIndex + 1) % playlist.length;
+      localStorage.setItem("videoIndex", currentIndex);
+      localStorage.setItem("videoTime", "0");
+      loadVideo(currentIndex);
+    }
+
+    video.addEventListener('ended', nextVideo);
+    video.addEventListener('error', nextVideo);
+    video.addEventListener('timeupdate', function () {
+      localStorage.setItem('videoTime', video.currentTime);
+    });
+
+    function toggleMute() {
+      if (playlist[currentIndex].type === "youtube" && ytPlayer && ytReady) {
+        if (ytPlayer.isMuted()) {
+          ytPlayer.unMute();
+        } else {
+          ytPlayer.mute();
+        }
+      } else {
+        video.muted = !video.muted;
+      }
+    }
+
+    function onYouTubeIframeAPIReady() {
+      ytReady = true;
+      if (playlist[currentIndex].type === "youtube") {
+        loadVideo(currentIndex);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (playlist[currentIndex].type !== "youtube") {
+        loadVideo(currentIndex);
+      }
+    });
+  </script>
+
 </body>
 </html>
