@@ -1,113 +1,84 @@
 let player;
-const playlist = [
-  { videoId: 'dQw4w9WgXcQ', duration: 213, title: 'Show 1: Music Video' },
-  { videoId: 'LXb3EKWsInQ', duration: 180, title: 'Show 2: Nature Documentary' },
-  { videoId: 'ysz5S6PUM-U', duration: 300, title: 'Show 3: Tech Talk' }
+let videoPlaylist = [
+    'VIDEO_ID_1', // Replace with actual YouTube video IDs
+    'VIDEO_ID_2',
+    'VIDEO_ID_3',
+    // ... more video IDs
 ];
-
-const totalDuration = playlist.reduce((sum, item) => sum + item.duration, 0);
-const channelStart = 0; // Adjust if you want a fixed channel start timestamp
-
-function getCurrentPlaylistState() {
-  const now = new Date();
-  const utcSeconds = Math.floor(now.getTime() / 1000);
-  const elapsed = (utcSeconds - channelStart) % totalDuration;
-
-  let accumulated = 0;
-  for (let i = 0; i < playlist.length; i++) {
-    if (elapsed < accumulated + playlist[i].duration) {
-      return { index: i, offset: elapsed - accumulated };
-    }
-    accumulated += playlist[i].duration;
-  }
-  return { index: 0, offset: 0 };
-}
+let currentVideoIndex = 0;
+let lastKnownTime = 0;
 
 function onYouTubeIframeAPIReady() {
-  const state = getCurrentPlaylistState();
-
-  player = new YT.Player('player', {
-    height: '100%',
-    width: '100%',
-    videoId: playlist[state.index].videoId,
-    playerVars: {
-      controls: 0,
-      disablekb: 1,
-      modestbranding: 1,
-      rel: 0,
-      showinfo: 0,
-      fs: 0,
-      iv_load_policy: 3,
-      autoplay: 0,
-      mute: 1,
-    },
-    events: {
-      onReady: (event) => {
-        event.target.mute();
-
-        // Cue the video with offset, but do not play yet
-        event.target.cueVideoById({
-          videoId: playlist[state.index].videoId,
-          startSeconds: state.offset
-        });
-      },
-
-      onStateChange: (event) => {
-        if (event.data === YT.PlayerState.CUED) {
-          // Play video once cued
-          player.playVideo();
-        } else if (event.data === YT.PlayerState.ENDED) {
-          playNextVideo();
-        } else if (event.data === YT.PlayerState.UNSTARTED) {
-          // In rare cases video might be unstarted, try cue again with delay
-          setTimeout(() => {
-            const s = getCurrentPlaylistState();
-            player.cueVideoById({
-              videoId: playlist[s.index].videoId,
-              startSeconds: s.offset
-            });
-          }, 1000);
+    player = new YT.Player('player', {
+        height: '100%',
+        width: '100%',
+        videoId: videoPlaylist[currentVideoIndex],
+        playerVars: {
+            'autoplay': 1,
+            'controls': 0, // Disable default controls
+            'disablekb': 1, // Disable keyboard controls
+            'fs': 0, // Disable fullscreen button
+            'iv_load_policy': 3, // Disable annotations
+            'modestbranding': 1, // Hide YouTube logo on control bar
+            'rel': 0, // Do not show related videos at the end
+            'showinfo': 0, // Hide video title and uploader info
+            'enablejsapi': 1, // Enable JavaScript API control
+            'widget_referrer': window.location.href // Helps with autoplay on some browsers
+        },
+        events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
         }
-      }
+    });
+}
+
+function onPlayerReady(event) {
+    // If there's a last known time, seek to it
+    if (lastKnownTime > 0) {
+        event.target.seekTo(lastKnownTime, true);
     }
-  });
+    event.target.playVideo();
+    // Initially mute the video to allow autoplay on page load
+    event.target.mute();
 }
 
-function playNextVideo() {
-  const currentId = player.getVideoData().video_id;
-  let currentIndex = playlist.findIndex(item => item.videoId === currentId);
-  let nextIndex = (currentIndex + 1) % playlist.length;
-  player.loadVideoById(playlist[nextIndex].videoId, 0);
+function onPlayerStateChange(event) {
+    // When a video ends, play the next one
+    if (event.data === YT.PlayerState.ENDED) {
+        currentVideoIndex = (currentVideoIndex + 1) % videoPlaylist.length;
+        player.loadVideoById(videoPlaylist[currentVideoIndex]);
+    }
+    // Update last known time for time sync
+    if (event.data === YT.PlayerState.PLAYING || event.data === YT.PlayerState.PAUSED) {
+        lastKnownTime = player.getCurrentTime();
+    }
 }
 
-document.getElementById('unmute-btn').addEventListener('click', () => {
-  if (player.isMuted()) {
-    player.unMute();
-    document.getElementById('unmute-btn').textContent = '🔈';
-  } else {
-    player.mute();
-    document.getElementById('unmute-btn').textContent = '🔇';
-  }
+// Save current time before unload
+window.addEventListener('beforeunload', () => {
+    if (player && typeof player.getCurrentTime === 'function') {
+        localStorage.setItem('lastKnownVideoIndex', currentVideoIndex);
+        localStorage.setItem('lastKnownVideoTime', player.getCurrentTime());
+    }
 });
 
-function generateProgramGuide() {
-  const programList = document.getElementById('program-list');
-  programList.innerHTML = '';
+// Load last known time on page load
+window.addEventListener('load', () => {
+    const savedIndex = localStorage.getItem('lastKnownVideoIndex');
+    const savedTime = localStorage.getItem('lastKnownVideoTime');
+    if (savedIndex !== null && savedTime !== null) {
+        currentVideoIndex = parseInt(savedIndex);
+        lastKnownTime = parseFloat(savedTime);
+    }
+});
 
-  let currentTime = 0;
-  playlist.forEach(item => {
-    const startMin = Math.floor(currentTime / 60);
-    const endMin = Math.floor((currentTime + item.duration) / 60);
-
-    const startStr = `${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')}`;
-    const endStr = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
-
-    const li = document.createElement('li');
-    li.textContent = `${startStr} - ${endStr}: ${item.title}`;
-    programList.appendChild(li);
-
-    currentTime += item.duration;
-  });
-}
-
-generateProgramGuide();
+// Handle unmute button
+document.getElementById('unmuteButton').addEventListener('click', () => {
+    if (player.isMuted()) {
+        player.unMute();
+        document.getElementById('unmuteButton').textContent = '🔊';
+    } else {
+        player.mute();
+        document.getElementById('unmuteButton').textContent = '🔇';
+    }
+});
