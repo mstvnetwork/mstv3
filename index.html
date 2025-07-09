@@ -22,9 +22,10 @@
             width: 90%; /* Adjust as needed */
             max-width: 1280px; /* Max width for large screens, e.g., 720p or 1080p aspect */
             border-radius: 10px;
-            overflow: hidden; /* Crucial for hiding parts of the scrolling text outside the container */
+            overflow: hidden;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             background-color: #2a2a2a;
+            margin-bottom: 20px; /* Space between TV and bottom content */
         }
 
         .video-container {
@@ -58,22 +59,20 @@
         /* Custom Unmute Button */
         .unmute-button {
             position: absolute;
-            top: 20px; /* Distance from the top */
-            right: 20px; /* Distance from the right */
-
-            z-index: 20; /* Place it above the overlay and video */
+            bottom: 20px; /* Adjust position from bottom */
+            right: 20px; /* Adjust position from right */
+            z-index: 20; /* Place it above the overlay */
             background: rgba(0, 0, 0, 0.6);
             color: white;
             border: none;
-            padding: 15px; /* Adjust padding as needed */
-            border-radius: 50%; /* Make it circular */
+            padding: 10px 15px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 4.5em; /* ICON SIZE SET TO 4.5em */
+            font-size: 1.5em;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.3s ease, opacity 0.3s ease;
-            opacity: 1; /* Default visible state */
+            transition: background 0.3s ease;
         }
 
         .unmute-button:hover {
@@ -86,34 +85,45 @@
         .unmute-button:not(.muted) .mute-icon { display: none; }
         .unmute-button:not(.muted) .unmute-icon { display: inline-block; }
 
-        /* Scrolling Text Container */
-        .scrolling-text-container {
-            position: absolute; /* Position relative to .video-container */
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 40px; /* Height of the ticker */
-            background-color: red; /* Red background */
-            overflow: hidden; /* Hide text outside this band */
-            z-index: 15; /* Above video, below unmute button */
+        /* Program Guide */
+        .program-guide-container {
+            padding: 20px;
+            background-color: #222;
+            border-top: 1px solid #333;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+        .program-guide-container h3, .program-guide-container h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #fff;
+            text-align: center;
+        }
+
+        #nowPlayingTitle {
+            color: #4CAF50; /* Highlight current program */
+        }
+
+        #upcomingList {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
             display: flex;
-            align-items: center; /* Vertically center the text */
-            white-space: nowrap; /* Prevent text from wrapping */
-            box-shadow: 0 -5px 10px rgba(0, 0, 0, 0.3); /* Subtle shadow above ticker */
+            flex-wrap: wrap; /* Allow items to wrap */
+            justify-content: center;
+            gap: 10px; /* Space between list items */
         }
 
-        .scrolling-text {
-            color: white; /* White text */
-            font-size: 1.2em; /* Adjust font size */
-            font-weight: bold;
-            padding-left: 100%; /* Start text off-screen to the right */
-            animation: scroll-left 40s linear infinite; /* Animation duration and loop */
-        }
-
-        /* Keyframe animation for scrolling */
-        @keyframes scroll-left {
-            0% { transform: translateX(0%); }
-            100% { transform: translateX(-100%); } /* Scrolls its own width left */
+        #upcomingList li {
+            padding: 8px 12px;
+            font-size: 0.9em;
+            color: #bbb;
+            background-color: #333;
+            border-radius: 5px;
+            flex-grow: 1; /* Allow items to grow to fill space */
+            text-align: center;
+            max-width: 300px; /* Limit width for longer titles */
         }
 
         /* Responsive Design */
@@ -123,19 +133,19 @@
             }
 
             .unmute-button {
-                top: 10px;
+                bottom: 10px;
                 right: 10px;
-                padding: 10px;
-                font-size: 3.0em; /* Adjusted for smaller screens */
+                padding: 8px 12px;
+                font-size: 1.2em;
             }
 
-            .scrolling-text-container {
-                height: 30px; /* Smaller height on smaller screens */
+            .program-guide-container {
+                padding: 15px;
             }
 
-            .scrolling-text {
-                font-size: 1em;
-                animation-duration: 30s; /* Faster scroll on smaller screens */
+            #upcomingList li {
+                font-size: 0.85em;
+                padding: 6px 10px;
             }
         }
 
@@ -145,19 +155,17 @@
                 border-radius: 0;
             }
             .unmute-button {
-                top: 5px;
+                bottom: 5px;
                 right: 5px;
-                padding: 8px;
-                font-size: 2.0em; /* Adjusted for very small screens */
+                padding: 5px 8px;
+                font-size: 1em;
             }
-
-            .scrolling-text-container {
-                height: 25px;
+            .program-guide-container {
+                padding: 10px;
             }
-
-            .scrolling-text {
-                font-size: 0.9em;
-                animation-duration: 25s;
+            #upcomingList {
+                flex-direction: column; /* Stack upcoming programs on small screens */
+                align-items: center;
             }
         }
     </style>
@@ -171,74 +179,29 @@
                 <span class="mute-icon">🔇</span>
                 <span class="unmute-icon">🔊</span>
             </button>
+        </div>
 
-            <div class="scrolling-text-container">
-                <div class="scrolling-text" id="newsTicker">
-                    Welcome to My Live TV Channel! Tune in 24/7 for great content. Stay tuned for exciting upcoming programs! This is a demo of scrolling text.
-                                  Breaking News: Live broadcast continues!               
-                    Remember to unmute for sound!               
-                    Enjoy the show!
-                </div>
+        <div class="program-guide-container">
+            <h3>Now Playing: <span id="nowPlayingTitle">Loading...</span></h3>
+            <div id="upcomingPrograms">
+                <h4>Upcoming:</h4>
+                <ul id="upcomingList">
+                    <li>Loading upcoming programs...</li>
+                </ul>
             </div>
-            </div>
+        </div>
     </div>
 
     <script>
-        // Helper function to parse various YouTube URLs/IDs
-        function parseYouTubeLink(link) {
-            // Regex to match standard 11-character video IDs from various URL formats
-            const videoRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-            // Regex to match YouTube playlist IDs
-            const playlistRegex = /(?:youtube\.com\/(?:playlist\?list=|embed\/videoseries\?list=))([a-zA-Z0-9_-]+)/;
-            // Regex for the specific googleusercontent.com format, ensuring it captures an 11-char ID if present
-            const googleUserContentVideoRegex = /googleusercontent\.com\/youtube\.com\/([a-zA-Z0-9_-]{11})/;
-            // Regex for the specific googleusercontent.com playlist format
-            const googleUserContentPlaylistRegex = /googleusercontent\.com\/youtube\.com\/playlist\?list=([a-zA-Z0-9_-]+)/;
-
-
-            let match;
-
-            // Try to match standard playlist URL first, including googleusercontent.com version
-            match = link.match(playlistRegex);
-            if (match && match[1]) {
-                return { type: 'playlist', id: match[1] };
-            }
-            match = link.match(googleUserContentPlaylistRegex);
-            if (match && match[1]) {
-                return { type: 'playlist', id: match[1] };
-            }
-
-            // Then try to match standard video URLs, including googleusercontent.com version
-            match = link.match(videoRegex);
-            if (match && match[1]) {
-                return { type: 'video', id: match[1] };
-            }
-            match = link.match(googleUserContentVideoRegex);
-            if (match && match[1]) {
-                return { type: 'video', id: match[1] };
-            }
-
-            // Finally, check if it's just a plain 11-character ID
-            if (link.length === 11 && /^[a-zA-Z0-9_-]+$/.test(link)) {
-                return { type: 'video', id: link };
-            }
-
-            // If none of the above matched, it's an unrecognized format
-            console.warn(`Unrecognized YouTube link format: ${link}`);
-            return null;
-        }
-
-        // Define your YouTube playlist with various video IDs or URLs
-        // You can now mix and match 11-character IDs, full URLs, or playlist URLs!
+        // Define your YouTube playlist with video IDs and titles
+        // IMPORTANT: Replace 'VIDEO_ID_...' with your actual YouTube video IDs
         const youtubePlaylist = [
-            '9mxIs29y7izrsUYc',                                    // 11-character ID (Rick Astley)
-            'qXzPEGnG8mTy7ypi', // Example: googleusercontent URL with valid ID
-            'cE1b_g_fvH1SuGhg',    // Full YouTube URL (Lofi Hip Hop Radio)
-            'kohi-j7nWTKV-iBR',                  // Short YouTube URL (Cozy Fireplace)
-            'lGspuBtE7839XJL8',             // Example: Playlist ID (will play the entire playlist)
-            'GvM0JDgrfZ7Nievq', // Full Playlist URL
-            // Add more valid video IDs or URLs here
-            // Note: A simple '4' (from your earlier example) will not work as it's not a valid 11-char YouTube ID.
+            { id: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up' }, // Example: Rick Astley
+            { id: 'M7lc1UVf-VE', title: 'Lofi Hip Hop Radio' },      // Example: Lofi Girl
+            { id: 'LXb3EKWsInQ', title: 'Epic Nature Documentary' }, // Example: Nature clip
+            { id: 'k-LgJ52aU5Y', title: 'Cozy Fireplace Sounds' },   // Example: Fireplace
+            { id: 'VIDEO_ID_5', title: 'Your Fifth Video Title' },
+            // Add more video objects here { id: 'YOUR_VIDEO_ID', title: 'Your Video Title' }
         ];
 
         const LAST_PLAYED_KEY = 'lastPlayedVideo'; // Key for localStorage
@@ -247,50 +210,8 @@
         let saveInterval; // To clear the interval on unload
 
         const unmuteButton = document.getElementById('unmuteButton');
-        const newsTicker = document.getElementById('newsTicker'); // Get the news ticker element
-
-        // Function to load the current item from the playlist
-        function loadCurrentPlaylistItem() {
-            if (youtubePlaylist.length === 0) {
-                console.error("YouTube playlist is empty. Please add video/playlist URLs or IDs.");
-                return;
-            }
-
-            // Loop back to the beginning if index is out of bounds
-            if (currentVideoIndex >= youtubePlaylist.length) {
-                currentVideoIndex = 0;
-            }
-
-            const itemToPlay = youtubePlaylist[currentVideoIndex];
-            const parsedItem = parseYouTubeLink(itemToPlay);
-
-            if (parsedItem) {
-                if (parsedItem.type === 'video') {
-                    console.log(`Loading video: ${parsedItem.id}`);
-                    // If returning from localStorage, start at saved time
-                    const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
-                    if (lastPlayed && lastPlayed.index === currentVideoIndex && lastPlayed.type === 'video') {
-                        player.loadVideoById(parsedItem.id, lastPlayed.time);
-                    } else {
-                        player.loadVideoById(parsedItem.id);
-                    }
-                } else if (parsedItem.type === 'playlist') {
-                    console.log(`Loading playlist: ${parsedItem.id}`);
-                    // When loading a playlist, we typically start from the beginning of it.
-                    // The YouTube API doesn't easily allow saving/resuming a specific position within a loaded playlist.
-                    player.loadPlaylist({
-                        list: parsedItem.id,
-                        listType: 'playlist'
-                    });
-                }
-            } else {
-                console.error(`Skipping unrecognized item in playlist at index ${currentVideoIndex}: ${itemToPlay}`);
-                // Skip to the next item if the current one is unrecognized
-                currentVideoIndex++;
-                loadCurrentPlaylistItem(); // Try loading the next item
-            }
-        }
-
+        const nowPlayingTitleElement = document.getElementById('nowPlayingTitle');
+        const upcomingListElement = document.getElementById('upcomingList');
 
         // This function creates an <iframe> (and YouTube player)
         // after the API code downloads.
@@ -298,7 +219,7 @@
             player = new YT.Player('player', {
                 height: '390', // Default height (will be overridden by CSS)
                 width: '640',  // Default width (will be overridden by CSS)
-                // We'll load the initial video/playlist in onPlayerReady
+                videoId: youtubePlaylist[currentVideoIndex].id,
                 playerVars: {
                     'autoplay': 1,      // Autoplay the video (will be muted due to browser policy)
                     'controls': 0,      // Hide all default controls (seek bar, timestamp, etc.)
@@ -322,11 +243,12 @@
             const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
             if (lastPlayed && youtubePlaylist[lastPlayed.index]) {
                 currentVideoIndex = lastPlayed.index;
+                // Load video by ID and start at the saved time
+                player.loadVideoById(youtubePlaylist[currentVideoIndex].id, lastPlayed.time);
             } else {
-                currentVideoIndex = 0; // Start from the beginning if no saved state
+                // If no saved state, start with the first video from the beginning
+                event.target.playVideo();
             }
-
-            loadCurrentPlaylistItem(); // Load the determined item
 
             // Mute the player initially to comply with autoplay policies
             player.mute();
@@ -334,41 +256,41 @@
 
             // Start periodically saving current time to localStorage
             saveInterval = setInterval(() => {
-                const currentPlayingItem = youtubePlaylist[currentVideoIndex];
-                const parsedPlayingItem = parseYouTubeLink(currentPlayingItem);
-
-                if (player && player.getCurrentTime && parsedPlayingItem && parsedPlayingItem.type === 'video') {
-                    // Only save time for individual videos, not for playlists
+                if (player && player.getCurrentTime) {
                     localStorage.setItem(LAST_PLAYED_KEY, JSON.stringify({
                         index: currentVideoIndex,
-                        time: player.getCurrentTime(),
-                        type: 'video' // Store type to know if it was a video or playlist
-                    }));
-                } else if (parsedPlayingItem && parsedPlayingItem.type === 'playlist') {
-                     // For playlists, just save the index, not a specific time within the playlist
-                    localStorage.setItem(LAST_PLAYED_KEY, JSON.stringify({
-                        index: currentVideoIndex,
-                        time: 0, // Reset time for playlists, as specific video tracking is complex
-                        type: 'playlist'
+                        time: player.getCurrentTime()
                     }));
                 }
             }, 5000); // Save every 5 seconds
+
+            // Update the program guide when the player is ready
+            updateProgramGuide();
         }
 
         // The API calls this function when the player's state changes.
         function onPlayerStateChange(event) {
-            // If the video (or the last video in a playlist) has ended, play the next one in our custom playlist
+            // If the video has ended, play the next one in the playlist
             if (event.data === YT.PlayerState.ENDED) {
                 currentVideoIndex++;
-                loadCurrentPlaylistItem();
+                if (currentVideoIndex >= youtubePlaylist.length) {
+                    currentVideoIndex = 0; // Loop back to the beginning
+                }
+                player.loadVideoById(youtubePlaylist[currentVideoIndex].id);
+                updateProgramGuide(); // Update guide after video changes
             }
         }
 
-        // Handle player errors (e.g., video not found, private video, playback issue)
+        // Handle player errors (e.g., video not found, private video)
         function onPlayerError(event) {
-            console.error('YouTube Player Error:', event.data, 'Attempting to skip to next item.');
+            console.error('YouTube Player Error:', event.data);
+            // Attempt to skip to the next video
             currentVideoIndex++;
-            loadCurrentPlaylistItem(); // Try loading the next item
+            if (currentVideoIndex >= youtubePlaylist.length) {
+                currentVideoIndex = 0; // Loop back
+            }
+            player.loadVideoById(youtubePlaylist[currentVideoIndex].id);
+            updateProgramGuide();
         }
 
         // Unmute button functionality
@@ -382,13 +304,30 @@
             }
         });
 
+        // Function to update the program guide display
+        function updateProgramGuide() {
+            // Update "Now Playing" title
+            nowPlayingTitleElement.textContent = youtubePlaylist[currentVideoIndex].title;
+
+            // Update "Upcoming" list
+            upcomingListElement.innerHTML = ''; // Clear previous list
+            const numUpcoming = 3; // Show the next 3 programs
+            for (let i = 1; i <= numUpcoming; i++) {
+                const nextIndex = (currentVideoIndex + i) % youtubePlaylist.length;
+                const listItem = document.createElement('li');
+                listItem.textContent = youtubePlaylist[nextIndex].title;
+                upcomingListElement.appendChild(listItem);
+            }
+        }
+
         // Load the IFrame Player API asynchronously.
         var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api"; // This is the standard YouTube API script URL
+        tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         // Clear the save interval when the page is about to be unloaded
+        // This helps prevent potential memory leaks or errors in some browser scenarios
         window.addEventListener('beforeunload', () => {
             clearInterval(saveInterval);
         });
