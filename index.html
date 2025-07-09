@@ -55,6 +55,25 @@
             /* background: rgba(255, 0, 0, 0.1); /* Uncomment for debugging to see the overlay */
         }
 
+        /* NEW: Thumbnail Placeholder Styling */
+        .video-thumbnail-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000; /* Black background behind thumbnail */
+            background-size: contain; /* Scales image to fit without cropping */
+            /* Or 'cover' if you prefer the image to fill the space, cropping if necessary */
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 12; /* Above video, below overlay/unmute button */
+            display: none; /* Hidden by default */
+            transition: opacity 0.3s ease; /* Smooth fade in/out */
+            opacity: 0;
+        }
+
+
         /* Custom Unmute Button */
         .unmute-button {
             position: absolute;
@@ -167,8 +186,8 @@
     <div class="tv-container">
         <div class="video-container">
             <div id="player"></div>
-            <div class="video-overlay"></div> 
-            <button id="unmuteButton" class="unmute-button muted">
+            <div class="video-overlay"></div>
+            <div class="video-thumbnail-placeholder" id="videoThumbnail"></div> <button id="unmuteButton" class="unmute-button muted">
                 <span class="mute-icon">🔇</span>
                 <span class="unmute-icon">🔊</span>
             </button>
@@ -176,8 +195,8 @@
             <div class="scrolling-text-container">
                 <div class="scrolling-text" id="newsTicker">
                     Welcome to My Live TV Channel! Tune in 24/7 for great content. Stay tuned for exciting upcoming programs! This is a demo of scrolling text.
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Breaking News: Live broadcast continues! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
-                    Remember to unmute for sound! &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+                                  Breaking News: Live broadcast continues!               
+                    Remember to unmute for sound!               
                     Enjoy the show!
                 </div>
             </div>
@@ -189,7 +208,6 @@
         function parseYouTubeLink(link) {
             const videoRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
             const playlistRegex = /(?:youtube\.com\/(?:playlist\?list=|embed\/videoseries\?list=))([a-zA-Z0-9_-]+)/;
-            // Removed googleusercontent.com regex as it's not the standard way to load videos via API
 
             let match;
 
@@ -233,11 +251,45 @@
 
         const unmuteButton = document.getElementById('unmuteButton');
         const newsTicker = document.getElementById('newsTicker');
+        const videoThumbnail = document.getElementById('videoThumbnail'); // NEW: Get thumbnail element
+
+        // Helper function to get YouTube thumbnail URL
+        function getThumbnailUrl(videoId) {
+            // YouTube provides various thumbnail qualities. 'hqdefault' is high quality.
+            // 'maxresdefault' is highest quality but not always available.
+            return `https://www.youtube.com/iframe_api`;
+        }
+
+        // NEW: Function to display the thumbnail
+        function displayThumbnail(videoId) {
+            if (!videoId) {
+                console.warn("No video ID provided for thumbnail.");
+                videoThumbnail.style.opacity = '0';
+                videoThumbnail.style.display = 'none';
+                return;
+            }
+            videoThumbnail.style.backgroundImage = `url('${getThumbnailUrl(videoId)}')`;
+            videoThumbnail.style.display = 'block';
+            // Trigger reflow for transition to work
+            videoThumbnail.offsetHeight; 
+            videoThumbnail.style.opacity = '1';
+        }
+
+        // NEW: Function to hide the thumbnail
+        function hideThumbnail() {
+            videoThumbnail.style.opacity = '0';
+            // Hide only after transition
+            setTimeout(() => {
+                videoThumbnail.style.display = 'none';
+                videoThumbnail.style.backgroundImage = 'none'; // Clear image
+            }, 300); // Match CSS transition duration
+        }
 
         // Function to load the current item from the playlist
         function loadPlaylistItem() {
             if (youtubePlaylist.length === 0) {
                 console.error("YouTube playlist is empty. Please add video/playlist URLs or IDs.");
+                displayThumbnail(null); // Hide any lingering thumbnail
                 return;
             }
 
@@ -248,10 +300,12 @@
             const itemToPlay = youtubePlaylist[currentVideoIndex];
             const parsedItem = parseYouTubeLink(itemToPlay);
 
-            if (parsedItem && parsedItem.type === 'video') { // Only allow video types for timed slots
+            if (parsedItem && parsedItem.type === 'video') {
                 console.log(`Loading video: ${parsedItem.id}`);
                 
-                // If returning from localStorage, start at saved time
+                // NEW: Display thumbnail of the video about to be loaded
+                displayThumbnail(parsedItem.id);
+
                 const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
                 let startTime = 0;
                 if (lastPlayed && lastPlayed.index === currentVideoIndex) {
@@ -260,22 +314,20 @@
                 
                 player.loadVideoById(parsedItem.id, startTime);
                 
-                // Clear any existing timeout and set a new one for the slot duration
                 clearTimeout(videoTimeout);
                 videoTimeout = setTimeout(() => {
                     console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended for ${parsedItem.id}. Moving to next video.`);
-                    currentVideoIndex++; // Move to next video
-                    loadPlaylistItem(); // Load it
-                }, VIDEO_SLOT_DURATION_SECONDS * 1000); // Convert seconds to milliseconds
+                    currentVideoIndex++;
+                    loadPlaylistItem();
+                }, VIDEO_SLOT_DURATION_SECONDS * 1000);
 
-                // Automatically unmute when a new video transitions
                 player.unMute();
                 unmuteButton.classList.remove('muted');
 
             } else {
                 console.error(`Skipping invalid or non-video item in playlist at index ${currentVideoIndex}: ${itemToPlay}. Moving to next.`);
                 currentVideoIndex++;
-                loadPlaylistItem(); // Try loading the next item
+                loadPlaylistItem();
             }
         }
 
@@ -283,44 +335,39 @@
         // after the API code downloads.
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('player', {
-                height: '390', // Default height (will be overridden by CSS)
-                width: '640',  // Default width (will be overridden by CSS)
-                // videoId will be set in onPlayerReady by loadPlaylistItem
+                height: '390',
+                width: '640',
                 playerVars: {
-                    'autoplay': 1,      // Autoplay the video (will be muted due to browser policy)
-                    'controls': 0,      // Hide all default controls (seek bar, timestamp, etc.)
-                    'disablekb': 1,     // Disable keyboard controls
-                    'autohide': 1,      // Hide controls when idle (though they are already hidden)
-                    'modestbranding': 1, // Remove YouTube logo on control bar
-                    'rel': 0,           // Do not show related videos at the end
-                    'iv_load_policy': 3 // Do not show video annotations
+                    'autoplay': 1,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'autohide': 1,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'iv_load_policy': 3
                 },
                 events: {
                     'onReady': onPlayerReady,
                     'onStateChange': onPlayerStateChange,
-                    'onError': onPlayerError // Add error handling
+                    'onError': onPlayerError
                 }
             });
         }
 
         // The API will call this function when the video player is ready.
         function onPlayerReady(event) {
-            // Attempt to load previous state from localStorage
             const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
             if (lastPlayed && youtubePlaylist[lastPlayed.index]) {
                 currentVideoIndex = lastPlayed.index;
             } else {
-                currentVideoIndex = 0; // Start from the beginning if no saved state
+                currentVideoIndex = 0;
             }
             
-            loadPlaylistItem(); // Load the determined item
+            loadPlaylistItem();
 
-            // IMPORTANT: Initial load must start muted due to browser autoplay policies.
-            // The auto-unmute will only apply to subsequent transitions.
             player.mute();
             unmuteButton.classList.add('muted'); 
 
-            // Start periodically saving current time to localStorage
             saveInterval = setInterval(() => {
                 if (player && player.getCurrentTime) {
                     localStorage.setItem(LAST_PLAYED_KEY, JSON.stringify({
@@ -328,35 +375,48 @@
                         time: player.getCurrentTime()
                     }));
                 }
-            }, 5000); // Save every 5 seconds
+            }, 5000);
         }
 
         // The API calls this function when the player's state changes.
         function onPlayerStateChange(event) {
-            // If the video has naturally ended (before the slot timeout), play the next one
             if (event.data === YT.PlayerState.ENDED) {
                 console.log(`Video naturally ended. Moving to next.`);
-                clearTimeout(videoTimeout); // Clear timeout as video ended early
-                currentVideoIndex++; // Move to next video
-                loadPlaylistItem(); // Load it
+                clearTimeout(videoTimeout);
+                currentVideoIndex++;
+                // Display thumbnail for the *next* video while it loads
+                const nextVideoId = youtubePlaylist[currentVideoIndex % youtubePlaylist.length];
+                const parsedNext = parseYouTubeLink(nextVideoId);
+                displayThumbnail(parsedNext ? parsedNext.id : null);
+                loadPlaylistItem();
             }
-            // If the video started playing, ensure timeout is running.
             else if (event.data === YT.PlayerState.PLAYING) {
+                // NEW: Hide thumbnail when video actually starts playing
+                hideThumbnail();
                  clearTimeout(videoTimeout);
                  videoTimeout = setTimeout(() => {
                      console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended (PlayerState.PLAYING) for current video. Moving to next.`);
-                     currentVideoIndex++; // Move to next video
-                     loadPlaylistItem(); // Load it
-                 }, VIDEO_SLOT_DURATION_SECONDS * 1000 - (player.getCurrentTime() * 1000 || 0)); // Remaining time
+                     currentVideoIndex++;
+                     loadPlaylistItem();
+                 }, VIDEO_SLOT_DURATION_SECONDS * 1000 - (player.getCurrentTime() * 1000 || 0));
+            } else if (event.data === YT.PlayerState.BUFFERING) {
+                // Optionally, display thumbnail during buffering if the video goes black
+                const currentVideo = youtubePlaylist[currentVideoIndex];
+                const parsedCurrent = parseYouTubeLink(currentVideo);
+                displayThumbnail(parsedCurrent ? parsedCurrent.id : null);
             }
         }
 
         // Handle player errors (e.g., video not found, private video, playback issue)
         function onPlayerError(event) {
             console.error('YouTube Player Error:', event.data, 'Attempting to skip to next item.');
-            clearTimeout(videoTimeout); // Clear timeout for the errored video
-            currentVideoIndex++; // Skip the problematic video
-            loadPlaylistItem(); // Load the next one
+            clearTimeout(videoTimeout);
+            currentVideoIndex++;
+            // Display thumbnail of the *next* video before attempting to load it
+            const nextVideoId = youtubePlaylist[currentVideoIndex % youtubePlaylist.length];
+            const parsedNext = parseYouTubeLink(nextVideoId);
+            displayThumbnail(parsedNext ? parsedNext.id : null);
+            loadPlaylistItem();
         }
 
         // Unmute button functionality
@@ -372,7 +432,7 @@
 
         // Load the IFrame Player API asynchronously.
         var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api"; // THIS IS THE CORRECT AND OFFICIAL YOUTUBE API URL
+        tag.src = "https://www.youtube.com/iframe_api"; // THE OFFICIAL YOUTUBE API URL
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
