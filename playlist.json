@@ -1,28 +1,12 @@
 [
   {
-    "title": "Intro - MSTV Promo",
-    "url": "https://www.youtube.com/embed/zBjJUV-lzHo?si=o61HVB10Gt5QdJMw",
-    "duration": 1
-  },
-  {
-    "title": "Music Break",
-    "url": "https://www.youtube.com/embed/vljvxeVXtGc?si=wgHx-WJxXnZPl7zd",
-    "duration": 1
-  },
-  {
-    "title": "Motivational Clip",
-    "url": "https://www.youtube.com/embed/zBjJUV-lzHo?si=o61HVB10Gt5QdJMw",
-    "duration": 1
-  },
-  {
-    "title": "Funny Cat Moment",
-    "url": "https://www.youtube.com/embed/J---aiyznGQ",
+    "title": "Sample 1",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
     "duration": 2
   },
   {
-    "title": "Nature Relax",
-    "url": "https://www.youtube.com/embed/1ZYbU82GVz4",
-    "duration": 1
+    "title": "Sample 2",
+    "url": "https://www.youtube.com/watch?v=tgbNymZ7vqY",
+    "duration": 2
   }
 ]
-
