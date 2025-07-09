@@ -186,7 +186,6 @@
 
     <script>
         // Helper function to parse various YouTube URLs/IDs
-        // This function enables flexible URLs in your playlist.
         function parseYouTubeLink(link) {
             const videoRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
             const playlistRegex = /(?:youtube\.com\/(?:playlist\?list=|embed\/videoseries\?list=))([a-zA-Z0-9_-]+)/;
@@ -214,28 +213,28 @@
         }
 
         // --- YOUR 24/7 CONTINUOUS PLAYLIST ---
-        // Each video in this list will play for exactly VIDEO_SLOT_DURATION seconds.
+        // Each video in this list will play for exactly VIDEO_SLOT_DURATION_SECONDS.
         const youtubePlaylist = [
             '17LL_iqlHE8', // Example: Rick Astley
             'xHs7aUUOlJo', // Example: Lofi Hip Hop Radio
             'LXb3EKWsInQ', // Example: Epic Nature Documentary
             'k-LgJ52aU5Y', // Example: Cozy Fireplace Sounds
             'v7LqS6G0y4Q', // Another example video
-            // Add more video IDs or full URLs here, e.g., 'http://googleusercontent.com/youtube.com/dQw4w9WgXcQ'
-            // NOTE: Playlist URLs (list=...) will *not* work with the fixed 2-minute duration.
-            // They would play the entire playlist, overriding the 2-minute cut-off logic.
-            // For 2-minute slots, use individual video IDs or URLs only.
+            // Add more video IDs or full URLs here.
+            // NOTE: Playlist URLs (list=...) will *not* work with the fixed 50-second duration.
+            // They would play the entire playlist, overriding the 50-second cut-off logic.
+            // For 50-second slots, use individual video IDs or URLs only.
         ];
 
         // --- CONFIGURATION FOR VIDEO SLOTS ---
-        const VIDEO_SLOT_DURATION_SECONDS = 120; // 2 minutes (120 seconds)
+        const VIDEO_SLOT_DURATION_SECONDS = 50; // Each video will play for 50 seconds
 
         // Global state variables
         const LAST_PLAYED_KEY = 'lastPlayedVideo';
         let currentVideoIndex = 0;
         let player;
         let saveInterval; // For saving last played position
-        let videoTimeout; // To force video change after 2 minutes
+        let videoTimeout; // To force video change after the slot duration
 
         const unmuteButton = document.getElementById('unmuteButton');
         const newsTicker = document.getElementById('newsTicker');
@@ -266,21 +265,23 @@
                 
                 player.loadVideoById(parsedItem.id, startTime);
                 
-                // Clear any existing timeout and set a new one for 2 minutes
+                // Clear any existing timeout and set a new one for the slot duration
                 clearTimeout(videoTimeout);
                 videoTimeout = setTimeout(() => {
-                    console.log(`2-minute slot ended for ${parsedItem.id}. Moving to next video.`);
+                    console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended for ${parsedItem.id}. Moving to next video.`);
                     currentVideoIndex++; // Move to next video
                     loadPlaylistItem(); // Load it
                 }, VIDEO_SLOT_DURATION_SECONDS * 1000); // Convert seconds to milliseconds
+
+                // Automatically unmute when a new video transitions
+                player.unMute();
+                unmuteButton.classList.remove('muted');
 
             } else {
                 console.error(`Skipping invalid or non-video item in playlist at index ${currentVideoIndex}: ${itemToPlay}. Moving to next.`);
                 currentVideoIndex++;
                 loadPlaylistItem(); // Try loading the next item
             }
-            player.mute(); // Ensure new content starts muted
-            unmuteButton.classList.add('muted');
         }
 
         // This function creates an <iframe> (and YouTube player)
@@ -319,8 +320,10 @@
             
             loadPlaylistItem(); // Load the determined item
 
-            player.mute(); // Mute the player initially to comply with autoplay policies
-            unmuteButton.classList.add('muted'); // Ensure button reflects muted state
+            // IMPORTANT: Initial load must start muted due to browser autoplay policies.
+            // The auto-unmute will only apply to subsequent transitions.
+            player.mute();
+            unmuteButton.classList.add('muted'); 
 
             // Start periodically saving current time to localStorage
             saveInterval = setInterval(() => {
@@ -335,19 +338,19 @@
 
         // The API calls this function when the player's state changes.
         function onPlayerStateChange(event) {
-            // If the video has naturally ended (before the 2-minute timeout), play the next one
+            // If the video has naturally ended (before the slot timeout), play the next one
             if (event.data === YT.PlayerState.ENDED) {
                 console.log(`Video naturally ended. Moving to next.`);
                 clearTimeout(videoTimeout); // Clear timeout as video ended early
-                currentVideoIndex++;
-                loadPlaylistItem();
+                currentVideoIndex++; // Move to next video
+                loadPlaylistItem(); // Load it
             }
             // If the video started playing, ensure timeout is running.
             else if (event.data === YT.PlayerState.PLAYING) {
                  // Reset timeout if video resumes playing (e.g., after buffering)
                  clearTimeout(videoTimeout);
                  videoTimeout = setTimeout(() => {
-                     console.log(`2-minute slot ended (PlayerState.PLAYING) for current video. Moving to next.`);
+                     console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended (PlayerState.PLAYING) for current video. Moving to next.`);
                      currentVideoIndex++; // Move to next video
                      loadPlaylistItem(); // Load it
                  }, VIDEO_SLOT_DURATION_SECONDS * 1000 - player.getCurrentTime() * 1000); // Remaining time
