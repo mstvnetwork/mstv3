@@ -1,20 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream Player</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>MSTV Live Broadcast</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div id="player-container">
-        <div id="player"></div>
-        <div id="overlay" class="visible">
-            Click screen to watch live
-        </div>
+  <div class="tv-container">
+    <img src="logo.png" class="logo" alt="Logo" />
+    <div id="player-overlay">
+      <div id="unmute-icon">🔊 Tap to Unmute</div>
     </div>
-
-    <script src="script.js"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <div id="player-wrapper">
+      <iframe id="player" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+    <div id="guide">
+      <h3>Today's Programme</h3>
+      <ul id="tv-guide"></ul>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
