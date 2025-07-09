@@ -73,20 +73,19 @@ function onYouTubeIframeAPIReady() {
 
 function onPlayerReady(event) {
     console.log('Player ready!');
-    // If there was a saved state, ensure the video starts playing
     const savedState = loadPlayerState();
-    if (savedState) {
-        // Player is ready, but it might not be fully loaded with the correct video and time yet.
-        // The playVideo call is handled by the initial click.
-        // We ensure the overlay is visible if it's the first load.
-        if (localStorage.getItem('hasClickedOverlay') !== 'true') {
-             overlay.classList.remove('hidden');
-        } else {
-             overlay.classList.add('hidden'); // Keep it hidden if already clicked
-             event.target.playVideo(); // Auto-play if previously clicked
-        }
+
+    // Check if the user has clicked the overlay before
+    if (localStorage.getItem('hasClickedOverlay') === 'true') {
+        overlay.classList.add('hidden'); // Keep it hidden if already clicked
+        // Attempt to play and unmute only if it was previously clicked
+        player.unMute(); // Unmute immediately if user has interacted before
+        event.target.playVideo(); // Auto-play if previously clicked
     } else {
-        overlay.classList.remove('hidden'); // Ensure overlay is visible if no saved state
+        overlay.classList.remove('hidden'); // Ensure overlay is visible if no previous interaction
+        // If it's the first time or not clicked, ensure video is muted and not playing until interaction
+        player.mute();
+        player.pauseVideo();
     }
 
     // Continuously save the current time
@@ -99,12 +98,10 @@ function onPlayerStateChange(event) {
         // Video has ended, play the next one
         currentVideoIndex = (currentVideoIndex + 1) % videoPlaylist.length;
         player.loadVideoById(videoPlaylist[currentVideoIndex], 0); // Load next video from start
+        player.unMute(); // Ensure next video plays unmuted if previously unmuted
         savePlayerState(); // Save state after video change
-    } else if (event.data === YT.PlayerState.PLAYING) {
-        // When playing, ensure overlay is hidden and player is unmuted if applicable
-        overlay.classList.add('hidden');
-        // We'll handle unmuting on initial click
     }
+    // No specific actions for PLAYING or PAUSED states as overlay is handled by click.
 }
 
 function onPlayerError(event) {
@@ -117,21 +114,23 @@ function onPlayerError(event) {
 
 // Handle overlay click
 playerContainer.addEventListener('click', () => {
+    // Only act if the overlay is currently visible (meaning it hasn't been clicked yet)
+    // or if the 'hasClickedOverlay' flag is not set in localStorage.
     if (overlay.classList.contains('visible') || localStorage.getItem('hasClickedOverlay') !== 'true') {
-        overlay.classList.add('hidden');
+        overlay.classList.add('hidden'); // Hide the overlay
         localStorage.setItem('hasClickedOverlay', 'true'); // Mark that the user has clicked
         if (player.isMuted()) {
-            player.unMute();
+            player.unMute(); // Unmute the video
         }
-        player.playVideo();
+        player.playVideo(); // Start playing the video
     }
 });
 
 // Logic to show overlay on page reload if not previously clicked
 window.addEventListener('load', () => {
     if (localStorage.getItem('hasClickedOverlay') !== 'true') {
-        overlay.classList.remove('hidden');
+        overlay.classList.remove('hidden'); // Ensure overlay is visible
     } else {
-        overlay.classList.add('hidden');
+        overlay.classList.add('hidden'); // Keep overlay hidden if already clicked
     }
 });
