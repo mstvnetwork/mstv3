@@ -1,206 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>YouTube Playlist Player</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #000;
-      color: #fff;
-      text-align: center;
-      margin: 0; padding: 0;
-    }
-    #video-container {
-      position: relative;
-      width: 80%;
-      margin: 20px auto;
-      height: 360px;
-    }
-    #yt-player {
-      width: 100%;
-      height: 100%;
-    }
-    #mute-icon {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      cursor: pointer;
-      z-index: 2;
-      width: 32px;
-      height: 32px;
-    }
-    #video-info {
-      margin-bottom: 10px;
-      font-size: 1.2em;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live TV Broadcast</title>
+    <style>
+        /* Basic Styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+        }
+
+        /* Player Container */
+        .player-container {
+            position: relative;
+            width: 100%;
+            max-width: 1920px;
+            margin: 0 auto;
+            height: 500px; /* Set as needed */
+        }
+
+        /* Video player - hide controls */
+        #tv-player {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Unmute Icon */
+        .unmute-icon {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 2em;
+            cursor: pointer;
+        }
+
+        /* Programme Guide */
+        .programme-guide {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            color: #fff;
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+        }
+
+        .programme-guide h2 {
+            font-size: 24px;
+            margin: 0;
+            margin-bottom: 10px;
+        }
+
+        .programme-guide ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .programme-guide ul li {
+            margin-bottom: 5px;
+        }
+
+        /* Disable interaction on video container except unmute */
+        .player-container {
+            pointer-events: none;
+        }
+
+        .player-container .unmute-icon {
+            pointer-events: auto;
+        }
+    </style>
 </head>
 <body>
 
-  <h1>YouTube Playlist Player</h1>
+    <div class="player-container">
+        <video id="tv-player" width="100%" height="auto" preload="auto" controls="false">
+            <!-- Video sources will be dynamically inserted -->
+        </video>
 
-  <div id="video-info">
-    <h2 id="video-title">Loading...</h2>
-  </div>
+        <div class="unmute-icon" id="unmute-icon">🔊</div>
+    </div>
 
-  <div id="video-container">
-    <div id="yt-player"></div>
-    <img id="mute-icon" src="mute-icon.png" alt="Mute" onclick="toggleMute()" />
-  </div>
+    <div class="programme-guide">
+        <h2>Upcoming Programme</h2>
+        <ul id="program-list">
+            <!-- Dynamic Programme List will be inserted here -->
+        </ul>
+    </div>
 
-  <!-- YouTube IFrame API -->
-  <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        const player = document.getElementById('tv-player');
+        const unmuteIcon = document.getElementById('unmute-icon');
+        const programList = document.getElementById('program-list');
 
-  <script>
-    const ytPlayerDiv = document.getElementById('yt-player');
-    const titleEl = document.getElementById('video-title');
-    const muteIcon = document.getElementById('mute-icon');
+        // Array of YouTube video URLs for 24/7 loop
+        const videoUrls = [
+            'https://www.youtube.com/watch?v=video1', // Replace with actual video URLs
+            'https://www.youtube.com/watch?v=video2', // Replace with actual video URLs
+            // Add more URLs here
+        ];
 
-    // Playlist of YouTube URLs with titles
-    const playlist = [
-      { url: "https://www.youtube.com/watch?v=-HT3JdpKUCQ", title: "YouTube Live Stream 1" },
-      { url: "https://www.youtube.com/watch?v=ysz5S6PUM-U", title: "YouTube Video 2" },
-      { url: "https://youtu.be/dQw4w9WgXcQ", title: "YouTube Video 3" }
-    ];
+        let currentVideoIndex = 0;
+        let currentTime = localStorage.getItem('currentTime') || 0; // Retrieve saved time
 
-    let currentIndex = 0;
-    let ytPlayer = null;
-    let ytReady = false;
-    let isYouTubeMuted = true;
-    let isUserInteracted = false;
-
-    // Restore saved index/time if available
-    const savedIndex = parseInt(localStorage.getItem("videoIndex"));
-    const savedTime = parseFloat(localStorage.getItem("videoTime"));
-
-    if (!isNaN(savedIndex) && savedIndex < playlist.length) {
-      currentIndex = savedIndex;
-    }
-
-    function extractYouTubeID(url) {
-      if (url.includes("youtu.be/")) {
-        return url.split("youtu.be/")[1].split(/[?&]/)[0];
-      } else if (url.includes("v=")) {
-        return url.split("v=")[1].split("&")[0];
-      }
-      return "";
-    }
-
-    function updateInfo(item) {
-      titleEl.textContent = item.title || "Now Playing";
-    }
-
-    function loadVideo(index) {
-      if (index >= playlist.length) index = 0;
-      currentIndex = index;
-      localStorage.setItem("videoIndex", index);
-      localStorage.setItem("videoTime", "0");
-      const item = playlist[index];
-      updateInfo(item);
-
-      const videoId = extractYouTubeID(item.url);
-
-      if (ytPlayer) {
-        ytPlayer.loadVideoById(videoId);
-        if (isYouTubeMuted) {
-          ytPlayer.mute();
-        } else {
-          ytPlayer.unMute();
+        // Load the current video
+        function loadVideo(url) {
+            player.src = `https://www.youtube.com/embed/${url.split('v=')[1]}?autoplay=1&controls=0&showinfo=0&modestbranding=1&loop=1&playlist=${url.split('v=')[1]}`;
+            player.currentTime = currentTime; // Resume from last saved time
         }
-        if (!isNaN(savedTime)) ytPlayer.seekTo(savedTime, true);
-        ytPlayer.playVideo();
-        monitorYouTubeEnd();
-      }
-    }
 
-    function monitorYouTubeEnd() {
-      if (!ytPlayer || !ytPlayer.getDuration) return;
-      clearInterval(window.ytMonitorInterval);
-      window.ytMonitorInterval = setInterval(() => {
-        const duration = ytPlayer.getDuration();
-        const current = ytPlayer.getCurrentTime();
-        const state = ytPlayer.getPlayerState();
-
-        localStorage.setItem("videoTime", current);
-
-        // Consider video ended if less than 1.5s left and playing
-        if (state === YT.PlayerState.PLAYING && duration - current <= 1.5) {
-          clearInterval(window.ytMonitorInterval);
-          nextVideo();
+        // Update programme guide
+        function updateProgrammeGuide() {
+            programList.innerHTML = '';
+            videoUrls.forEach((url, index) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `Video ${index + 1} - Start at ${Math.floor(player.currentTime / 60)} min`;
+                programList.appendChild(listItem);
+            });
         }
-      }, 1000);
-    }
 
-    function nextVideo() {
-      currentIndex = (currentIndex + 1) % playlist.length;
-      localStorage.setItem("videoIndex", currentIndex);
-      localStorage.setItem("videoTime", "0");
-      loadVideo(currentIndex);
-    }
+        // Handle video ending
+        player.addEventListener('ended', () => {
+            currentVideoIndex = (currentVideoIndex + 1) % videoUrls.length; // Loop back to first video
+            loadVideo(videoUrls[currentVideoIndex]);
+            updateProgrammeGuide();
+        });
 
-    function toggleMute() {
-      isUserInteracted = true;
-      if (!ytPlayer || !ytReady) return;
-
-      if (isYouTubeMuted) {
-        ytPlayer.unMute();
-        isYouTubeMuted = false;
-        muteIcon.src = "unmute-icon.png"; // Your unmute icon path here
-      } else {
-        ytPlayer.mute();
-        isYouTubeMuted = true;
-        muteIcon.src = "mute-icon.png"; // Your mute icon path here
-      }
-    }
-
-    function onYouTubeIframeAPIReady() {
-      ytReady = true;
-      ytPlayer = new YT.Player('yt-player', {
-        height: '360',
-        width: '640',
-        videoId: extractYouTubeID(playlist[currentIndex].url),
-        playerVars: {
-          autoplay: 1,
-          controls: 1,
-          mute: 1,
-          rel: 0
-        },
-        events: {
-          'onReady': (event) => {
-            isYouTubeMuted = true;
-            event.target.mute();
-            if (!isNaN(savedTime)) {
-              event.target.seekTo(savedTime, true);
+        // Handle unmute click
+        unmuteIcon.addEventListener('click', () => {
+            if (player.muted) {
+                player.muted = false;
+            } else {
+                player.muted = true;
             }
-            event.target.playVideo();
-            updateInfo(playlist[currentIndex]);
-            monitorYouTubeEnd();
-          },
-          'onStateChange': function (event) {
-            if (event.data === YT.PlayerState.ENDED) {
-              clearInterval(window.ytMonitorInterval);
-              nextVideo();
-            }
-          },
-          'onError': () => nextVideo()
-        }
-      });
-    }
+        });
 
-    // Allow unmute only after user interacts anywhere on page
-    window.addEventListener('click', () => {
-      if (!isUserInteracted && ytReady) {
-        ytPlayer.unMute();
-        isYouTubeMuted = false;
-        muteIcon.src = "unmute-icon.png";
-        isUserInteracted = true;
-      }
-    }, { once: true });
+        // Save current time to localStorage every 5 seconds
+        setInterval(() => {
+            localStorage.setItem('currentTime', player.currentTime);
+        }, 5000);
 
-  </script>
+        // Load the first video
+        loadVideo(videoUrls[currentVideoIndex]);
+
+        // Update programme guide every 10 seconds
+        setInterval(updateProgrammeGuide, 10000);
+    </script>
 
 </body>
 </html>
