@@ -1,134 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Live TV Channel</title>
-<style>
-  body { margin:0; background:#000; color:#fff; font-family: Arial, sans-serif; }
-  #player-wrapper { position: relative; padding-top: 56.25%; background:#000; }
-  #player {
-    position: absolute; top:0; left:0; width:100%; height:100%;
-    pointer-events: none;
-  }
-  #player-overlay {
-    position: absolute; top:0; left:0; width:100%; height:100%; z-index: 10;
-  }
-  #unmute-icon {
-    position: absolute; bottom: 10px; right: 10px;
-    background: rgba(0,0,0,0.7);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-    pointer-events: auto;
-  }
-  #now-playing {
-    position: absolute; top: 10px; left: 10px;
-    background: rgba(0,0,0,0.6);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    z-index: 11;
-  }
-  #tv-guide {
-    max-height: 200px;
-    overflow-y: auto;
-    background: #111;
-    margin-top: 10px;
-    padding: 10px;
-    font-size: 14px;
-  }
-  #tv-guide li {
-    border-bottom: 1px solid #222;
-    padding: 5px 0;
-  }
-</style>
-<script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MSTV Live TV Channel</title>
+  <link rel="stylesheet" href="styles/style.css" />
 </head>
 <body>
 
-<div id="player-wrapper">
-  <iframe id="player" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-  <div id="player-overlay">
-    <div id="unmute-icon">🔊 Tap to Unmute</div>
+  <div id="player-container">
+    <div id="player"></div>
+    <button id="unmute-btn" aria-label="Unmute/ mute">🔊</button>
   </div>
-  <div id="now-playing">Loading...</div>
-</div>
 
-<ul id="tv-guide"></ul>
+  <div id="program-guide">
+    <h2>Program Guide</h2>
+    <ul id="program-list"></ul>
+  </div>
 
-<script>
-  const { DateTime } = luxon;
-  const player = document.getElementById("player");
-  const unmuteIcon = document.getElementById("unmute-icon");
-  const nowPlaying = document.getElementById("now-playing");
-  const tvGuide = document.getElementById("tv-guide");
-
-  let schedule = [];
-
-  fetch('schedule.json').then(res => res.json()).then(data => {
-    schedule = data;
-    renderGuide();
-    playCurrent();
-    scheduleNext();
-  });
-
-  function renderGuide() {
-    tvGuide.innerHTML = "";
-    schedule.forEach(slot => {
-      const li = document.createElement("li");
-      li.textContent = `${slot.start} - ${slot.end}: ${slot.title}`;
-      tvGuide.appendChild(li);
-    });
-  }
-
-  function getYouTubeID(url) {
-    const m = url.match(/(?:v=|\/embed\/|\.be\/)([^&?/]+)/);
-    return m ? m[1] : null;
-  }
-
-  function playCurrent() {
-    const now = DateTime.now().setZone("Australia/Melbourne"); // fixed timezone
-    const totalMinutes = now.hour * 60 + now.minute;
-    const minuteInHour = totalMinutes % 60; // loop every 60 minutes
-
-    // Find current slot for that minute
-    const slot = schedule.find(s => {
-      const [sh, sm] = s.start.split(":").map(Number);
-      const [eh, em] = s.end.split(":").map(Number);
-      const startMin = sh * 60 + sm;
-      const endMin = eh * 60 + em;
-      return minuteInHour >= startMin && minuteInHour < endMin;
-    }) || schedule[0];
-
-    // Calculate seconds offset for YouTube start param
-    const [sh, sm] = slot.start.split(":").map(Number);
-    const slotStartSec = sh * 3600 + sm * 60;
-    const nowSec = now.hour * 3600 + now.minute * 60 + now.second;
-    const offset = (nowSec - slotStartSec) % 3600;
-
-    const videoId = getYouTubeID(slot.url);
-    const embedURL = `https://www.youtube.com/embed/${videoId}?start=${offset}&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&enablejsapi=1`;
-    player.src = embedURL;
-
-    nowPlaying.textContent = "Now Playing: " + slot.title;
-  }
-
-  function scheduleNext() {
-    const now = DateTime.now().setZone("Australia/Melbourne");
-    const msToNextMinute = (60 - now.second) * 1000 - now.millisecond + 100;
-    setTimeout(() => {
-      playCurrent();
-      scheduleNext();
-    }, msToNextMinute);
-  }
-
-  unmuteIcon.addEventListener("click", () => {
-    player.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', "*");
-    unmuteIcon.style.display = "none";
-  });
-</script>
-
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="scripts/player.js"></script>
 </body>
 </html>
