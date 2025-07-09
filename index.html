@@ -68,7 +68,7 @@
             padding: 15px;
             border-radius: 50%; /* Make it circular */
             cursor: pointer;
-            font-size: 9.0em;
+            font-size: 2.0em;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -85,6 +85,10 @@
         .unmute-button.muted .unmute-icon { display: none; }
         .unmute-button:not(.muted) .mute-icon { display: none; }
         .unmute-button:not(.muted) .unmute-icon { display: inline-block; }
+        .unmute-button .unmute-icon {
+    font-size: 5.0em; /* Adjust this value to make the icon bigger */
+}
+
 
         /* Scrolling Text Container */
         .scrolling-text-container {
