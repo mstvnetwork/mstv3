@@ -2,24 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MSTV Network</title>
-
-  <!-- SEO + Social -->
-  <meta name="description" content="MSTV Network - Watch YouTube videos 24/7 in a live TV format." />
-  <meta name="keywords" content="MSTV, Live TV, YouTube stream, continuous playlist, autoplay" />
-  <meta property="og:title" content="MSTV Network - Live YouTube TV" />
-  <meta property="og:description" content="24/7 scheduled playback of YouTube videos in a TV-like interface." />
-  <meta property="og:image" content="https://raw.githubusercontent.com/mstvnetwork/mstv/main/logo.img/mstv_logo.png" />
-  <meta property="og:url" content="https://mstvnet.netlify.app/" />
-  <meta name="twitter:card" content="summary_large_image" />
 
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-6MHRH7TE5Y"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag(){ dataLayer.push(arguments); }
     gtag('js', new Date());
     gtag('config', 'G-6MHRH7TE5Y');
   </script>
@@ -28,8 +18,8 @@
     body {
       margin: 0;
       background: #000;
-      font-family: 'Poppins', sans-serif;
       color: #fff;
+      font-family: 'Poppins', sans-serif;
       text-align: center;
     }
     .player-wrapper {
@@ -44,20 +34,19 @@
       overflow: hidden;
       box-shadow: 0 0 20px #00ffe7;
     }
-    #ytPlayer iframe {
+    #ytPlayer {
       position: absolute;
       top: 0; left: 0;
       width: 100%;
       height: 100%;
-      border: none;
       pointer-events: none;
     }
-    #click-blocker {
+    #overlay {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
       z-index: 10;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.9);
       color: #00ffe7;
       font-size: 1.5em;
       font-weight: bold;
@@ -76,18 +65,18 @@
     }
     #nowPlaying {
       font-size: 1.2em;
-      margin-top: 10px;
+      margin-top: 15px;
       color: #ffcc00;
     }
     #tvGuide {
-      margin: 20px auto;
-      overflow-x: auto;
-      white-space: nowrap;
-      max-width: 960px;
+      margin: 15px auto;
       padding: 10px;
+      max-width: 960px;
       background: rgba(255, 255, 255, 0.05);
       border-top: 2px solid #0ff;
       border-bottom: 2px solid #0ff;
+      white-space: nowrap;
+      overflow-x: auto;
     }
     .guide-item {
       display: inline-block;
@@ -102,13 +91,14 @@
 
   <div class="player-wrapper">
     <div id="ytPlayer"></div>
-    <div id="click-blocker">🎬 Click here to watch live</div>
-    <img src="https://raw.githubusercontent.com/mstvnetwork/mstv/main/logo.img/mstv_logo.png" class="logo-overlay" alt="MSTV Logo" />
+    <div id="overlay">🎬 Click here to watch live</div>
+    <img src="https://raw.githubusercontent.com/mstvnetwork/mstv/main/logo.img/mstv_logo.png" class="logo-overlay" />
   </div>
 
   <div id="nowPlaying">Loading...</div>
   <div id="tvGuide">Loading TV Guide...</div>
 
+  <!-- YouTube API -->
   <script src="https://www.youtube.com/iframe_api"></script>
   <script src="script.js"></script>
 </body>
