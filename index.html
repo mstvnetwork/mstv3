@@ -58,19 +58,18 @@
         /* Custom Unmute Button */
         .unmute-button {
             position: absolute;
-            /* Centering properties */
-            top: 100%;
-            left: 100%;
-            transform: translate(-50%, -50%); /* Adjusts for the button's own size */
+            /* Positioning for top-right corner */
+            top: 20px; /* Distance from the top */
+            right: 20px; /* Distance from the right */ /* Changed from 'left' to 'right' */
 
             z-index: 20; /* Place it above the overlay */
             background: rgba(0, 0, 0, 0.6);
             color: white;
             border: none;
-            padding: 20px; /* Increased padding for better visibility around the icon */
+            padding: 15px; /* Adjust padding for better look */
             border-radius: 50%; /* Make it circular */
             cursor: pointer;
-            font-size: 2.5em; /* Icon size */
+            font-size: 2.0em; /* Icon size */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -95,8 +94,10 @@
             }
 
             .unmute-button {
-                padding: 15px; /* Adjusted for smaller screens */
-                font-size: 1.8em;
+                top: 10px; /* Adjust for smaller screens */
+                right: 10px; /* Adjust for smaller screens */ /* Changed from 'left' to 'right' */
+                padding: 10px;
+                font-size: 1.5em;
             }
         }
 
@@ -106,8 +107,10 @@
                 border-radius: 0;
             }
             .unmute-button {
-                padding: 10px; /* Adjusted for very small screens */
-                font-size: 1.5em;
+                top: 5px;
+                right: 5px; /* Changed from 'left' to 'right' */
+                padding: 8px;
+                font-size: 1.2em;
             }
         }
     </style>
