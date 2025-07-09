@@ -5,18 +5,18 @@ const playlist = [
   { videoId: 'ysz5S6PUM-U', duration: 300, title: 'Show 3: Tech Talk' }
 ];
 
-// Total duration in seconds
+// Total duration of playlist in seconds
 const totalDuration = playlist.reduce((sum, item) => sum + item.duration, 0);
 
-// Calculate current playlist position based on UTC time
+// Calculate current playlist state based on UTC time
 function getCurrentPlaylistState() {
   const now = new Date();
   const utcSeconds = Math.floor(now.getTime() / 1000);
 
-  // Sync offset (you can set this to channel start time UTC in seconds)
-  const channelStart = 0; // For example, UNIX epoch; adjust as needed
+  // Channel start time in seconds (set to 0 or your fixed start timestamp)
+  const channelStart = 0;
 
-  // Elapsed seconds since channel start (looped)
+  // Elapsed time since channel start, looped by totalDuration
   const elapsed = (utcSeconds - channelStart) % totalDuration;
 
   let accumulated = 0;
@@ -29,7 +29,7 @@ function getCurrentPlaylistState() {
     }
     accumulated += playlist[i].duration;
   }
-  // fallback
+  // fallback to first video
   return { index: 0, offset: 0 };
 }
 
@@ -48,17 +48,21 @@ function onYouTubeIframeAPIReady() {
       showinfo: 0,
       fs: 0,
       iv_load_policy: 3,
-      autoplay: 1,
+      autoplay: 0, // Do not autoplay immediately
       mute: 1
     },
     events: {
       onReady: (event) => {
-        event.target.seekTo(state.offset, true);
-        event.target.playVideo();
+        event.target.mute();
+        event.target.cueVideoById({
+          videoId: playlist[state.index].videoId,
+          startSeconds: state.offset
+        });
       },
       onStateChange: (event) => {
-        // When current video ends, play next video
-        if (event.data === YT.PlayerState.ENDED) {
+        if (event.data === YT.PlayerState.CUED) {
+          event.target.playVideo();
+        } else if (event.data === YT.PlayerState.ENDED) {
           playNextVideo();
         }
       }
@@ -72,6 +76,7 @@ function playNextVideo() {
   player.loadVideoById(playlist[nextIndex].videoId, 0);
 }
 
+// Unmute button toggle
 document.getElementById('unmute-btn').addEventListener('click', () => {
   if (player.isMuted()) {
     player.unMute();
@@ -82,18 +87,18 @@ document.getElementById('unmute-btn').addEventListener('click', () => {
   }
 });
 
-// Generate program guide
+// Generate program guide below the player
 function generateProgramGuide() {
   const programList = document.getElementById('program-list');
   programList.innerHTML = '';
 
-  let currentTime = 0; // Start of the playlist, could be channel start time UTC
+  let currentTime = 0; // Start time offset in seconds
 
   playlist.forEach((item) => {
     const startMin = Math.floor(currentTime / 60);
     const endMin = Math.floor((currentTime + item.duration) / 60);
 
-    // Format as HH:mm assuming playlist loops every totalDuration, so just minutes here
+    // Format time as HH:mm (for simple display)
     const startStr = `${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')}`;
     const endStr = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
 
