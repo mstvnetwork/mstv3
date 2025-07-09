@@ -1,158 +1,94 @@
+let player;
 let playlist = [];
-let currentVideo = null;
-let currentVideoIndex = 0;
-let player = null;
-const STORAGE_KEY = "mstv_last_play_time";
+let currentIndex = 0;
+let startTimeOffset = 0;
 
-async function loadPlaylist() {
-  try {
-    const res = await fetch("playlist.json");
-    playlist = await res.json();
-    generateGuide();
-    selectCurrentVideo();
-  } catch (err) {
-    console.error("Failed to load playlist.json", err);
-  }
+function loadPlaylist() {
+  fetch('playlist.json')
+    .then(res => res.json())
+    .then(data => {
+      playlist = data;
+      generateTVGuide();
+      syncPlayback();
+    });
 }
 
-function totalDuration(list) {
-  return list.reduce((sum, item) => sum + item.duration, 0);
-}
-
-function selectCurrentVideo() {
+function syncPlayback() {
   const now = new Date();
-  const melOffset = 10 * 60;
-  let minutesNow = now.getUTCHours() * 60 + now.getUTCMinutes() + melOffset;
-  minutesNow = minutesNow % totalDuration(playlist);
-
-  let elapsed = 0;
+  const secondsToday = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  let accumulated = 0;
 
   for (let i = 0; i < playlist.length; i++) {
-    const item = playlist[i];
-    if (minutesNow >= elapsed && minutesNow < elapsed + item.duration) {
-      currentVideo = item;
-      currentVideoIndex = i;
-      currentVideo.startOffset = (minutesNow - elapsed) * 60;
+    const duration = playlist[i].duration * 60;
+    if (accumulated + duration > secondsToday % 86400) {
+      currentIndex = i;
+      startTimeOffset = (secondsToday % 86400) - accumulated;
       break;
     }
-    elapsed += item.duration;
+    accumulated += duration;
   }
 
+  const videoId = getVideoId(playlist[currentIndex].url);
+  createPlayer(videoId, startTimeOffset);
   updateNowPlaying();
-  if (typeof YT !== "undefined" && YT.Player) {
-    loadYouTubePlayer();
-  }
+}
+
+function createPlayer(videoId, startSeconds) {
+  if (player) player.destroy();
+  player = new YT.Player('ytPlayer', {
+    videoId: videoId,
+    playerVars: {
+      autoplay: 1,
+      controls: 0,
+      disablekb: 1,
+      modestbranding: 1,
+      rel: 0,
+      start: startSeconds
+    },
+    events: {
+      onReady: (e) => {
+        e.target.mute(); // autoplay policy workaround
+        document.getElementById("click-blocker").onclick = () => {
+          e.target.unMute();
+          document.getElementById("click-blocker").style.display = "none";
+        };
+      },
+      onStateChange: (e) => {
+        if (e.data === YT.PlayerState.ENDED) {
+          currentIndex = (currentIndex + 1) % playlist.length;
+          createPlayer(getVideoId(playlist[currentIndex].url), 0);
+          updateNowPlaying();
+        }
+      }
+    }
+  });
+}
+
+function getVideoId(url) {
+  const match = url.match(/(?:embed\\/|watch\\?v=|youtu.be\\/)([\\w-]{11})/);
+  return match ? match[1] : null;
 }
 
 function updateNowPlaying() {
-  const title = document.getElementById("nowPlaying");
-  title.textContent = currentVideo
-    ? `Now Playing: ${currentVideo.title}`
-    : "Off Air";
+  const nowTitle = playlist[currentIndex]?.title || "Unknown";
+  document.getElementById("nowPlaying").innerText = "Now Playing: " + nowTitle;
 }
 
-function generateGuide() {
+function generateTVGuide() {
   const guide = document.getElementById("tvGuide");
-  let clock = 0;
-  let html = "";
-
-  playlist.forEach(item => {
-    const hrs = String(Math.floor(clock / 60)).padStart(2, "0");
-    const mins = String(clock % 60).padStart(2, "0");
-    html += `<span class="guide-item">${hrs}:${mins} - ${item.title}</span>`;
-    clock += item.duration;
-  });
-
-  guide.innerHTML = html;
-}
-
-function loadYouTubePlayer() {
-  if (!currentVideo) return;
-
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  const savedTime =
-    saved.video === currentVideo.url ? saved.time : currentVideo.startOffset;
-
-  const videoId = extractVideoId(currentVideo.url);
-
-  if (player) {
-    player.loadVideoById({
-      videoId: videoId,
-      startSeconds: savedTime || 0
-    });
-  } else {
-    player = new YT.Player("ytPlayer", {
-      videoId: videoId,
-      playerVars: {
-        autoplay: 0,
-        mute: 1,
-        controls: 0,
-        modestbranding: 1,
-        disablekb: 1,
-        fs: 0,
-        rel: 0,
-        showinfo: 0,
-        iv_load_policy: 3,
-        origin: window.location.origin,
-        start: savedTime || 0
-      },
-      events: {
-        onReady: () => {},
-        onStateChange: (event) => {
-          if (event.data === YT.PlayerState.PLAYING) {
-            savePlaybackTime(); // Only save; don't hide overlay
-          }
-          if (event.data === YT.PlayerState.ENDED) {
-            currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
-            currentVideo = playlist[currentVideoIndex];
-            updateNowPlaying();
-            player.loadVideoById(currentVideo.url.split("embed/")[1], 0);
-            document.getElementById("click-blocker").style.display = "block";
-          }
-        }
-      }
-    });
+  guide.innerHTML = "";
+  let timeCursor = new Date();
+  for (let i = 0; i < playlist.length; i++) {
+    const entry = playlist[i];
+    const start = new Date(timeCursor);
+    const end = new Date(start.getTime() + entry.duration * 60000);
+    guide.innerHTML += `<span class="guide-item">${formatTime(start)} - ${entry.title}</span>`;
+    timeCursor = end;
   }
 }
 
-function savePlaybackTime() {
-  setInterval(() => {
-    if (player && typeof player.getCurrentTime === "function") {
-      const time = Math.floor(player.getCurrentTime());
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({
-          video: currentVideo.url,
-          time
-        })
-      );
-    }
-  }, 5000);
+function formatTime(date) {
+  return date.toTimeString().slice(0, 5);
 }
 
-function extractVideoId(url) {
-  const match = url.match(/embed\/([a-zA-Z0-9_-]+)/);
-  return match ? match[1] : "";
-}
-
-document.getElementById("click-blocker").addEventListener("click", () => {
-  try {
-    player.unMute();
-    player.setVolume(100);
-    player.playVideo();
-    document.getElementById("click-blocker").style.display = "none";
-  } catch (e) {
-    console.warn("Unmute failed", e);
-  }
-});
-
-window.onYouTubeIframeAPIReady = function () {
-  if (playlist.length > 0) {
-    selectCurrentVideo();
-  } else {
-    loadPlaylist();
-  }
-};
-
-loadPlaylist();
-setInterval(selectCurrentVideo, 60000);
+window.onYouTubeIframeAPIReady = loadPlaylist;
