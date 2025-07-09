@@ -1,0 +1,13 @@
+[
+  {
+    "title": "Morning Yoga",
+    "url": "https://www.youtube.com/watch?v=abc123DEF",
+    
+  },
+  {
+    "title": "Cooking Show",
+    "url": "https://www.youtube.com/watch?v=ghi456JKL",
+    
+  }
+  // Repeat to fill 24 hours in 30-min or 1-hr blocks
+]
