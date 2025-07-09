@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Broadcast Channel</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>MSTV Live Channel</title>
+  <link rel="stylesheet" href="styles/styles.css" />
 </head>
 <body>
-    <div class="tv-container">
-        <div id="player" class="video-player"></div>
-        <div class="overlay-controls">
-            <button id="unmuteButton" class="unmute-button">🔇</button>
-        </div>
-        <div class="program-guide">
-            </div>
+  <div class="container">
+    <div class="player-wrapper">
+      <div id="player"></div>
+      <div id="muteOverlay" onclick="unmuteVideo()">🔊 Tap to Unmute</div>
     </div>
-    <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="script.js"></script>
+    <div id="now-playing"></div>
+    <div id="tv-guide"></div>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="scripts/player.js"></script>
 </body>
 </html>
