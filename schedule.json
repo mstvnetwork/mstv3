@@ -1,38 +1,6 @@
 [
-  {
-    "title": "Slot 1",
-    "url": "https://www.youtube.com/watch?v=ScMzIvxBSi4",
-    "start": "00:00",
-    "end": "00:01"
-  },
-  {
-    "title": "Slot 2",
-    "url": "https://www.youtube.com/watch?v=ysz5S6PUM-U",
-    "start": "00:01",
-    "end": "00:02"
-  },
-  {
-    "title": "Slot 3",
-    "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-    "start": "00:02",
-    "end": "00:03"
-  },
-  {
-    "title": "Slot 4",
-    "url": "https://www.youtube.com/watch?v=ScMzIvxBSi4",
-    "start": "00:03",
-    "end": "00:04"
-  },
-  {
-    "title": "Slot 5",
-    "url": "https://www.youtube.com/watch?v=ysz5S6PUM-U",
-    "start": "00:04",
-    "end": "00:05"
-  },
-  {
-    "title": "Slot 6",
-    "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-    "start": "00:05",
-    "end": "00:06"
-  }
+  { "title": "Clip 1", "url": "https://www.youtube.com/watch?v=ScMzIvxBSi4", "start": "00:00", "end": "00:01" },
+  { "title": "Clip 2", "url": "https://www.youtube.com/watch?v=ysz5S6PUM-U", "start": "00:01", "end": "00:02" },
+  { "title": "Clip 3", "url": "https://www.youtube.com/watch?v=jNQXAC9IVRw", "start": "00:02", "end": "00:03" }
+  // ... repeat up to 60 slots for full hour
 ]
