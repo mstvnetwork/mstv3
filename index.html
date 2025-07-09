@@ -98,7 +98,7 @@
 
         // Array of YouTube video URLs for 24/7 loop
         const videoUrls = [
-            'https://www.youtube.com/watch?v=dQw4w9WgXcQ&autoplay=1', // Replace with actual video URLs
+            'https://www.youtube.com/watch?v=dQw4w9WgXcQ', // Replace with actual video URLs
             'https://www.youtube.com/watch?v=3JZ_D3ELwOQ', // Replace with actual video URLs
             // Add more URLs here
         ];
@@ -109,7 +109,7 @@
         // Load the current video in the iframe
         function loadVideo(url) {
             const videoId = url.split('v=')[1]; // Extract video ID
-            player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&showinfo=0&modestbranding=1&loop=1&playlist=${videoId}`;
+            player.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&showinfo=0&modestbranding=1&loop=1&playlist=${videoId}&mute=1`; // mute=1 added
         }
 
         // Update programme guide
