@@ -5,31 +5,21 @@ const playlist = [
   { videoId: 'ysz5S6PUM-U', duration: 300, title: 'Show 3: Tech Talk' }
 ];
 
-// Total duration of playlist in seconds
 const totalDuration = playlist.reduce((sum, item) => sum + item.duration, 0);
+const channelStart = 0; // Adjust if you want a fixed channel start timestamp
 
-// Calculate current playlist state based on UTC time
 function getCurrentPlaylistState() {
   const now = new Date();
   const utcSeconds = Math.floor(now.getTime() / 1000);
-
-  // Channel start time in seconds (set to 0 or your fixed start timestamp)
-  const channelStart = 0;
-
-  // Elapsed time since channel start, looped by totalDuration
   const elapsed = (utcSeconds - channelStart) % totalDuration;
 
   let accumulated = 0;
   for (let i = 0; i < playlist.length; i++) {
     if (elapsed < accumulated + playlist[i].duration) {
-      return {
-        index: i,
-        offset: elapsed - accumulated
-      };
+      return { index: i, offset: elapsed - accumulated };
     }
     accumulated += playlist[i].duration;
   }
-  // fallback to first video
   return { index: 0, offset: 0 };
 }
 
@@ -48,22 +38,35 @@ function onYouTubeIframeAPIReady() {
       showinfo: 0,
       fs: 0,
       iv_load_policy: 3,
-      autoplay: 0, // Do not autoplay immediately
-      mute: 1
+      autoplay: 0,
+      mute: 1,
     },
     events: {
       onReady: (event) => {
         event.target.mute();
+
+        // Cue the video with offset, but do not play yet
         event.target.cueVideoById({
           videoId: playlist[state.index].videoId,
           startSeconds: state.offset
         });
       },
+
       onStateChange: (event) => {
         if (event.data === YT.PlayerState.CUED) {
-          event.target.playVideo();
+          // Play video once cued
+          player.playVideo();
         } else if (event.data === YT.PlayerState.ENDED) {
           playNextVideo();
+        } else if (event.data === YT.PlayerState.UNSTARTED) {
+          // In rare cases video might be unstarted, try cue again with delay
+          setTimeout(() => {
+            const s = getCurrentPlaylistState();
+            player.cueVideoById({
+              videoId: playlist[s.index].videoId,
+              startSeconds: s.offset
+            });
+          }, 1000);
         }
       }
     }
@@ -71,12 +74,12 @@ function onYouTubeIframeAPIReady() {
 }
 
 function playNextVideo() {
-  let currentIndex = playlist.findIndex(item => item.videoId === player.getVideoData().video_id);
+  const currentId = player.getVideoData().video_id;
+  let currentIndex = playlist.findIndex(item => item.videoId === currentId);
   let nextIndex = (currentIndex + 1) % playlist.length;
   player.loadVideoById(playlist[nextIndex].videoId, 0);
 }
 
-// Unmute button toggle
 document.getElementById('unmute-btn').addEventListener('click', () => {
   if (player.isMuted()) {
     player.unMute();
@@ -87,18 +90,15 @@ document.getElementById('unmute-btn').addEventListener('click', () => {
   }
 });
 
-// Generate program guide below the player
 function generateProgramGuide() {
   const programList = document.getElementById('program-list');
   programList.innerHTML = '';
 
-  let currentTime = 0; // Start time offset in seconds
-
-  playlist.forEach((item) => {
+  let currentTime = 0;
+  playlist.forEach(item => {
     const startMin = Math.floor(currentTime / 60);
     const endMin = Math.floor((currentTime + item.duration) / 60);
 
-    // Format time as HH:mm (for simple display)
     const startStr = `${String(Math.floor(startMin / 60)).padStart(2, '0')}:${String(startMin % 60).padStart(2, '0')}`;
     const endStr = `${String(Math.floor(endMin / 60)).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
 
