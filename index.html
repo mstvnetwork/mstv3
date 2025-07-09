@@ -190,20 +190,14 @@
             const videoRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
             const playlistRegex = /(?:youtube\.com\/(?:playlist\?list=|embed\/videoseries\?list=))([a-zA-Z0-9_-]+)/;
             // Removed googleusercontent.com regex as it's not the standard way to load videos via API
-            // const googleUserContentVideoRegex = /googleusercontent\.com\/youtube\.com\/([a-zA-Z0-9_-]{11})/;
-            // const googleUserContentPlaylistRegex = /googleusercontent\.com\/youtube\.com\/playlist\?list=([a-zA-Z0-9_-]+)/;
 
             let match;
 
             match = link.match(playlistRegex);
             if (match && match[1]) return { type: 'playlist', id: match[1] };
-            // match = link.match(googleUserContentPlaylistRegex); // Removed
-            // if (match && match[1]) return { type: 'playlist', id: match[1] };
 
             match = link.match(videoRegex);
             if (match && match[1]) return { type: 'video', id: match[1] };
-            // match = link.match(googleUserContentVideoRegex); // Removed
-            // if (match && match[1]) return { type: 'video', id: match[1] };
 
             if (link.length === 11 && /^[a-zA-Z0-9_-]+$/.test(link)) {
                 return { type: 'video', id: link };
@@ -347,19 +341,13 @@
                 loadPlaylistItem(); // Load it
             }
             // If the video started playing, ensure timeout is running.
-            // This logic is mostly redundant if VIDEO_SLOT_DURATION_SECONDS is the primary driver
-            // of video transitions. The original timeout from loadPlaylistItem is more critical.
-            // Keeping it for now but note the comment.
             else if (event.data === YT.PlayerState.PLAYING) {
-                 // Reset timeout if video resumes playing (e.g., after buffering)
-                 // This effectively extends the slot if there's buffering or user interaction.
-                 // For a strict "slot" duration, you'd calculate remaining time from the original start.
                  clearTimeout(videoTimeout);
                  videoTimeout = setTimeout(() => {
                      console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended (PlayerState.PLAYING) for current video. Moving to next.`);
                      currentVideoIndex++; // Move to next video
                      loadPlaylistItem(); // Load it
-                 }, VIDEO_SLOT_DURATION_SECONDS * 1000 - (player.getCurrentTime() * 1000 || 0)); // Remaining time, handle potential 0 for new videos
+                 }, VIDEO_SLOT_DURATION_SECONDS * 1000 - (player.getCurrentTime() * 1000 || 0)); // Remaining time
             }
         }
 
@@ -384,7 +372,7 @@
 
         // Load the IFrame Player API asynchronously.
         var tag = document.createElement('script');
-        tag.src = "http://www.youtube.com/iframe_api"; // Official YouTube IFrame Player API URL - THIS IS THE CORRECTED LINE
+        tag.src = "https://www.youtube.com/iframe_api"; // THIS IS THE CORRECT AND OFFICIAL YOUTUBE API URL
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
