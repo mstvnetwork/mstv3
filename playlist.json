@@ -1,12 +1,12 @@
 [
   {
-    "title": "Sample 1",
-    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "title": "Rick Astley - Never Gonna Give You Up",
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     "duration": 2
   },
   {
-    "title": "Sample 2",
-    "url": "https://www.youtube.com/watch?v=tgbNymZ7vqY",
+    "title": "Charlie Bit My Finger",
+    "url": "https://youtu.be/_OBlgSz8sSM",
     "duration": 2
   }
 ]
