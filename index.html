@@ -373,7 +373,7 @@
                     'modestbranding': 1,
                     'rel': 0,
                     'iv_load_policy': 3,
-                    'start': startTime
+                    'start': startTime // Set start time for YouTube
                 },
                 events: {
                     'onReady': onYouTubePlayerReady,
@@ -397,10 +397,13 @@
             html5VideoElement.addEventListener('play', onHtml5VideoPlaying);
             html5VideoElement.addEventListener('error', onHtml5VideoError);
             html5VideoElement.addEventListener('loadedmetadata', function() {
+                // Only try to set currentTime if it's not 0 and within duration
                 if (startTime > 0 && html5VideoElement.duration && startTime < html5VideoElement.duration) {
                     html5VideoElement.currentTime = startTime;
+                    console.log(`HTML5 loadedmetadata for ${url}. Current time set to ${html5VideoElement.currentTime}`);
+                } else {
+                    console.log(`HTML5 loadedmetadata for ${url}. Starting from beginning or invalid startTime.`);
                 }
-                console.log(`HTML5 loadedmetadata for ${url}. Current time set to ${html5VideoElement.currentTime}`);
                 html5VideoElement.play().catch(e => console.warn("HTML5 video auto-play prevented:", e.message));
             }, { once: true });
 
@@ -443,7 +446,7 @@
         }
 
         // Function to load the current item from the playlist
-        function loadPlaylistItem() {
+        function loadPlaylistItem(isInitialLoad = false) {
             if (!youtubeApiReady || !hlsJsReady) {
                 console.log("APIs not fully ready yet, delaying loadPlaylistItem.");
                 return;
@@ -456,8 +459,28 @@
                 return;
             }
 
+            let startTime = 0;
+            if (isInitialLoad) {
+                const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
+                if (lastPlayed) {
+                    const savedMediaInfo = parseMediaLink(mediaPlaylist[lastPlayed.index]);
+                    // Verify if the saved item matches the current playlist item at that index
+                    if (savedMediaInfo &&
+                        ((lastPlayed.type === 'youtube' && savedMediaInfo.type === 'youtube' && savedMediaInfo.id === lastPlayed.id) ||
+                         (lastPlayed.type === 'm3u8' && savedMediaInfo.type === 'm3u8' && savedMediaInfo.url === lastPlayed.url))) {
+                        currentMediaIndex = lastPlayed.index;
+                        startTime = lastPlayed.time;
+                        console.log(`Resuming from saved state: Index ${currentMediaIndex}, Time ${startTime}s.`);
+                    } else {
+                        console.warn("Saved media item does not match current playlist. Starting from beginning.");
+                        currentMediaIndex = 0;
+                        startTime = 0;
+                    }
+                }
+            }
+
             if (currentMediaIndex >= mediaPlaylist.length) {
-                currentMediaIndex = 0;
+                currentMediaIndex = 0; // Loop back to the beginning
             }
 
             const itemToPlay = mediaPlaylist[currentMediaIndex];
@@ -466,7 +489,7 @@
             if (!parsedItem) {
                 console.error(`Skipping unrecognized item in playlist at index ${currentMediaIndex}: ${itemToPlay}. Moving to next.`);
                 currentMediaIndex++;
-                loadPlaylistItem();
+                loadPlaylistItem(); // Try next item immediately
                 return;
             }
 
@@ -474,25 +497,15 @@
             
             displayThumbnail(parsedItem);
 
-            const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
-            let startTime = 0;
-            if (lastPlayed && lastPlayed.index === currentMediaIndex && lastPlayed.type === parsedItem.type) {
-                startTime = lastPlayed.time;
-                console.log(`Resuming from saved time: ${startTime}s`);
-            }
-
+            // Create the appropriate player
             if (parsedItem.type === 'youtube') {
                 createYouTubePlayer(parsedItem.id, startTime);
             } else if (parsedItem.type === 'm3u8') {
                 createHtml5VideoPlayer(parsedItem.url, startTime);
             }
 
-            clearTimeout(mediaTimeout);
-            mediaTimeout = setTimeout(() => {
-                console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended for current media. Moving to next.`);
-                currentMediaIndex++;
-                loadPlaylistItem();
-            }, VIDEO_SLOT_DURATION_SECONDS * 1000);
+            // Clear any existing timeout. The new timeout will be set when video actually plays.
+            clearTimeout(mediaTimeout); 
         }
 
         // --- YouTube Player Event Handlers ---
@@ -500,7 +513,7 @@
             console.log("YouTube IFrame API is ready.");
             youtubeApiReady = true;
             if (hlsJsReady) {
-                loadPlaylistItem();
+                loadPlaylistItem(true); // Initial load, check for saved state
                 startSaveInterval();
             }
         }
@@ -508,6 +521,7 @@
         function onYouTubePlayerReady(event) {
             console.log("YouTube player instance ready.");
             checkMuteStateAndApply();
+            // No explicit play() call here, playerVars.autoplay should handle it.
         }
 
         function onYouTubePlayerStateChange(event) {
@@ -521,6 +535,7 @@
                 loadPlaylistItem();
             } else if (event.data === YT.PlayerState.PLAYING) {
                 hideThumbnail();
+                // Reset timeout for continuous play, accounting for already played time
                 clearTimeout(mediaTimeout);
                 const playedTime = youtubePlayer.getCurrentTime() || 0;
                 const remainingTime = VIDEO_SLOT_DURATION_SECONDS * 1000 - (playedTime * 1000);
@@ -528,7 +543,7 @@
                     console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended (YouTube PLAYING). Moving to next.`);
                     currentMediaIndex++;
                     loadPlaylistItem();
-                }, Math.max(0, remainingTime));
+                }, Math.max(0, remainingTime)); // Ensure non-negative timeout
             } else if (event.data === YT.PlayerState.BUFFERING) {
                 console.log("YouTube player buffering, showing thumbnail.");
                 const currentMedia = mediaPlaylist[currentMediaIndex];
@@ -600,20 +615,28 @@
 
         // --- Save Playback Position ---
         function startSaveInterval() {
-            clearInterval(saveInterval);
+            clearInterval(saveInterval); // Clear any existing interval
             saveInterval = setInterval(() => {
                 let currentTime = 0;
-                
+                let mediaIdentifier = ''; // Will store YouTube ID or M3U8 URL
+
                 if (currentPlayingType === 'youtube' && youtubePlayer && typeof youtubePlayer.getCurrentTime === 'function') {
                     currentTime = youtubePlayer.getCurrentTime();
+                    // Get video ID from the player's URL
+                    const url = youtubePlayer.getVideoUrl();
+                    const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                    mediaIdentifier = match ? match[1] : '';
                 } else if (currentPlayingType === 'm3u8' && html5VideoElement) {
                     currentTime = html5VideoElement.currentTime;
+                    mediaIdentifier = html5VideoElement.src;
                 }
                 
-                // Store the current media type and index along with time
                 localStorage.setItem(LAST_PLAYED_KEY, JSON.stringify({
                     index: currentMediaIndex,
-                    type: currentPlayingType, 
+                    type: currentPlayingType,
+                    // Store ID for YouTube, URL for M3U8 for verification if needed
+                    id: currentPlayingType === 'youtube' ? mediaIdentifier : undefined,
+                    url: currentPlayingType === 'm3u8' ? mediaIdentifier : undefined,
                     time: currentTime
                 }));
             }, 5000); // Save every 5 seconds
@@ -634,16 +657,17 @@
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-        // Clear intervals and timeouts when the page is about to be unloaded
+        // Clear intervals and timeouts and optionally remove saved state when the page is about to be unloaded
         window.addEventListener('beforeunload', () => {
             clearInterval(saveInterval);
             clearTimeout(mediaTimeout);
             destroyCurrentPlayer();
-            // Optionally: localStorage.removeItem(LAST_PLAYED_KEY); // Uncomment if you don't want state to persist
+            // Uncomment the line below if you DO NOT want the state to persist when the browser/tab is closed.
+            // localStorage.removeItem(LAST_PLAYED_KEY); 
         });
 
-        // Initial call to loadPlaylistItem is now triggered once both APIs are confirmed ready
-        // (one from onYouTubeIframeAPIReady, one from HLS.js check at the end of this script).
+        // The initial call to loadPlaylistItem is now triggered once both APIs are confirmed ready.
+        // It will then check localStorage for resuming.
     </script>
 
 </body>
