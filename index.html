@@ -225,6 +225,7 @@
         // --- Global Flags for API readiness ---
         let youtubeApiReady = false;
         let hlsJsReady = false;
+        let currentYouTubeStartTime = 0; // Store the start time that was requested for the current YouTube video
 
         // --- Helper function to parse various YouTube/M3U8 URLs/IDs ---
         function parseMediaLink(link) {
@@ -352,6 +353,7 @@
             }
             playerWrapper.innerHTML = ''; // Ensure the wrapper is empty
             currentPlayingType = null;
+            currentYouTubeStartTime = 0; // Reset for the next video
             console.log("Current player destroyed.");
         }
 
@@ -360,6 +362,8 @@
             const div = document.createElement('div');
             div.id = 'youtube-player-iframe-placeholder'; // Unique ID for YT API
             playerWrapper.appendChild(div);
+
+            currentYouTubeStartTime = startTime; // Store the requested start time
 
             youtubePlayer = new YT.Player(div.id, {
                 height: '390',
@@ -373,7 +377,7 @@
                     'modestbranding': 1,
                     'rel': 0,
                     'iv_load_policy': 3,
-                    'start': startTime // Set start time for YouTube
+                    'start': startTime // Pass start time for initial load
                 },
                 events: {
                     'onReady': onYouTubePlayerReady,
@@ -469,7 +473,7 @@
                             startTime = lastPlayed.time;
                             console.log(`Resuming YouTube from saved state: Index ${currentMediaIndex}, Time ${startTime}s.`);
                         } else { // M3U8 (Live stream)
-                            console.log(`Resuming M3U8 stream from saved state (live point): Index ${currentMediaIndex}.`);
+                            console.log(`Resuming M3u8 stream from saved state (live point): Index ${currentMediaIndex}.`);
                             // No 'startTime' for M3U8 as it's live
                         }
                     } else {
@@ -527,6 +531,16 @@
         function onYouTubePlayerReady(event) {
             console.log("YouTube player instance ready.");
             checkMuteStateAndApply();
+            // Explicitly seek to the stored start time if it's greater than 0.
+            // This handles cases where 'autoplay' might start before 'start' param takes full effect,
+            // or if the video was already buffered at 0.
+            if (currentYouTubeStartTime > 0) {
+                event.target.seekTo(currentYouTubeStartTime, true); // true for allowSeekAhead
+                console.log(`Youtubeer ready, seeking to ${currentYouTubeStartTime}s.`);
+                // Reset this global variable after seeking to prevent unintended seeks on subsequent ready events
+                // (though a new player is created each time, so it's less critical here).
+                currentYouTubeStartTime = 0; 
+            }
         }
 
         function onYouTubePlayerStateChange(event) {
