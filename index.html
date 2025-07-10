@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Live TV Channel</title>
-    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -37,26 +37,35 @@
             background-color: black; /* Background for when video is loading */
         }
 
-        #player-wrapper { /* This wrapper will hold either YouTube iframe or HTML5 video */
+        /* Adjusted CSS for dynamic players: target children of player-wrapper */
+        #player-wrapper {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            display: flex; /* Use flexbox to center content */
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Important for containing video */
         }
 
-        #player { /* YouTube iframe placeholder */
+        /* This targets the dynamically created YouTube iframe div */
+        #player-wrapper > div {
             width: 100%;
             height: 100%;
-            border: none; /* Remove default iframe border */
-            display: block; /* Ensure it takes up space */
+            border: none;
+            display: block;
+            position: absolute; /* Take full space within wrapper */
         }
 
-        #html5-video-player { /* HTML5 video element */
+        /* This targets the dynamically created HTML5 video element */
+        #player-wrapper > video {
             width: 100%;
             height: 100%;
-            display: block; /* Ensure it takes up space */
-            object-fit: contain; /* or 'cover' */
+            display: block;
+            object-fit: contain; /* Or 'cover' based on preference */
+            position: absolute; /* Take full space within wrapper */
         }
 
         .video-overlay {
@@ -65,8 +74,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 10; /* Place it above the video */
-            pointer-events: auto; /* It will receive pointer events */
+            z-index: 10;
+            pointer-events: auto;
             /* background: rgba(255, 0, 0, 0.1); /* Uncomment for debugging to see the overlay */
         }
 
@@ -78,12 +87,12 @@
             width: 100%;
             height: 100%;
             background-color: #000; /* Black background behind thumbnail */
-            background-size: contain; /* Scales image to fit without cropping */
+            background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
-            z-index: 12; /* Above video, below overlay/unmute button */
-            display: none; /* Hidden by default */
-            transition: opacity 0.3s ease; /* Smooth fade in/out */
+            z-index: 12;
+            display: none;
+            transition: opacity 0.3s ease;
             opacity: 0;
         }
 
@@ -213,11 +222,13 @@
     </div>
 
     <script>
+        // --- Global Flags for API readiness ---
+        let youtubeApiReady = false;
+        let hlsJsReady = false;
+
         // --- Helper function to parse various YouTube/M3U8 URLs/IDs ---
         function parseMediaLink(link) {
-            // YouTube Video ID Regex (11 characters)
             const youtubeVideoRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
-            // Basic M3U8 URL detection (ends with .m3u8, case-insensitive)
             const m3u8Regex = /\.m3u8(?:$|\?)/i;
 
             let match;
@@ -231,7 +242,6 @@
                 return { type: 'youtube', id: match[1] };
             }
 
-            // If it's an 11-char string but not a full URL, assume YouTube ID
             if (link.length === 11 && /^[a-zA-Z0-9_-]+$/.test(link)) {
                 return { type: 'youtube', id: link };
             }
@@ -243,23 +253,24 @@
         // --- YOUR 24/7 CONTINUOUS PLAYLIST (Mix YouTube IDs/URLs and M3U8 URLs) ---
         const mediaPlaylist = [
             '17LL_iqlHE8', // YouTube: Rick Astley
-            'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', // M3U8: Example HLS stream
+            'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', // M3U8: Example HLS stream (Public Test Stream)
             'xHs7aUUOlJo', // YouTube: Lofi Hip Hop Radio
-            'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8', // M3U8: Another example HLS
+            'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8', // M3U8: Another example HLS (Public Test Stream)
             'RQqYw5nJK7A', // YouTube: Epic Nature Documentary
             'P-0EiCkAFnE', // YouTube: Cozy Fireplace Sounds
+            'https://mnmedias.api.telequebec.tv/m3u8/29880.m3u8', // M3U8: Another public test stream
             // Add more video IDs or full URLs (YouTube or M3U8) here.
         ];
 
         // --- CONFIGURATION FOR VIDEO SLOTS ---
-        const VIDEO_SLOT_DURATION_SECONDS = 30; // Each video/stream will play for 30 seconds
+        const VIDEO_SLOT_DURATION_SECONDS = 30; // Each video/stream will play for 30 seconds for quicker testing
 
         // Global state variables
         const LAST_PLAYED_KEY = 'lastPlayedMedia';
         let currentMediaIndex = 0;
-        let youtubePlayer; // Reference to YouTube player instance
-        let html5VideoElement; // Reference to HTML5 video element
-        let hlsPlayer; // Reference to hls.js instance
+        let youtubePlayer = null; // Reference to YouTube player instance
+        let html5VideoElement = null; // Reference to HTML5 video element
+        let hlsPlayer = null; // Reference to hls.js instance
         let currentPlayingType = null; // 'youtube' or 'm3u8'
         let saveInterval;
         let mediaTimeout;
@@ -273,28 +284,26 @@
         function getYouTubeThumbnailUrl(videoId) {
             // Using 'hqdefault' as it's generally available and good quality.
             // 'maxresdefault' is highest but not always exists.
-            return `https://www.youtube.com/iframe_api`;
+            return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
         }
 
         // Function to display the thumbnail
-        // For M3U8, we'll just show a black screen or a generic loading image.
         function displayThumbnail(mediaItem) {
             let thumbnailUrl = '';
             if (mediaItem && mediaItem.type === 'youtube') {
                 thumbnailUrl = getYouTubeThumbnailUrl(mediaItem.id);
-                videoThumbnail.style.backgroundSize = 'contain'; // Keep YouTube aspect
+                videoThumbnail.style.backgroundSize = 'contain';
             } else if (mediaItem && mediaItem.type === 'm3u8') {
-                // For M3U8, we don't easily get a dynamic thumbnail.
-                // You could use a static "Loading Live Stream" image here.
-                thumbnailUrl = ''; // Or a URL to a generic "Loading..." image
-                videoThumbnail.style.backgroundSize = 'cover'; // Cover the space if no specific thumbnail
+                // For M3U8, use a generic loading image or just black.
+                // You can replace this with a URL to a specific "Loading Live Stream..." image
+                thumbnailUrl = ''; // Default to black background
+                videoThumbnail.style.backgroundSize = 'cover';
             } else {
-                // No valid media item, clear thumbnail
                 thumbnailUrl = '';
             }
 
             videoThumbnail.style.backgroundImage = thumbnailUrl ? `url('${thumbnailUrl}')` : 'none';
-            videoThumbnail.style.backgroundColor = '#000'; // Ensure black background
+            videoThumbnail.style.backgroundColor = '#000';
             videoThumbnail.style.display = 'block';
             videoThumbnail.offsetHeight; // Trigger reflow for transition
             videoThumbnail.style.opacity = '1';
@@ -311,34 +320,48 @@
 
         // --- Player Management Functions ---
         function destroyCurrentPlayer() {
+            console.log(`Destroying current player (${currentPlayingType})...`);
             if (currentPlayingType === 'youtube' && youtubePlayer) {
-                youtubePlayer.destroy();
+                try {
+                    youtubePlayer.destroy();
+                } catch (e) {
+                    console.warn("Error destroying YouTube player:", e);
+                }
                 youtubePlayer = null;
             } else if (currentPlayingType === 'm3u8' && html5VideoElement) {
                 if (hlsPlayer) {
-                    hlsPlayer.destroy();
+                    try {
+                        hlsPlayer.stopLoad(); // Stop current HLS stream
+                        hlsPlayer.destroy();
+                    } catch (e) {
+                        console.warn("Error destroying HLS.js player:", e);
+                    }
                     hlsPlayer = null;
                 }
                 html5VideoElement.removeEventListener('ended', onHtml5VideoEnded);
                 html5VideoElement.removeEventListener('play', onHtml5VideoPlaying);
                 html5VideoElement.removeEventListener('error', onHtml5VideoError);
                 html5VideoElement.pause();
-                html5VideoElement.src = ''; // Clear source
-                html5VideoElement.load(); // Load empty to stop streaming
-                html5VideoElement.remove(); // Remove from DOM
+                html5VideoElement.src = ''; // Clear source to stop download
+                html5VideoElement.load(); // Request browser to unload media
+                
+                if (html5VideoElement.parentNode) {
+                    html5VideoElement.parentNode.removeChild(html5VideoElement);
+                }
                 html5VideoElement = null;
             }
-            playerWrapper.innerHTML = ''; // Clear the wrapper
+            playerWrapper.innerHTML = ''; // Ensure the wrapper is empty
             currentPlayingType = null;
+            console.log("Current player destroyed.");
         }
 
         function createYouTubePlayer(videoId, startTime) {
             destroyCurrentPlayer(); // Clean up previous player
             const div = document.createElement('div');
-            div.id = 'youtube-player-actual'; // Give it a unique ID for YT API
+            div.id = 'youtube-player-iframe-placeholder'; // Unique ID for YT API
             playerWrapper.appendChild(div);
 
-            youtubePlayer = new YT.Player('youtube-player-actual', {
+            youtubePlayer = new YT.Player(div.id, {
                 height: '390',
                 width: '640',
                 videoId: videoId,
@@ -350,7 +373,7 @@
                     'modestbranding': 1,
                     'rel': 0,
                     'iv_load_policy': 3,
-                    'start': startTime // Set start time
+                    'start': startTime
                 },
                 events: {
                     'onReady': onYouTubePlayerReady,
@@ -364,51 +387,68 @@
         function createHtml5VideoPlayer(url, startTime) {
             destroyCurrentPlayer(); // Clean up previous player
             html5VideoElement = document.createElement('video');
-            html5VideoElement.id = 'html5-video-player';
-            html5VideoElement.controls = false; // We manage controls
-            html5VideoElement.autoplay = true; // Attempt autoplay
-            html5VideoElement.playsInline = true; // Important for mobile
+            html5VideoElement.id = 'html5-video-player'; // Assign ID for CSS targeting
+            html5VideoElement.controls = false;
+            html5VideoElement.autoplay = true;
+            html5VideoElement.playsInline = true;
             playerWrapper.appendChild(html5VideoElement);
 
             html5VideoElement.addEventListener('ended', onHtml5VideoEnded);
             html5VideoElement.addEventListener('play', onHtml5VideoPlaying);
             html5VideoElement.addEventListener('error', onHtml5VideoError);
+            html5VideoElement.addEventListener('loadedmetadata', function() {
+                if (startTime > 0 && html5VideoElement.duration && startTime < html5VideoElement.duration) {
+                    html5VideoElement.currentTime = startTime;
+                }
+                console.log(`HTML5 loadedmetadata for ${url}. Current time set to ${html5VideoElement.currentTime}`);
+                html5VideoElement.play().catch(e => console.warn("HTML5 video auto-play prevented:", e.message));
+            }, { once: true });
 
-            if (Hls.isSupported()) {
+            if (typeof Hls !== 'undefined' && Hls.isSupported()) {
                 hlsPlayer = new Hls();
                 hlsPlayer.loadSource(url);
                 hlsPlayer.attachMedia(html5VideoElement);
-                hlsPlayer.on(Hls.Events.MANIFEST_PARSED, function() {
-                    console.log('HLS Manifest parsed. Attempting to play.');
-                    html5VideoElement.currentTime = startTime; // Set start time
-                    html5VideoElement.play().catch(e => console.error("HTML5 auto-play failed (might need user interaction):", e));
-                    checkMuteStateAndApply();
-                });
+                console.log("HLS.js attached and loading source.");
+
                 hlsPlayer.on(Hls.Events.ERROR, function(event, data) {
                     console.error('HLS.js error:', data);
-                    onHtml5VideoError({ target: html5VideoElement }); // Trigger our error handler
+                    if (data.fatal) {
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                console.error("HLS Network Error, attempting to recover...");
+                                hlsPlayer.recoverMediaError();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                console.error("HLS Media Error, attempting to recover...");
+                                hlsPlayer.recoverMediaError();
+                                break;
+                            default:
+                                console.error("Fatal HLS error, skipping to next media.");
+                                onHtml5VideoError({ target: html5VideoElement, type: 'fatal_hls_error' });
+                                break;
+                        }
+                    }
                 });
             } else if (html5VideoElement.canPlayType('application/vnd.apple.mpegurl')) {
-                // Native HLS support (Safari, some iOS browsers)
+                console.log("Browser supports native HLS playback.");
                 html5VideoElement.src = url;
-                html5VideoElement.currentTime = startTime; // Set start time
-                html5VideoElement.addEventListener('loadedmetadata', function() {
-                    html5VideoElement.play().catch(e => console.error("HTML5 native auto-play failed (might need user interaction):", e));
-                    checkMuteStateAndApply();
-                }, { once: true });
             } else {
-                console.error('HLS is not supported in this browser.');
-                // Fallback: Skip to next media
+                console.error('Neither HLS.js nor native HLS is supported in this browser. Skipping to next media.');
                 currentMediaIndex++;
                 loadPlaylistItem();
                 return;
             }
             currentPlayingType = 'm3u8';
-            checkMuteStateAndApply(); // Apply mute state immediately
+            checkMuteStateAndApply();
         }
 
         // Function to load the current item from the playlist
         function loadPlaylistItem() {
+            if (!youtubeApiReady || !hlsJsReady) {
+                console.log("APIs not fully ready yet, delaying loadPlaylistItem.");
+                return;
+            }
+
             if (mediaPlaylist.length === 0) {
                 console.error("Media playlist is empty. Please add video/stream URLs or IDs.");
                 displayThumbnail(null);
@@ -417,7 +457,7 @@
             }
 
             if (currentMediaIndex >= mediaPlaylist.length) {
-                currentMediaIndex = 0; // Loop back to the beginning
+                currentMediaIndex = 0;
             }
 
             const itemToPlay = mediaPlaylist[currentMediaIndex];
@@ -430,16 +470,15 @@
                 return;
             }
 
-            console.log(`Loading ${parsedItem.type} item:`, parsedItem);
+            console.log(`Preparing to load ${parsedItem.type} item:`, parsedItem);
             
-            // Display thumbnail of the video about to be loaded
             displayThumbnail(parsedItem);
 
-            // Attempt to load previous state from localStorage
             const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
             let startTime = 0;
             if (lastPlayed && lastPlayed.index === currentMediaIndex && lastPlayed.type === parsedItem.type) {
                 startTime = lastPlayed.time;
+                console.log(`Resuming from saved time: ${startTime}s`);
             }
 
             if (parsedItem.type === 'youtube') {
@@ -448,50 +487,31 @@
                 createHtml5VideoPlayer(parsedItem.url, startTime);
             }
 
-            // Clear any existing timeout and set a new one for the slot duration
             clearTimeout(mediaTimeout);
             mediaTimeout = setTimeout(() => {
                 console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended for current media. Moving to next.`);
                 currentMediaIndex++;
                 loadPlaylistItem();
             }, VIDEO_SLOT_DURATION_SECONDS * 1000);
-
-            // Important: Due to autoplay policies, we generally start muted.
-            // The unmute button handler will control actual sound.
-            // The auto-unmute when new media transitions (below)
-            // will try to unmute but might be blocked by browser.
-            checkMuteStateAndApply();
         }
 
         // --- YouTube Player Event Handlers ---
-        // This function creates an <iframe> (and YouTube player) after the API code downloads.
         function onYouTubeIframeAPIReady() {
-            // Initial load for YT player will be handled by loadPlaylistItem
-            // This function is only called once the YT API script is loaded.
-            // We need to kick off the player loading once all APIs are ready.
-            const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
-            if (lastPlayed && mediaPlaylist[lastPlayed.index]) {
-                currentMediaIndex = lastPlayed.index;
-            } else {
-                currentMediaIndex = 0;
+            console.log("YouTube IFrame API is ready.");
+            youtubeApiReady = true;
+            if (hlsJsReady) {
+                loadPlaylistItem();
+                startSaveInterval();
             }
-            loadPlaylistItem(); // Initial load
-            startSaveInterval();
         }
 
         function onYouTubePlayerReady(event) {
-            console.log("YouTube player ready.");
-            // Ensure muted on initial load due to autoplay policy
-            if (!unmuteButton.classList.contains('muted')) {
-                 event.target.unMute();
-            } else {
-                event.target.mute();
-            }
-            hideThumbnail(); // Hide thumbnail once video starts
-            event.target.playVideo(); // Ensure it plays
+            console.log("YouTube player instance ready.");
+            checkMuteStateAndApply();
         }
 
         function onYouTubePlayerStateChange(event) {
+            console.log("YouTube Player State Changed:", event.data);
             if (event.data === YT.PlayerState.ENDED) {
                 console.log(`YouTube video naturally ended. Moving to next.`);
                 clearTimeout(mediaTimeout);
@@ -500,17 +520,19 @@
                 displayThumbnail(parseMediaLink(nextMedia));
                 loadPlaylistItem();
             } else if (event.data === YT.PlayerState.PLAYING) {
-                hideThumbnail(); // Hide thumbnail when video actually starts playing
-                // Reset timeout for continuous play
+                hideThumbnail();
                 clearTimeout(mediaTimeout);
+                const playedTime = youtubePlayer.getCurrentTime() || 0;
+                const remainingTime = VIDEO_SLOT_DURATION_SECONDS * 1000 - (playedTime * 1000);
                 mediaTimeout = setTimeout(() => {
                     console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended (YouTube PLAYING). Moving to next.`);
                     currentMediaIndex++;
                     loadPlaylistItem();
-                }, VIDEO_SLOT_DURATION_SECONDS * 1000 - (youtubePlayer.getCurrentTime() * 1000 || 0));
+                }, Math.max(0, remainingTime));
             } else if (event.data === YT.PlayerState.BUFFERING) {
+                console.log("YouTube player buffering, showing thumbnail.");
                 const currentMedia = mediaPlaylist[currentMediaIndex];
-                displayThumbnail(parseMediaLink(currentMedia)); // Show thumbnail during buffering
+                displayThumbnail(parseMediaLink(currentMedia));
             }
         }
 
@@ -519,7 +541,7 @@
             clearTimeout(mediaTimeout);
             currentMediaIndex++;
             const nextMedia = mediaPlaylist[currentMediaIndex % mediaPlaylist.length];
-            displayThumbnail(parseMediaLink(nextMedia)); // Show thumbnail for next video
+            displayThumbnail(parseMediaLink(nextMedia));
             loadPlaylistItem();
         }
 
@@ -535,13 +557,15 @@
 
         function onHtml5VideoPlaying() {
             console.log("HTML5 video playing.");
-            hideThumbnail(); // Hide thumbnail when video actually starts playing
+            hideThumbnail();
             clearTimeout(mediaTimeout);
+            const playedTime = html5VideoElement.currentTime || 0;
+            const remainingTime = VIDEO_SLOT_DURATION_SECONDS * 1000 - (playedTime * 1000);
             mediaTimeout = setTimeout(() => {
                 console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended (HTML5 PLAYING). Moving to next.`);
                 currentMediaIndex++;
                 loadPlaylistItem();
-            }, VIDEO_SLOT_DURATION_SECONDS * 1000 - (html5VideoElement.currentTime * 1000 || 0));
+            }, Math.max(0, remainingTime));
         }
 
         function onHtml5VideoError(event) {
@@ -555,53 +579,58 @@
 
         // --- Mute/Unmute Logic ---
         function checkMuteStateAndApply() {
-            if (unmuteButton.classList.contains('muted')) {
-                if (currentPlayingType === 'youtube' && youtubePlayer && typeof youtubePlayer.mute === 'function') {
+            const shouldBeMuted = unmuteButton.classList.contains('muted');
+            console.log(`Applying mute state: ${shouldBeMuted ? 'Muted' : 'Unmuted'}`);
+
+            if (currentPlayingType === 'youtube' && youtubePlayer) {
+                if (shouldBeMuted) {
                     youtubePlayer.mute();
-                } else if (currentPlayingType === 'm3u8' && html5VideoElement) {
-                    html5VideoElement.muted = true;
-                }
-            } else {
-                if (currentPlayingType === 'youtube' && youtubePlayer && typeof youtubePlayer.unMute === 'function') {
+                } else {
                     youtubePlayer.unMute();
-                } else if (currentPlayingType === 'm3u8' && html5VideoElement) {
-                    html5VideoElement.muted = false;
                 }
+            } else if (currentPlayingType === 'm3u8' && html5VideoElement) {
+                html5VideoElement.muted = shouldBeMuted;
             }
         }
 
         unmuteButton.addEventListener('click', () => {
-            if (unmuteButton.classList.contains('muted')) {
-                unmuteButton.classList.remove('muted');
-            } else {
-                unmuteButton.classList.add('muted');
-            }
-            checkMuteStateAndApply(); // Apply the new mute state
+            unmuteButton.classList.toggle('muted');
+            checkMuteStateAndApply();
         });
 
         // --- Save Playback Position ---
         function startSaveInterval() {
-            clearInterval(saveInterval); // Clear any existing interval
+            clearInterval(saveInterval);
             saveInterval = setInterval(() => {
                 let currentTime = 0;
+                
                 if (currentPlayingType === 'youtube' && youtubePlayer && typeof youtubePlayer.getCurrentTime === 'function') {
                     currentTime = youtubePlayer.getCurrentTime();
                 } else if (currentPlayingType === 'm3u8' && html5VideoElement) {
                     currentTime = html5VideoElement.currentTime;
                 }
-
+                
+                // Store the current media type and index along with time
                 localStorage.setItem(LAST_PLAYED_KEY, JSON.stringify({
                     index: currentMediaIndex,
-                    type: currentPlayingType, // Save type
+                    type: currentPlayingType, 
                     time: currentTime
                 }));
             }, 5000); // Save every 5 seconds
         }
 
         // --- Initialization ---
-        // Load the IFrame Player API asynchronously.
+        // 1. Check for hls.js (it should be loaded via the <script> tag in <head>)
+        if (typeof Hls !== 'undefined') {
+            console.log("HLS.js library found and ready.");
+            hlsJsReady = true;
+        } else {
+            console.error("HLS.js library not found. M3U8 playback will not work. Ensure the HLS.js CDN URL is correct.");
+        }
+
+        // 2. Load the IFrame Player API asynchronously.
         var tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api"; // Official YouTube API URL
+        tag.src = "https://www.youtube.com/iframe_api"; // OFFICIAL YouTube API URL
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
@@ -609,12 +638,12 @@
         window.addEventListener('beforeunload', () => {
             clearInterval(saveInterval);
             clearTimeout(mediaTimeout);
-            destroyCurrentPlayer(); // Ensure players are cleaned up
+            destroyCurrentPlayer();
+            // Optionally: localStorage.removeItem(LAST_PLAYED_KEY); // Uncomment if you don't want state to persist
         });
 
-        // NOTE: The initial call to loadPlaylistItem() now happens inside onYouTubeIframeAPIReady()
-        // to ensure that the YT API is definitely loaded before we try to create a YT player.
-        // For M3U8, hls.js is loaded synchronously in the head, so it's ready.
+        // Initial call to loadPlaylistItem is now triggered once both APIs are confirmed ready
+        // (one from onYouTubeIframeAPIReady, one from HLS.js check at the end of this script).
     </script>
 
 </body>
