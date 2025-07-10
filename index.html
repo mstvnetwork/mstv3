@@ -222,7 +222,7 @@
         }
 
         // --- YOUR 24/7 CONTINUOUS PLAYLIST ---
-        // Each video in this list will play for exactly VIDEO_SLOT_DURATION_SECONDS.
+        // Each video in this list will play its full length.
         const youtubePlaylist = [
             'Nj4H-X3FAWU',
             'lTv7lLp4aYU',
@@ -232,20 +232,17 @@
             'bKZTnnFU9HA', // Example: Cozy Fireplace Sounds
             'cakb1SD-vXM', // Another example video
             // Add more video IDs or full URLs here.
-            // NOTE: Playlist URLs (list=...) will *not* work with the fixed 50-second duration.
-            // They would play the entire playlist, overriding the 50-second cut-off logic.
-            // For 50-second slots, use individual video IDs or URLs only.
         ];
 
         // --- CONFIGURATION FOR VIDEO SLOTS ---
-        const VIDEO_SLOT_DURATION_SECONDS = 180; // Each video will play for 180 seconds
+        // REMOVED: VIDEO_SLOT_DURATION_SECONDS is no longer needed as videos play to completion.
 
         // Global state variables
         const LAST_PLAYED_KEY = 'lastPlayedVideo';
         let currentVideoIndex = 0;
         let player;
         let saveInterval; // For saving last played position
-        let videoTimeout; // To force video change after the slot duration
+        // REMOVED: videoTimeout is no longer needed for fixed-duration cutoff.
 
         const unmuteButton = document.getElementById('unmuteButton');
         const newsTicker = document.getElementById('newsTicker');
@@ -255,7 +252,7 @@
         function getThumbnailUrl(videoId) {
             // YouTube provides various thumbnail qualities. 'hqdefault' is high quality.
             // 'maxresdefault' is highest quality but not always available.
-            return `https://www.youtube.com/iframe_api`;
+            return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
         }
 
         // NEW: Function to display the thumbnail
@@ -312,12 +309,8 @@
                 
                 player.loadVideoById(parsedItem.id, startTime);
                 
-                clearTimeout(videoTimeout);
-                videoTimeout = setTimeout(() => {
-                    console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended for ${parsedItem.id}. Moving to next video.`);
-                    currentVideoIndex++;
-                    loadPlaylistItem();
-                }, VIDEO_SLOT_DURATION_SECONDS * 1000);
+                // REMOVED: Fixed-duration timeout is no longer set here.
+                // Video will play to natural end.
 
                 player.unMute();
                 unmuteButton.classList.remove('muted');
@@ -380,7 +373,7 @@
         function onPlayerStateChange(event) {
             if (event.data === YT.PlayerState.ENDED) {
                 console.log(`Video naturally ended. Moving to next.`);
-                clearTimeout(videoTimeout);
+                // REMOVED: clearTimeout(videoTimeout) no longer needed.
                 currentVideoIndex++;
                 // Display thumbnail for the *next* video while it loads
                 const nextVideoId = youtubePlaylist[currentVideoIndex % youtubePlaylist.length];
@@ -391,12 +384,8 @@
             else if (event.data === YT.PlayerState.PLAYING) {
                 // NEW: Hide thumbnail when video actually starts playing
                 hideThumbnail();
-                 clearTimeout(videoTimeout);
-                 videoTimeout = setTimeout(() => {
-                     console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended (PlayerState.PLAYING) for current video. Moving to next.`);
-                     currentVideoIndex++;
-                     loadPlaylistItem();
-                 }, VIDEO_SLOT_DURATION_SECONDS * 1000 - (player.getCurrentTime() * 1000 || 0));
+                // REMOVED: Fixed-duration timeout logic removed from here.
+                // Video will now play its full length.
             } else if (event.data === YT.PlayerState.BUFFERING) {
                 // Optionally, display thumbnail during buffering if the video goes black
                 const currentVideo = youtubePlaylist[currentVideoIndex];
@@ -408,7 +397,7 @@
         // Handle player errors (e.g., video not found, private video, playback issue)
         function onPlayerError(event) {
             console.error('YouTube Player Error:', event.data, 'Attempting to skip to next item.');
-            clearTimeout(videoTimeout);
+            // REMOVED: clearTimeout(videoTimeout) no longer needed.
             currentVideoIndex++;
             // Display thumbnail of the *next* video before attempting to load it
             const nextVideoId = youtubePlaylist[currentVideoIndex % youtubePlaylist.length];
@@ -437,7 +426,7 @@
         // Clear intervals and timeouts when the page is about to be unloaded
         window.addEventListener('beforeunload', () => {
             clearInterval(saveInterval);
-            clearTimeout(videoTimeout);
+            // REMOVED: clearTimeout(videoTimeout) no longer needed.
         });
     </script>
 
