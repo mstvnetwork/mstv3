@@ -263,7 +263,7 @@
         ];
 
         // --- CONFIGURATION FOR VIDEO SLOTS ---
-        const VIDEO_SLOT_DURATION_SECONDS = 30; // Each video/stream will play for 30 seconds for quicker testing
+        const VIDEO_SLOT_DURATION_SECONDS = 60; // Each video/stream will play for 1 minute for quicker testing
 
         // Global state variables
         const LAST_PLAYED_KEY = 'lastPlayedMedia';
@@ -284,7 +284,7 @@
         function getYouTubeThumbnailUrl(videoId) {
             // Using 'hqdefault' as it's generally available and good quality.
             // 'maxresdefault' is highest but not always exists.
-            return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            return `http://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
         }
 
         // Function to display the thumbnail
@@ -384,7 +384,7 @@
             currentPlayingType = 'youtube';
         }
 
-        function createHtml5VideoPlayer(url) { // Removed startTime as it's not used for live streams
+        function createHtml5VideoPlayer(url) { 
             destroyCurrentPlayer(); // Clean up previous player
             html5VideoElement = document.createElement('video');
             html5VideoElement.id = 'html5-video-player'; // Assign ID for CSS targeting
@@ -398,7 +398,6 @@
             html5VideoElement.addEventListener('error', onHtml5VideoError);
             html5VideoElement.addEventListener('loadedmetadata', function() {
                 // For live streams, we generally start at the live edge.
-                // No need to set currentTime explicitly for resume unless it's a DVR stream.
                 console.log(`HTML5 loadedmetadata for ${url}. Starting from live point.`);
                 html5VideoElement.play().catch(e => console.warn("HTML5 video auto-play prevented:", e.message));
             }, { once: true });
@@ -449,32 +448,29 @@
             }
 
             let startTime = 0;
-            let initialMediaIndex = currentMediaIndex; // Store current index before potential modification
-
+            
             if (isInitialLoad) {
                 const lastPlayed = JSON.parse(localStorage.getItem(LAST_PLAYED_KEY));
                 if (lastPlayed && mediaPlaylist[lastPlayed.index]) {
                     const savedMediaInfo = parseMediaLink(mediaPlaylist[lastPlayed.index]);
                     
-                    // Verify if the saved item matches the current playlist item at that index and its identifier
                     let isMatch = false;
                     if (savedMediaInfo && savedMediaInfo.type === lastPlayed.type) {
                         if (savedMediaInfo.type === 'youtube' && savedMediaInfo.id === lastPlayed.id) {
                             isMatch = true;
                         } else if (savedMediaInfo.type === 'm3u8' && savedMediaInfo.url === lastPlayed.url) {
-                            // For M3U8, while we save URL, we won't resume a specific timestamp.
-                            // We just use it to confirm the correct stream is starting.
                             isMatch = true; 
                         }
                     }
 
                     if (isMatch) {
                         currentMediaIndex = lastPlayed.index;
-                        if (lastPlayed.type === 'youtube') { // Only resume time for YouTube (VOD)
+                        if (lastPlayed.type === 'youtube') { 
                             startTime = lastPlayed.time;
                             console.log(`Resuming YouTube from saved state: Index ${currentMediaIndex}, Time ${startTime}s.`);
                         } else { // M3U8 (Live stream)
                             console.log(`Resuming M3U8 stream from saved state (live point): Index ${currentMediaIndex}.`);
+                            // No 'startTime' for M3U8 as it's live
                         }
                     } else {
                         console.warn("Saved media item does not match current playlist or identifier. Starting from beginning.");
@@ -511,7 +507,7 @@
             if (parsedItem.type === 'youtube') {
                 createYouTubePlayer(parsedItem.id, startTime);
             } else if (parsedItem.type === 'm3u8') {
-                createHtml5VideoPlayer(parsedItem.url); // M3U8 always starts at live point, no startTime parameter
+                createHtml5VideoPlayer(parsedItem.url); 
             }
 
             // Clear any existing timeout. The new timeout will be set when video actually plays (onPlaying event).
@@ -531,7 +527,6 @@
         function onYouTubePlayerReady(event) {
             console.log("YouTube player instance ready.");
             checkMuteStateAndApply();
-            // No explicit play() call here, playerVars.autoplay should handle it.
         }
 
         function onYouTubePlayerStateChange(event) {
@@ -545,7 +540,6 @@
                 loadPlaylistItem();
             } else if (event.data === YT.PlayerState.PLAYING) {
                 hideThumbnail();
-                // Reset timeout for continuous play, accounting for already played time
                 clearTimeout(mediaTimeout);
                 const playedTime = youtubePlayer.getCurrentTime() || 0;
                 const remainingTime = VIDEO_SLOT_DURATION_SECONDS * 1000 - (playedTime * 1000);
@@ -553,7 +547,7 @@
                     console.log(`${VIDEO_SLOT_DURATION_SECONDS}-second slot ended (YouTube PLAYING). Moving to next.`);
                     currentMediaIndex++;
                     loadPlaylistItem();
-                }, Math.max(0, remainingTime)); // Ensure non-negative timeout
+                }, Math.max(0, remainingTime));
             } else if (event.data === YT.PlayerState.BUFFERING) {
                 console.log("YouTube player buffering, showing thumbnail.");
                 const currentMedia = mediaPlaylist[currentMediaIndex];
@@ -584,8 +578,6 @@
             console.log("HTML5 video playing.");
             hideThumbnail();
             clearTimeout(mediaTimeout);
-            // For live streams, currentTime is typically irrelevant for resuming
-            // but we still use it for the slot duration calculation.
             const playedTime = html5VideoElement.currentTime || 0; 
             const remainingTime = VIDEO_SLOT_DURATION_SECONDS * 1000 - (playedTime * 1000);
             mediaTimeout = setTimeout(() => {
@@ -627,7 +619,7 @@
 
         // --- Save Playback Position ---
         function startSaveInterval() {
-            clearInterval(saveInterval); // Clear any existing interval
+            clearInterval(saveInterval); 
             saveInterval = setInterval(() => {
                 let currentTime = 0;
                 let mediaIdentifier = ''; 
@@ -639,24 +631,21 @@
                     const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
                     mediaIdentifier = match ? match[1] : '';
                 } else if (currentPlayingType === 'm3u8' && html5VideoElement) {
-                    // For M3U8, we save the URL, but the 'time' will generally be 0 or irrelevant for resume.
-                    // The player will always try to go to the live point.
-                    currentTime = 0; // We explicitly set this to 0 for M3U8 streams to avoid confusion
+                    currentTime = 0; // Always 0 for live M3U8, as we don't "resume" a live point
                     mediaIdentifier = html5VideoElement.src;
                 }
                 
                 localStorage.setItem(LAST_PLAYED_KEY, JSON.stringify({
                     index: currentMediaIndex,
                     type: typeToSave,
-                    id: typeToSave === 'youtube' ? mediaIdentifier : undefined, // Save ID for YouTube
-                    url: typeToSave === 'm3u8' ? mediaIdentifier : undefined,   // Save URL for M3U8
+                    id: typeToSave === 'youtube' ? mediaIdentifier : undefined,
+                    url: typeToSave === 'm3u8' ? mediaIdentifier : undefined,
                     time: currentTime
                 }));
-            }, 5000); // Save every 5 seconds
+            }, 5000); 
         }
 
         // --- Initialization ---
-        // 1. Check for hls.js (it should be loaded via the <script> tag in <head>)
         if (typeof Hls !== 'undefined') {
             console.log("HLS.js library found and ready.");
             hlsJsReady = true;
@@ -664,23 +653,17 @@
             console.error("HLS.js library not found. M3U8 playback will not work. Ensure the HLS.js CDN URL is correct.");
         }
 
-        // 2. Load the IFrame Player API asynchronously.
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api"; // OFFICIAL YouTube API URL
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-        // Clear intervals and timeouts and optionally remove saved state when the page is about to be unloaded
         window.addEventListener('beforeunload', () => {
             clearInterval(saveInterval);
             clearTimeout(mediaTimeout);
             destroyCurrentPlayer();
-            // Uncomment the line below if you DO NOT want the state to persist when the browser/tab is closed.
-            // localStorage.removeItem(LAST_PLAYED_KEY); 
+            // localStorage.removeItem(LAST_PLAYED_KEY); // Uncomment if you DO NOT want state to persist
         });
-
-        // The initial call to loadPlaylistItem is now triggered once both APIs are confirmed ready.
-        // It will then check localStorage for resuming.
     </script>
 
 </body>
