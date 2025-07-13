@@ -2,30 +2,34 @@
   "timezone": "Asia/Kolkata",
   "schedule": [
     {
-      "start_time": "13:50",
-      "end_time": "17:55",
-      "content_type": "Afternoon Schedule",
-      "video_urls": [
-        "wInW9xRKZpw",
-        "OpLD97fG9Hw",
-        "1cDoRqPnCXU",
-        "8Me7zIoFEg8",
-        "DwbaFnjxDo0",
-        "GQh0_RfABWI",
-        "2SeaeAFFogk",
-        "H9BjynROcgI",
-        "nt1uz5qqM10",
-        "SOsBst1yBBw",
-        "Jf92MOkrbEw"
-      ]
+      "start_time": "14:20:00",
+      "end_time": "14:25:51",
+      "content_type": "Video 1",
+      "video_urls": ["Jf92MOkrbEw"]
     },
     {
-      "start_time": "14:00",
-      "end_time": "15:00",
-      "content_type": "Movie Time",
-      "video_urls": [
-        "your_movie_video_id"
-      ]
+      "start_time": "14:25:51",
+      "end_time": "14:32:18",
+      "content_type": "Video 2",
+      "video_urls": ["SOsBst1yBBw"]
+    },
+    {
+      "start_time": "14:32:18",
+      "end_time": "14:35:52",
+      "content_type": "Video 3",
+      "video_urls": ["D1kvLhr0AW4"]
+    },
+    {
+      "start_time": "14:35:52",
+      "end_time": "14:40:21",
+      "content_type": "Video 4",
+      "video_urls": ["xCO-hiv-CR0"]
+    },
+    {
+      "start_time": "14:40:21",
+      "end_time": "14:45:59",
+      "content_type": "Video 5",
+      "video_urls": ["_f9kIjhuYMo"]
     }
   ]
 }
