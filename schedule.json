@@ -1,32 +1,31 @@
 {
   "timezone": "Asia/Kolkata",
   "schedule": [
-{
-      "start_time": "13:50",  
-      "end_time": "17:84",   
+    {
+      "start_time": "13:50",
+      "end_time": "17:55",
       "content_type": "Afternoon Schedule",
       "video_urls": [
-        'wInW9xRKZpw',
-        'OpLD97fG9Hw',
-        '1cDoRqPnCXU',
-        '8Me7zIoFEg8',
-        'DwbaFnjxDo0',
-        'GQh0_RfABWI',
-        '2SeaeAFFogk',
-        'H9BjynROcgI',
-        'nt1uz5qqM10',
-        'SOsBst1yBBw',
-        'Jf92MOkrbEw',
-       ]
+        "wInW9xRKZpw",
+        "OpLD97fG9Hw",
+        "1cDoRqPnCXU",
+        "8Me7zIoFEg8",
+        "DwbaFnjxDo0",
+        "GQh0_RfABWI",
+        "2SeaeAFFogk",
+        "H9BjynROcgI",
+        "nt1uz5qqM10",
+        "SOsBst1yBBw",
+        "Jf92MOkrbEw"
+      ]
     },
     {
-      "start_time": "14:00",  <-- This is 2:00 PM India Time
-      "end_time": "15:00",   <-- This is 3:00 PM India Time
+      "start_time": "14:00",
+      "end_time": "15:00",
       "content_type": "Movie Time",
       "video_urls": [
         "your_movie_video_id"
       ]
     }
-    // ... (rest of your schedule)
   ]
 }
