@@ -2,90 +2,88 @@
   "timezone": "Asia/Kolkata",
   "schedule": [
     {
-      "start_time": "16:55:00",
-      "end_time": "17:00:54",
+      "start_time": "06:00:00",
+      "end_time": "06:05:54",
       "content_type": "Video 1",
       "video_urls": ["fZ2TBWxkwjg"]
     },
     {
-      "start_time": "17:00:54",
-      "end_time": "17:05:40",
+      "start_time": "06:05:54",
+      "end_time": "06:10:40",
       "content_type": "Video 2",
       "video_urls": ["Q5A0Yc2ZDB8"]
     },
     {
-      "start_time": "17:05:40",
-      "end_time": "17:10:51",
+      "start_time": "06:10:40",
+      "end_time": "06:15:51",
       "content_type": "Video 3",
       "video_urls": ["VSyvZ5ghIcs"]
     },
     {
-      "start_time": "17:10:51",
-      "end_time": "17:17:18",
+      "start_time": "06:15:51",
+      "end_time": "06:22:18",
       "content_type": "Video 4",
       "video_urls": ["GwpqME_Cmpc"]
     },
     {
-      "start_time": "17:17:18",
-      "end_time": "17:24:00",
+      "start_time": "06:22:18",
+      "end_time": "06:29:00",
       "content_type": "Video 5",
       "video_urls": ["k8Yn6c7k7Qw"]
     },
     {
-      "start_time": "17:24:00",
-      "end_time": "17:56:14",
-      "content_type": "Ramayan EP 30 until 05:56 PM",
+      "start_time": "06:29:00",
+      "end_time": "07:01:14",
+      "content_type": "Ramayan EP 30 until 07:01 AM",
       "video_urls": ["bZBSyJgFn5o"]
     },
     {
-      "start_time": "17:56:14",
-      "end_time": "18:30:33",
-      "content_type": "Ramayan EP 31 until 06:30 PM",
+      "start_time": "07:01:14",
+      "end_time": "07:35:33",
+      "content_type": "Ramayan EP 31 until 07:35 AM",
       "video_urls": ["nt1uz5qqM10"]
     },
     {
-      "start_time": "18:30:33",
-      "end_time": "19:04:46",
-      "content_type": "Ramayan EP 32 until 07:04 PM",
+      "start_time": "07:35:33",
+      "end_time": "08:09:46",
+      "content_type": "Ramayan EP 32 until 08:09 AM",
       "video_urls": ["0UYxhiC92JY"]
     },
-        {
-      "start_time": "19:04:46",
-      "end_time": "19:38:59",
-      "content_type": "Ramayan repeat until 07:38",
+    {
+      "start_time": "08:09:46",
+      "end_time": "08:43:59",
+      "content_type": "Ramayan repeat until 08:43 AM",
       "video_urls": ["-lRxSHQCthY"]
     },
     {
-      "start_time": "19:38:59",
-      "end_time": "20:36:16",
-      "content_type": "Zee Horror Show until 08:36 PM",
+      "start_time": "08:43:59",
+      "end_time": "09:41:16",
+      "content_type": "Zee Horror Show until 09:41 AM",
       "video_urls": ["iYqWWfBD1_w"]
     },
     {
-      "start_time": "20:36:16",
-      "end_time": "23:33:00",
-      "content_type": "Bollywood Award Show until 11:33 PM",
+      "start_time": "09:41:16",
+      "end_time": "12:38:00",
+      "content_type": "Bollywood Award Show until 12:38 PM",
       "video_urls": ["0VNGgTid2qw"]
     },
     {
-      "start_time": "23:33:00",
-      "end_time": "01:51:41",
-      "content_type": "Movie- Krishna until 01:51 AM",
+      "start_time": "12:38:00",
+      "end_time": "14:56:41",
+      "content_type": "Movie- Krishna until 02:56 PM",
       "video_urls": ["gty_xLj4KDM"]
     },
-        {
-      "start_time": "01:51:41",
-      "end_time": "02:20:25",
-      "content_type": "WWE until 02:20 AM",
+    {
+      "start_time": "14:56:41",
+      "end_time": "15:25:25",
+      "content_type": "WWE until 03:25 PM",
       "video_urls": ["CsCUpB-rUqQ"]
     },
     {
-      "start_time": "02:20:25",
-      "end_time": "02:51:38",
-      "content_type": "WWE until 02:51 AM",
+      "start_time": "15:25:25",
+      "end_time": "15:56:38",
+      "content_type": "WWE until 03:56 PM",
       "video_urls": ["7CGY8GCY488"]
     }
-
-
   ]
 }
