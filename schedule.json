@@ -2,88 +2,40 @@
   "timezone": "Asia/Kolkata",
   "schedule": [
     {
-      "start_time": "20:45:00",
-      "end_time": "20:50:54",
-      "content_type": "Video 1",
-      "video_urls": ["fZ2TBWxkwjg"]
+      "start_time": "17:35:00",
+      "end_time": "19:38:16",
+      "content_type": "New Video 1",
+      "video_urls": ["aw9Rb9y2m8A"]
     },
     {
-      "start_time": "20:50:54",
-      "end_time": "20:55:40",
-      "content_type": "Video 2",
-      "video_urls": ["Q5A0Yc2ZDB8"]
+      "start_time": "19:38:16",
+      "end_time": "21:16:45",
+      "content_type": "New Video 2",
+      "video_urls": ["b8lyk63gr7U"]
     },
     {
-      "start_time": "20:55:40",
-      "end_time": "21:00:51",
-      "content_type": "Video 3",
-      "video_urls": ["VSyvZ5ghIcs"]
+      "start_time": "21:16:45",
+      "end_time": "22:27:18",
+      "content_type": "New Video 3",
+      "video_urls": ["4MOGevjOh9M"]
     },
     {
-      "start_time": "21:00:51",
-      "end_time": "21:07:18",
-      "content_type": "Video 4",
-      "video_urls": ["GwpqME_Cmpc"]
+      "start_time": "22:27:18",
+      "end_time": "23:28:56",
+      "content_type": "New Video 4",
+      "video_urls": ["Pmw7gkOqMjI"]
     },
     {
-      "start_time": "21:07:18",
-      "end_time": "21:14:00",
-      "content_type": "Video 5",
-      "video_urls": ["k8Yn6c7k7Qw"]
+      "start_time": "23:28:56",
+      "end_time": "02:14:13",
+      "content_type": "New Video 5",
+      "video_urls": ["jNDkdiKf5-c"]
     },
     {
-      "start_time": "21:14:00",
-      "end_time": "21:46:14",
-      "content_type": "Ramayan EP 30 until 07:01 AM",
-      "video_urls": ["bZBSyJgFn5o"]
-    },
-    {
-      "start_time": "21:46:14",
-      "end_time": "22:20:33",
-      "content_type": "Ramayan EP 31 until 07:35 AM",
-      "video_urls": ["nt1uz5qqM10"]
-    },
-    {
-      "start_time": "22:20:33",
-      "end_time": "22:54:46",
-      "content_type": "Ramayan EP 32 until 08:09 AM",
-      "video_urls": ["0UYxhiC92JY"]
-    },
-    {
-      "start_time": "22:54:46",
-      "end_time": "23:28:59",
-      "content_type": "Ramayan repeat until 08:43 AM",
-      "video_urls": ["-lRxSHQCthY"]
-    },
-    {
-      "start_time": "23:28:59",
-      "end_time": "00:26:16",
-      "content_type": "Zee Horror Show until 09:41 AM",
-      "video_urls": ["iYqWWfBD1_w"]
-    },
-    {
-      "start_time": "00:26:16",
-      "end_time": "03:23:00",
-      "content_type": "Bollywood Award Show until 12:38 PM",
-      "video_urls": ["0VNGgTid2qw"]
-    },
-    {
-      "start_time": "03:23:00",
-      "end_time": "05:41:41",
-      "content_type": "Movie- Krishna until 02:56 PM",
-      "video_urls": ["gty_xLj4KDM"]
-    },
-    {
-      "start_time": "05:41:41",
-      "end_time": "06:10:25",
-      "content_type": "WWE until 03:25 PM",
-      "video_urls": ["CsCUpB-rUqQ"]
-    },
-    {
-      "start_time": "06:10:25",
-      "end_time": "06:41:38",
-      "content_type": "WWE until 03:56 PM",
-      "video_urls": ["7CGY8GCY488"]
+      "start_time": "02:14:13",
+      "end_time": "05:09:30",
+      "content_type": "New Video 6",
+      "video_urls": ["etDPnCZk-Tw"]
     }
   ]
 }
