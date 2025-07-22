@@ -4,37 +4,37 @@
     {
       "start_time": "17:35:00",
       "end_time": "19:38:16",
-      "content_type": "New Video 1",
+      "content_type": "EVERGREEN HITS",
       "video_urls": ["aw9Rb9y2m8A"]
     },
     {
       "start_time": "19:38:16",
       "end_time": "21:16:45",
-      "content_type": "New Video 2",
+      "content_type": "RAMAYAN",
       "video_urls": ["b8lyk63gr7U"]
     },
     {
       "start_time": "21:16:45",
       "end_time": "22:27:18",
-      "content_type": "New Video 3",
+      "content_type": "KAPIL SHARMA HITS",
       "video_urls": ["4MOGevjOh9M"]
     },
     {
       "start_time": "22:27:18",
       "end_time": "23:28:56",
-      "content_type": "New Video 4",
+      "content_type": "HINDI HITS",
       "video_urls": ["Pmw7gkOqMjI"]
     },
     {
-      "start_time": "23:28:56",
-      "end_time": "02:14:13",
-      "content_type": "New Video 5",
-      "video_urls": ["jNDkdiKf5-c"]
-    },
+  "start_time": "23:28:56",
+  "end_time": "02:21:00",
+  "content_type": "KHALNAYAK",
+  "video_urls": ["xtjwx0cii2o"]
+},
     {
-      "start_time": "02:14:13",
-      "end_time": "05:09:30",
-      "content_type": "New Video 6",
+      "start_time": "02:21:00",
+      "end_time": "05:16:17",
+      "content_type": "BATWARA",
       "video_urls": ["etDPnCZk-Tw"]
     }
   ]
