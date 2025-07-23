@@ -94,9 +94,8 @@
         const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds.join(',')}&key=${YT_API_KEY}`;
         const res = await fetch(url);
         const data = await res.json();
-        // Simulate short durations for testing
-videoDurations = [15, 12, 18, 10]; // seconds
- if (videoDurations.length !== videoIds.length) {
+        videoDurations = data.items.map(item => ISO8601toSeconds(item.contentDetails.duration));
+        if (videoDurations.length !== videoIds.length) {
           videoDurations = Array(videoIds.length).fill(600); // fallback 10min
         }
       } catch (e) {
