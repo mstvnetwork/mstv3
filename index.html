@@ -16,7 +16,7 @@
       width: 100%;
       max-width: 640px;
       margin: auto;
-      padding-top: 56.25%; /* 16:9 ratio */
+      padding-top: 56.25%;
     }
 
     #player {
@@ -66,6 +66,7 @@
     let isMuted = true;
     let currentVideoIndex = 0;
     let startSeconds = 0;
+    let hasSeeked = false;
 
     function ISO8601toSeconds(duration) {
       const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -96,7 +97,7 @@
         const data = await res.json();
         videoDurations = data.items.map(item => ISO8601toSeconds(item.contentDetails.duration));
         if (videoDurations.length !== videoIds.length) {
-          videoDurations = Array(videoIds.length).fill(600); // fallback 10min
+          videoDurations = Array(videoIds.length).fill(600);
         }
       } catch (e) {
         console.warn("Failed to fetch durations. Using fallback.");
@@ -110,15 +111,16 @@
       document.head.appendChild(tag);
     }
 
-    function loadVideoAt(index, startSeconds) {
+    function loadVideoAt(index, forceStartSeconds = 0) {
       currentVideoIndex = index;
+      hasSeeked = false;
+      startSeconds = forceStartSeconds;
       document.getElementById("status").innerText = `Playing video ${index + 1} at ${Math.floor(startSeconds)}s`;
-      player._hasSeeked = false;
-      player.loadVideoById(playlist[index], 0); // Load from start, seek later
+      player.loadVideoById(playlist[index], 0); // always seek manually later
     }
 
     function onYouTubeIframeAPIReady() {
-      localStorage.removeItem("yt_resume_position"); // Just in case
+      localStorage.removeItem("yt_resume_position");
 
       const now = Date.now();
       const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
@@ -153,18 +155,19 @@
           onReady: function(event) {
             if (isMuted) event.target.mute();
             else event.target.unMute();
-            event.target.playVideo(); // Let it start playing
+            event.target.playVideo();
           },
           onStateChange: function(event) {
-            if (event.data === YT.PlayerState.PLAYING && !event.target._hasSeeked) {
-              event.target.seekTo(startSeconds, true);
-              event.target._hasSeeked = true;
+            if (event.data === YT.PlayerState.PLAYING && !hasSeeked) {
+              hasSeeked = true;
+              setTimeout(() => {
+                player.seekTo(startSeconds, true);
+              }, 200); // 200ms delay to ensure it sticks
             }
 
             if (event.data === YT.PlayerState.ENDED) {
               if (currentVideoIndex + 1 < playlist.length) {
-                currentVideoIndex++;
-                loadVideoAt(currentVideoIndex, 0);
+                loadVideoAt(currentVideoIndex + 1, 0);
               } else {
                 document.getElementById("status").innerText = "Playlist ended.";
               }
