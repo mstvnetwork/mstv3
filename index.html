@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Global Synced YouTube Player (Live Broadcast Style)</title>
+  <title>Global Synced YouTube Player (Live Broadcast)</title>
   <style>
     body {
       font-family: sans-serif;
@@ -57,16 +57,15 @@
   <p id="status">Loading video...</p>
 
   <script>
-    // Get channel number from URL, default to 1
     const urlParams = new URLSearchParams(window.location.search);
     const channel = urlParams.get("ch") || "1";
     const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
-
     const YT_API_KEY = "AIzaSyBirFuQl7U8Efiv04n_jWU2K_3deswjgf8";
 
     let player, playlist = [], videoDurations = [], startTimeUTC = null;
     let isMuted = true;
     let currentVideoIndex = 0;
+    let startSeconds = 0;
 
     function ISO8601toSeconds(duration) {
       const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -114,18 +113,13 @@
     function loadVideoAt(index, startSeconds) {
       currentVideoIndex = index;
       document.getElementById("status").innerText = `Playing video ${index + 1} at ${Math.floor(startSeconds)}s`;
-      player.loadVideoById(playlist[index], startSeconds);
-      if (isMuted) player.mute();
-      else player.unMute();
+      player._hasSeeked = false;
+      player.loadVideoById(playlist[index], 0); // Load from start, seek later
     }
 
     function onYouTubeIframeAPIReady() {
-      // Remove any old resume data (just in case)
-      localStorage.removeItem("yt_resume_position");
+      localStorage.removeItem("yt_resume_position"); // Just in case
 
-      let startSeconds = 0;
-
-      // Calculate position based on global UTC time
       const now = Date.now();
       const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
       let cumulative = 0;
@@ -139,7 +133,6 @@
         cumulative += videoDurations[i];
       }
 
-      // Clamp in case elapsed is beyond playlist
       if (currentVideoIndex >= playlist.length) {
         currentVideoIndex = playlist.length - 1;
         startSeconds = videoDurations[currentVideoIndex] - 1;
@@ -158,12 +151,16 @@
         },
         events: {
           onReady: function(event) {
-            event.target.seekTo(startSeconds, true);
             if (isMuted) event.target.mute();
             else event.target.unMute();
-            event.target.playVideo();
+            event.target.playVideo(); // Let it start playing
           },
           onStateChange: function(event) {
+            if (event.data === YT.PlayerState.PLAYING && !event.target._hasSeeked) {
+              event.target.seekTo(startSeconds, true);
+              event.target._hasSeeked = true;
+            }
+
             if (event.data === YT.PlayerState.ENDED) {
               if (currentVideoIndex + 1 < playlist.length) {
                 currentVideoIndex++;
@@ -177,7 +174,6 @@
       });
     }
 
-    // Mute / unmute toggle
     document.getElementById("mute-toggle").addEventListener("click", () => {
       if (!player) return;
       if (isMuted) {
@@ -191,7 +187,6 @@
       }
     });
 
-    // Start the process
     fetchSyncData();
   </script>
 </body>
