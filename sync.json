@@ -2,10 +2,10 @@
   "timezone": "Australia/Melbourne",
   "start_time_utc": "2025-07-23T05:15:00Z",
   "video_urls": [
-    "aw9Rb9y2m8A",   // EV HITS
-    "b8lyk63gr7U",   // RAMAYAN
-    "4MOGevjOh9M",   // KAPIL SHARMA
-    "Pmw7gkOqMjI"    // HINDI HITS
+    "aw9Rb9y2m8A",   
+    "b8lyk63gr7U",   
+    "4MOGevjOh9M",   
+    "Pmw7gkOqMjI"    
   ],
   "test_durations": [15, 12, 18, 10]
 }
