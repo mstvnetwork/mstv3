@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Global Synced YouTube Player with Resume</title>
+  <title>Global Synced YouTube Player (Live Broadcast Style)</title>
   <style>
     body {
       font-family: sans-serif;
@@ -58,18 +58,15 @@
 
   <script>
     // Get channel number from URL, default to 1
-const urlParams = new URLSearchParams(window.location.search);
-const channel = urlParams.get("ch") || "1";
-const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
+    const urlParams = new URLSearchParams(window.location.search);
+    const channel = urlParams.get("ch") || "1";
+    const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
 
     const YT_API_KEY = "AIzaSyBirFuQl7U8Efiv04n_jWU2K_3deswjgf8";
 
     let player, playlist = [], videoDurations = [], startTimeUTC = null;
     let isMuted = true;
     let currentVideoIndex = 0;
-
-    // LocalStorage keys
-    const STORAGE_KEY = "yt_resume_position";
 
     function ISO8601toSeconds(duration) {
       const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -114,19 +111,6 @@ const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/mai
       document.head.appendChild(tag);
     }
 
-    // Save playback position to localStorage every 5 seconds
-    function setupResumeSaver() {
-      setInterval(() => {
-        if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
-          const time = player.getCurrentTime();
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            videoIndex: currentVideoIndex,
-            time: time
-          }));
-        }
-      }, 5000);
-    }
-
     function loadVideoAt(index, startSeconds) {
       currentVideoIndex = index;
       document.getElementById("status").innerText = `Playing video ${index + 1} at ${Math.floor(startSeconds)}s`;
@@ -136,42 +120,29 @@ const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/mai
     }
 
     function onYouTubeIframeAPIReady() {
-      // Check localStorage for resume info
-      let resume = null;
-      try {
-        resume = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      } catch {
-        resume = null;
-      }
-
-      if (resume && resume.videoIndex >= 0 && resume.videoIndex < playlist.length) {
-        currentVideoIndex = resume.videoIndex;
-      }
+      // Remove any old resume data (just in case)
+      localStorage.removeItem("yt_resume_position");
 
       let startSeconds = 0;
 
-      if (resume) {
-        startSeconds = resume.time || 0;
-      } else {
-        // Calculate position based on global UTC time
-        const now = Date.now();
-        const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
-        let cumulative = 0;
+      // Calculate position based on global UTC time
+      const now = Date.now();
+      const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
+      let cumulative = 0;
 
-        for (let i = 0; i < videoDurations.length; i++) {
-          if (elapsedSec < cumulative + videoDurations[i]) {
-            currentVideoIndex = i;
-            startSeconds = elapsedSec - cumulative;
-            break;
-          }
-          cumulative += videoDurations[i];
+      for (let i = 0; i < videoDurations.length; i++) {
+        if (elapsedSec < cumulative + videoDurations[i]) {
+          currentVideoIndex = i;
+          startSeconds = elapsedSec - cumulative;
+          break;
         }
+        cumulative += videoDurations[i];
+      }
 
-        // Clamp in case elapsed is beyond playlist
-        if (currentVideoIndex >= playlist.length) {
-          currentVideoIndex = playlist.length - 1;
-          startSeconds = videoDurations[currentVideoIndex] - 1;
-        }
+      // Clamp in case elapsed is beyond playlist
+      if (currentVideoIndex >= playlist.length) {
+        currentVideoIndex = playlist.length - 1;
+        startSeconds = videoDurations[currentVideoIndex] - 1;
       }
 
       player = new YT.Player("player", {
@@ -191,18 +162,14 @@ const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/mai
             if (isMuted) event.target.mute();
             else event.target.unMute();
             event.target.playVideo();
-            setupResumeSaver();
           },
           onStateChange: function(event) {
             if (event.data === YT.PlayerState.ENDED) {
-              // Play next video, reset start time to 0
               if (currentVideoIndex + 1 < playlist.length) {
                 currentVideoIndex++;
                 loadVideoAt(currentVideoIndex, 0);
               } else {
                 document.getElementById("status").innerText = "Playlist ended.";
-                // Optionally clear saved resume position on playlist end
-                localStorage.removeItem(STORAGE_KEY);
               }
             }
           }
@@ -224,7 +191,7 @@ const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/mai
       }
     });
 
-    // Start everything
+    // Start the process
     fetchSyncData();
   </script>
 </body>
