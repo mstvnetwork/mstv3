@@ -32,7 +32,7 @@
       position: absolute;
       top: 8px;
       right: 8px;
-      font-size: 24px;
+      font-size: 26px;
       cursor: pointer;
       z-index: 10;
       background: rgba(0, 0, 0, 0.6);
@@ -53,17 +53,28 @@
       width: 100%;
       background-color: #007BFF;
       color: white;
-      padding: 8px 0;
-      font-size: 16px;
+      padding: 10px 0;
+      font-size: 20px;
       font-weight: bold;
       text-align: center;
       z-index: 20;
-      animation: flash 1.5s infinite;
     }
 
-    @keyframes flash {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+    .countdown-green {
+      color: #90ee90; /* Light green */
+    }
+
+    .countdown-orange {
+      color: #FFD580;
+    }
+
+    .countdown-red {
+      color: #ff4c4c;
+      animation: blink 1s step-start infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0.4; }
     }
   </style>
 </head>
@@ -82,8 +93,10 @@
     const urlParams = new URLSearchParams(window.location.search);
     const channel = urlParams.get("ch") || "1";
     const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
-    const timezone = "Australia/Melbourne";
-    let player, schedule = [], isMuted = true;
+
+    let player;
+    let schedule = [];
+    let isMuted = localStorage.getItem("muted") === "true";
 
     async function fetchSchedule() {
       try {
@@ -154,12 +167,13 @@
             event.target.seekTo(seekSeconds, true);
             event.target.playVideo();
             document.getElementById("status").innerText = `Live Playback Started`;
+            updateMuteIcon();
           },
           onStateChange: function (event) {
             if (event.data === YT.PlayerState.ENDED) {
               const { next } = getCurrentAndNextSlot();
               if (next) {
-                location.reload(); // auto-reload to load next video
+                location.reload(); // auto-reload to next video
               } else {
                 document.getElementById("status").innerText = "End of playlist.";
               }
@@ -175,31 +189,44 @@
       const now = Date.now();
       const { next } = getCurrentAndNextSlot();
 
+      const banner = document.getElementById("scrolling-banner");
+      banner.className = ""; // reset
+
       if (next) {
         const diff = next.start - now;
         if (diff > 0) {
           const mins = Math.floor(diff / 60000);
           const secs = Math.floor((diff % 60000) / 1000);
-          document.getElementById("scrolling-banner").innerText =
-            `🔜 Watch Next In: ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+          let countdown = `${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+
+          if (diff <= 10000) {
+            banner.classList.add("countdown-red");
+          } else if (diff <= 60000) {
+            banner.classList.add("countdown-orange");
+          } else {
+            banner.classList.add("countdown-green");
+          }
+
+          banner.innerText = `🔜 Watch Next In: ${countdown}`;
         } else {
-          document.getElementById("scrolling-banner").innerText = `▶️ Starting next...`;
+          banner.innerText = `▶️ Starting next...`;
         }
       } else {
-        document.getElementById("scrolling-banner").innerText = `✅ End of Playlist`;
+        banner.innerText = `✅ End of Playlist`;
       }
+    }
+
+    function updateMuteIcon() {
+      document.getElementById("mute-toggle").innerText = isMuted ? "🔇" : "🔊";
     }
 
     document.getElementById("mute-toggle").addEventListener("click", () => {
       if (!player) return;
       isMuted = !isMuted;
-      if (isMuted) {
-        player.mute();
-        document.getElementById("mute-toggle").innerText = "🔇";
-      } else {
-        player.unMute();
-        document.getElementById("mute-toggle").innerText = "🔊";
-      }
+      localStorage.setItem("muted", isMuted);
+      if (isMuted) player.mute();
+      else player.unMute();
+      updateMuteIcon();
     });
 
     fetchSchedule();
