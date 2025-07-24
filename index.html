@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Slot-based Synced YouTube Player</title>
+  <title>Global Synced YouTube Player</title>
   <style>
     body {
       font-family: sans-serif;
@@ -53,185 +53,156 @@
       width: 100%;
       background-color: #007BFF;
       color: white;
-      overflow: hidden;
-      white-space: nowrap;
-      padding: 6px 0;
-      font-size: 14px;
+      padding: 8px 0;
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
       z-index: 20;
+      animation: flash 1.5s infinite;
     }
 
-    #scrolling-text {
-      display: inline-block;
-      padding-left: 100%;
-      animation: scroll-left 15s linear infinite;
-    }
-
-    @keyframes scroll-left {
-      0% { transform: translateX(0%); }
-      100% { transform: translateX(-100%); }
+    @keyframes flash {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
   </style>
 </head>
 <body>
 
-<div id="player-container">
-  <div id="player"></div>
-  <div id="mute-toggle">🔇</div>
-</div>
+  <div id="player-container">
+    <div id="player"></div>
+    <div id="mute-toggle">🔇</div>
+  </div>
 
-<p id="status">Loading video...</p>
+  <p id="status">Loading video...</p>
 
-<div id="scrolling-banner"><div id="scrolling-text">Loading titles...</div></div>
+  <div id="scrolling-banner">Loading next slot...</div>
 
-<script>
-  const urlParams = new URLSearchParams(window.location.search);
-  const channel = urlParams.get("ch") || "1";
-  const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
-  const timezone = "Australia/Melbourne";
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const channel = urlParams.get("ch") || "1";
+    const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
+    const timezone = "Australia/Melbourne";
+    let player, schedule = [], isMuted = true;
 
-  let player, schedule = [], isMuted = true;
-  let currentSlot = null;
-
-  async function fetchSchedule() {
-    try {
-      const res = await fetch(GITHUB_JSON_URL);
-      const data = await res.json();
-      schedule = data.videos || [];
-      loadYouTubeAPI();
-    } catch (e) {
-      document.getElementById("status").innerText = "Failed to load video schedule.";
-      console.error(e);
-    }
-  }
-
-  function loadYouTubeAPI() {
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
-  }
-
-  function findCurrentSlot() {
-    const now = Date.now();
-    for (let i = 0; i < schedule.length; i++) {
-      const slot = schedule[i];
-      const start = new Date(slot.start_time_utc).getTime();
-      const end = new Date(slot.end_time_utc).getTime();
-      if (now >= start && now < end) {
-        return { index: i, slot };
+    async function fetchSchedule() {
+      try {
+        const res = await fetch(GITHUB_JSON_URL);
+        const data = await res.json();
+        schedule = data.videos.map(v => ({
+          videoId: v.video_id,
+          start: new Date(v.start_time_utc).getTime(),
+          end: new Date(v.end_time_utc).getTime()
+        }));
+        loadYouTubeAPI();
+      } catch (err) {
+        document.getElementById("status").innerText = "Failed to load schedule.";
+        console.error(err);
       }
     }
-    return null;
-  }
 
-  function onYouTubeIframeAPIReady() {
-    const slotData = findCurrentSlot();
-    if (!slotData) {
-      document.getElementById("status").innerText = "No active slot found.";
-      return;
+    function loadYouTubeAPI() {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
     }
 
-    currentSlot = slotData;
-    const { video_id, start_time_utc } = currentSlot.slot;
-    const startTime = new Date(start_time_utc).getTime();
-    const now = Date.now();
-    const seekSeconds = Math.floor((now - startTime) / 1000);
+    function getCurrentAndNextSlot() {
+      const now = Date.now();
+      let current = null;
+      let next = null;
 
-    player = new YT.Player("player", {
-      height: "360",
-      width: "640",
-      videoId: video_id,
-      playerVars: {
-        autoplay: 1,
-        controls: 0,
-        modestbranding: 1,
-        rel: 0,
-        fs: 0
-      },
-      events: {
-        onReady: (event) => {
-          if (isMuted) event.target.mute();
-          else event.target.unMute();
-          event.target.seekTo(seekSeconds, true);
-          event.target.playVideo();
-          document.getElementById("status").innerText = `Now Playing: ${video_id}`;
+      for (let i = 0; i < schedule.length; i++) {
+        const slot = schedule[i];
+        if (now >= slot.start && now < slot.end) {
+          current = slot;
+          next = schedule[i + 1] || null;
+          break;
+        }
+        if (now < slot.start) {
+          next = slot;
+          break;
+        }
+      }
+      return { current, next };
+    }
+
+    function onYouTubeIframeAPIReady() {
+      const { current } = getCurrentAndNextSlot();
+      if (!current) {
+        document.getElementById("status").innerText = "No active video at this time.";
+        return;
+      }
+
+      const seekSeconds = Math.floor((Date.now() - current.start) / 1000);
+
+      player = new YT.Player("player", {
+        height: "360",
+        width: "640",
+        videoId: current.videoId,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          modestbranding: 1,
+          rel: 0,
+          fs: 0
         },
-        onStateChange: (event) => {
-          if (event.data === YT.PlayerState.ENDED) {
-            const next = currentSlot.index + 1;
-            if (next < schedule.length) {
-              window.location.reload(); // reload for next slot
-            } else {
-              document.getElementById("status").innerText = "End of playlist.";
+        events: {
+          onReady: function (event) {
+            if (isMuted) event.target.mute();
+            else event.target.unMute();
+            event.target.seekTo(seekSeconds, true);
+            event.target.playVideo();
+            document.getElementById("status").innerText = `Live Playback Started`;
+          },
+          onStateChange: function (event) {
+            if (event.data === YT.PlayerState.ENDED) {
+              const { next } = getCurrentAndNextSlot();
+              if (next) {
+                location.reload(); // auto-reload to load next video
+              } else {
+                document.getElementById("status").innerText = "End of playlist.";
+              }
             }
           }
         }
+      });
+
+      setInterval(updateCountdownBanner, 1000);
+    }
+
+    function updateCountdownBanner() {
+      const now = Date.now();
+      const { next } = getCurrentAndNextSlot();
+
+      if (next) {
+        const diff = next.start - now;
+        if (diff > 0) {
+          const mins = Math.floor(diff / 60000);
+          const secs = Math.floor((diff % 60000) / 1000);
+          document.getElementById("scrolling-banner").innerText =
+            `🔜 Watch Next In: ${String(mins).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+        } else {
+          document.getElementById("scrolling-banner").innerText = `▶️ Starting next...`;
+        }
+      } else {
+        document.getElementById("scrolling-banner").innerText = `✅ End of Playlist`;
+      }
+    }
+
+    document.getElementById("mute-toggle").addEventListener("click", () => {
+      if (!player) return;
+      isMuted = !isMuted;
+      if (isMuted) {
+        player.mute();
+        document.getElementById("mute-toggle").innerText = "🔇";
+      } else {
+        player.unMute();
+        document.getElementById("mute-toggle").innerText = "🔊";
       }
     });
 
-    setInterval(updateBanner, 1000);
-  }
-
-  function updateBanner() {
-    const now = Date.now();
-    let current = null, next = null;
-
-    for (let i = 0; i < schedule.length; i++) {
-      const s = schedule[i];
-      const start = new Date(s.start_time_utc).getTime();
-      const end = new Date(s.end_time_utc).getTime();
-
-      if (now >= start && now < end) {
-        current = s;
-        next = schedule[i + 1];
-        break;
-      }
-    }
-
-    if (!current) {
-      document.getElementById("scrolling-text").innerText = "No video currently playing.";
-      return;
-    }
-
-    const nextTime = next ? new Date(next.start_time_utc).getTime() : null;
-    let countdown = "";
-
-    if (nextTime) {
-      const diff = nextTime - now;
-      const mins = Math.floor(diff / 60000);
-      const secs = Math.floor((diff % 60000) / 1000);
-      countdown = `⏳ ${mins}m ${secs}s`;
-    }
-
-    const format = new Intl.DateTimeFormat('en-AU', {
-      timeZone: timezone,
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-
-    const nextText = next
-      ? `⏭️ Next: ${next.video_id} at ${format.format(new Date(next.start_time_utc))} ${countdown}`
-      : "⏭️ End of Playlist";
-
-    document.getElementById("scrolling-text").innerText =
-      `▶️ Now Playing: ${current.video_id} | ${nextText}`;
-  }
-
-  document.getElementById("mute-toggle").addEventListener("click", () => {
-    if (!player) return;
-    if (isMuted) {
-      player.unMute();
-      isMuted = false;
-      document.getElementById("mute-toggle").innerText = "🔊";
-    } else {
-      player.mute();
-      isMuted = true;
-      document.getElementById("mute-toggle").innerText = "🔇";
-    }
-  });
-
-  fetchSchedule();
-</script>
-
+    fetchSchedule();
+  </script>
 </body>
 </html>
