@@ -47,14 +47,32 @@
       color: #888;
     }
 
-    #reset-button {
-      margin-top: 10px;
-      background: #222;
-      color: #eee;
-      border: 1px solid #555;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
+    #scrolling-banner {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      overflow: hidden;
+      white-space: nowrap;
+      padding: 6px 0;
+      font-size: 14px;
+      z-index: 20;
+    }
+
+    #scrolling-text {
+      display: inline-block;
+      padding-left: 100%;
+      animation: scroll-left 15s linear infinite;
+    }
+
+    @keyframes scroll-left {
+      0% {
+        transform: translateX(0%);
+      }
+      100% {
+        transform: translateX(-100%);
+      }
     }
   </style>
 </head>
@@ -64,20 +82,24 @@
     <div id="player"></div>
     <div id="mute-toggle">🔇</div>
   </div>
+
   <p id="status">Loading video...</p>
-  <button id="reset-button" onclick="localStorage.removeItem('yt_resume_position'); location.reload();">🔄 Reset Resume</button>
+
+  <div id="scrolling-banner"><div id="scrolling-text">Loading titles...</div></div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     const channel = urlParams.get("ch") || "1";
     const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
     const YT_API_KEY = "AIzaSyBirFuQl7U8Efiv04n_jWU2K_3deswjgf8";
+    const timezone = "Australia/Melbourne";
 
     let player, playlist = [], videoDurations = [], startTimeUTC = null;
     let isMuted = true;
     let currentVideoIndex = 0;
     let startSeconds = 0;
     let hasSeeked = false;
+    let videoTitles = [];
 
     function ISO8601toSeconds(duration) {
       const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -93,7 +115,7 @@
         const data = await response.json();
         playlist = data.video_urls;
         startTimeUTC = new Date(data.start_time_utc).getTime();
-        await fetchVideoDurations(playlist);
+        await fetchVideoDurationsAndTitles(playlist);
         loadYouTubeAPI();
       } catch (e) {
         document.getElementById("status").innerText = "Failed to load sync data.";
@@ -101,18 +123,20 @@
       }
     }
 
-    async function fetchVideoDurations(videoIds) {
+    async function fetchVideoDurationsAndTitles(videoIds) {
       try {
-        const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds.join(',')}&key=${YT_API_KEY}`;
+        const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,snippet&id=${videoIds.join(',')}&key=${YT_API_KEY}`;
         const res = await fetch(url);
         const data = await res.json();
         videoDurations = data.items.map(item => ISO8601toSeconds(item.contentDetails.duration));
+        videoTitles = data.items.map(item => item.snippet.title);
         if (videoDurations.length !== videoIds.length) {
           videoDurations = Array(videoIds.length).fill(600);
         }
       } catch (e) {
-        console.warn("Failed to fetch durations. Using fallback.");
+        console.warn("Failed to fetch durations/titles. Using fallback.");
         videoDurations = Array(videoIds.length).fill(600);
+        videoTitles = playlist.map((_, i) => `Video ${i + 1}`);
       }
     }
 
@@ -122,47 +146,31 @@
       document.head.appendChild(tag);
     }
 
-    function saveResumePoint() {
-      if (!player || typeof player.getCurrentTime !== "function") return;
-      localStorage.setItem("yt_resume_position", JSON.stringify({
-        index: currentVideoIndex,
-        time: player.getCurrentTime()
-      }));
-    }
-
     function loadVideoAt(index, forceStartSeconds = 0) {
       currentVideoIndex = index;
       hasSeeked = false;
       startSeconds = forceStartSeconds;
-      document.getElementById("status").innerText = `Playing video ${index + 1} at ${Math.floor(startSeconds)}s`;
-      player.loadVideoById(playlist[index], 0); // always seek manually later
-      localStorage.setItem("yt_resume_position", JSON.stringify({ index, time: 0 }));
+      document.getElementById("status").innerText = `Playing: ${videoTitles[index] || "Video"} at ${Math.floor(startSeconds)}s`;
+      player.loadVideoById(playlist[index], 0);
     }
 
     function onYouTubeIframeAPIReady() {
-      const saved = localStorage.getItem("yt_resume_position");
-      if (saved) {
-        const { index, time } = JSON.parse(saved);
-        currentVideoIndex = index;
-        startSeconds = time;
-      } else {
-        const now = Date.now();
-        const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
-        let cumulative = 0;
+      const now = Date.now();
+      const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
+      let cumulative = 0;
 
-        for (let i = 0; i < videoDurations.length; i++) {
-          if (elapsedSec < cumulative + videoDurations[i]) {
-            currentVideoIndex = i;
-            startSeconds = elapsedSec - cumulative;
-            break;
-          }
-          cumulative += videoDurations[i];
+      for (let i = 0; i < videoDurations.length; i++) {
+        if (elapsedSec < cumulative + videoDurations[i]) {
+          currentVideoIndex = i;
+          startSeconds = elapsedSec - cumulative;
+          break;
         }
+        cumulative += videoDurations[i];
+      }
 
-        if (currentVideoIndex >= playlist.length) {
-          currentVideoIndex = playlist.length - 1;
-          startSeconds = videoDurations[currentVideoIndex] - 1;
-        }
+      if (currentVideoIndex >= playlist.length) {
+        currentVideoIndex = playlist.length - 1;
+        startSeconds = videoDurations[currentVideoIndex] - 1;
       }
 
       player = new YT.Player("player", {
@@ -190,12 +198,7 @@
               }, 200);
             }
 
-            if (event.data === YT.PlayerState.PLAYING) {
-              setInterval(saveResumePoint, 3000);
-            }
-
             if (event.data === YT.PlayerState.ENDED) {
-              localStorage.removeItem("yt_resume_position");
               if (currentVideoIndex + 1 < playlist.length) {
                 loadVideoAt(currentVideoIndex + 1, 0);
               } else {
@@ -205,6 +208,50 @@
           }
         }
       });
+
+      setInterval(updateMarquee, 1000);
+    }
+
+    function updateMarquee() {
+      const now = Date.now();
+      let total = 0;
+      let currentTitle = "Loading...";
+      let nextTitle = "Unknown";
+      let nextTime = null;
+
+      for (let i = 0; i < videoDurations.length; i++) {
+        const slotStart = startTimeUTC + total;
+        const slotEnd = slotStart + videoDurations[i] * 1000;
+
+        if (now >= slotStart && now < slotEnd) {
+          currentTitle = videoTitles[i] || `Video ${i + 1}`;
+          if (i + 1 < videoTitles.length) {
+            nextTitle = videoTitles[i + 1];
+            nextTime = slotEnd;
+          }
+          break;
+        }
+
+        total += videoDurations[i] * 1000;
+      }
+
+      if (nextTime) {
+        const diff = nextTime - now;
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        const formattedTime = new Intl.DateTimeFormat('en-AU', {
+          timeZone: timezone,
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }).format(new Date(nextTime));
+
+        document.getElementById("scrolling-text").innerText =
+          `▶️ Now Playing: "${currentTitle}" | ⏭️ Next: "${nextTitle}" — starts at ${formattedTime} (${timezone}) ⏳ Countdown: ${mins}m ${secs}s`;
+      } else {
+        document.getElementById("scrolling-text").innerText =
+          `▶️ Now Playing: "${currentTitle}" | ⏭️ End of Playlist`;
+      }
     }
 
     document.getElementById("mute-toggle").addEventListener("click", () => {
