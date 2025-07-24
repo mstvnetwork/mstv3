@@ -1,54 +1,15 @@
 {
-  "videos": [
-    {
-      "video_id": "mafu2i9upSA",
-      "start_time_utc": "2025-07-24T11:45:00Z",
-      "end_time_utc": "2025-07-24T11:50:14Z"
-    },
-    {
-      "video_id": "mmgdG4UvF3Y",
-      "start_time_utc": "2025-07-24T11:50:14Z",
-      "end_time_utc": "2025-07-24T11:56:38Z"
-    },
-    {
-      "video_id": "n_oP9Onj0r0",
-      "start_time_utc": "2025-07-24T11:56:38Z",
-      "end_time_utc": "2025-07-24T11:59:16Z"
-    },
-    {
-      "video_id": "5dWbn_qER3s",
-      "start_time_utc": "2025-07-24T11:59:16Z",
-      "end_time_utc": "2025-07-24T12:05:45Z"
-    },
-    {
-      "video_id": "cBw4H6Dx4vc",
-      "start_time_utc": "2025-07-24T12:05:45Z",
-      "end_time_utc": "2025-07-24T12:11:13Z"
-    },
-    {
-      "video_id": "0U-rky4_uSY",
-      "start_time_utc": "2025-07-24T12:11:13Z",
-      "end_time_utc": "2025-07-24T12:41:09Z"
-    },
-    {
-      "video_id": "b8lyk63gr7U",
-      "start_time_utc": "2025-07-24T12:41:09Z",
-      "end_time_utc": "2025-07-24T14:19:38Z"
-    },
-    {
-      "video_id": "vyxYncZerrY",
-      "start_time_utc": "2025-07-24T14:19:38Z",
-      "end_time_utc": "2025-07-24T16:24:03Z"
-    },
-    {
-      "video_id": "P8Lvy8kzJ50",
-      "start_time_utc": "2025-07-24T16:24:03Z",
-      "end_time_utc": "2025-07-24T19:30:58Z"
-    },
-    {
-      "video_id": "tzuu78RkNnI",
-      "start_time_utc": "2025-07-24T19:30:58Z",
-      "end_time_utc": "2025-07-24T22:22:21Z"
-    }
+  "start_time_utc": "2025-07-24T17:20:00Z",
+  "video_urls": [
+    "mafu2i9upSA",
+    "mmgdG4UvF3Y",
+    "n_oP9Onj0r0",
+    "5dWbn_qER3s",
+    "cBw4H6Dx4vc",
+    "0U-rky4_uSY",
+    "b8lyk63gr7U",
+    "vyxYncZerrY",
+    "P8Lvy8kzJ50",
+    "tzuu78RkNnI"
   ]
 }
