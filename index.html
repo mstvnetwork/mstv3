@@ -48,18 +48,19 @@
     }
 
 #scrolling-banner {
-  position: fixed;
+  position: absolute;
   bottom: 0;
   width: 100%;
   background-color: #007BFF;
   color: white;
-  padding: 10px 0;
-  font-size: clamp(16px, 4vw, 22px);
+  padding: 8px 0;
+  font-size: clamp(14px, 3vw, 20px);
   font-weight: bold;
   font-family: monospace;
   overflow: hidden;
   user-select: none;
-  z-index: 20;
+  z-index: 10;
+  pointer-events: none;
 }
 
 #marquee-text {
@@ -89,13 +90,15 @@
   </div>
 
   <p id="status">Loading video...</p>
-
-  <div id="scrolling-banner">
-  <div id="marquee-text">Now Playing: </div>
+<div id="player-container">
+  <div id="player"></div>
+  <div id="mute-toggle">🔇</div>
+  <div id="scrolling-banner">
+    <div id="marquee-text">Now Playing: </div>
+  </div>
 </div>
 
-
-  <script>
+<script>
     const urlParams = new URLSearchParams(window.location.search);
     const channel = urlParams.get("ch") || "1";
     const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
