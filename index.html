@@ -47,27 +47,37 @@
       color: #888;
     }
 
- #scrolling-banner {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background-color: #007BFF;
-  color: white;
-  padding: 10px 16px;
-  font-size: clamp(16px, 4vw, 22px);
-  font-weight: bold;
-  font-family: monospace;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  user-select: none;
-  animation: flash 1.5s infinite;
-  z-index: 20;
+#scrolling-banner {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #007BFF;
+  color: white;
+  padding: 10px 0;
+  font-size: clamp(16px, 4vw, 22px);
+  font-weight: bold;
+  font-family: monospace;
+  overflow: hidden;
+  user-select: none;
+  z-index: 20;
 }
+
+#marquee-text {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  animation: marquee 15s linear infinite;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
 
   </style>
 </head>
@@ -80,7 +90,10 @@
 
   <p id="status">Loading video...</p>
 
-  <div id="scrolling-banner"></div> <!-- Only title is shown -->
+  <div id="scrolling-banner">
+  <div id="marquee-text">Now Playing: </div>
+</div>
+
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -142,16 +155,13 @@
       document.head.appendChild(tag);
     }
 
-    function updateCurrentVideoTitle() {
-      const banner = document.getElementById("scrolling-banner");
-      if (videoTitles[currentVideoIndex]) {
-        banner.innerText = videoTitles[currentVideoIndex];
-      } else {
-        banner.innerText = "Now Playing";
-      }
-    }
+   function updateCurrentVideoTitle() {
+  const marquee = document.getElementById("marquee-text");
+  const title = videoTitles[currentVideoIndex] || "Untitled Video";
+  marquee.innerText = `Now Playing: ${title}`;
+}
 
-    function loadVideoAt(index, forceStartSeconds = 0) {
+function loadVideoAt(index, forceStartSeconds = 0) {
       currentVideoIndex = index;
       hasSeeked = false;
       startSeconds = forceStartSeconds;
