@@ -210,6 +210,7 @@
       });
 
       setInterval(updateMarquee, 1000);
+      updateMarquee(); // initial update immediately
     }
 
     function updateMarquee() {
@@ -220,7 +221,7 @@
       let nextTime = null;
 
       for (let i = 0; i < videoDurations.length; i++) {
-        const slotStart = startTimeUTC + total;
+        const slotStart = startTimeUTC + total * 1000;
         const slotEnd = slotStart + videoDurations[i] * 1000;
 
         if (now >= slotStart && now < slotEnd) {
@@ -232,7 +233,7 @@
           break;
         }
 
-        total += videoDurations[i] * 1000;
+        total += videoDurations[i];
       }
 
       if (nextTime) {
