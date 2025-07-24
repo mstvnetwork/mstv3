@@ -41,45 +41,37 @@
       user-select: none;
     }
 
-    #status {
-      margin-top: 12px;
-      font-size: 14px;
-      color: #888;
+    #scrolling-banner {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      font-size: clamp(14px, 3vw, 20px);
+      font-weight: bold;
+      font-family: monospace;
+      overflow: hidden;
+      user-select: none;
+      z-index: 10;
+      pointer-events: none;
+      padding: 8px 0;
     }
 
-#scrolling-banner {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  background-color: #007BFF;
-  color: white;
-  padding: 8px 0;
-  font-size: clamp(14px, 3vw, 20px);
-  font-weight: bold;
-  font-family: monospace;
-  overflow: hidden;
-  user-select: none;
-  z-index: 10;
-  pointer-events: none;
-}
+    #marquee-text {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: marquee 15s linear infinite;
+    }
 
-#marquee-text {
-  display: inline-block;
-  white-space: nowrap;
-  padding-left: 100%;
-  animation: marquee 15s linear infinite;
-}
-
-@keyframes marquee {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
-}
-
-
+    @keyframes marquee {
+      0% {
+        transform: translateX(0%);
+      }
+      100% {
+        transform: translateX(-100%);
+      }
+    }
   </style>
 </head>
 <body>
@@ -87,18 +79,12 @@
   <div id="player-container">
     <div id="player"></div>
     <div id="mute-toggle">🔇</div>
+    <div id="scrolling-banner">
+      <div id="marquee-text">Now Playing: </div>
+    </div>
   </div>
 
-  <p id="status">Loading video...</p>
-<div id="player-container">
-  <div id="player"></div>
-  <div id="mute-toggle">🔇</div>
-  <div id="scrolling-banner">
-    <div id="marquee-text">Now Playing: </div>
-  </div>
-</div>
-
-<script>
+  <script>
     const urlParams = new URLSearchParams(window.location.search);
     const channel = urlParams.get("ch") || "1";
     const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
@@ -128,8 +114,7 @@
         await fetchVideoDetails(playlist);
         loadYouTubeAPI();
       } catch (e) {
-        document.getElementById("status").innerText = "Failed to load sync data.";
-        console.error(e);
+        console.error("Failed to load sync data.", e);
       }
     }
 
@@ -158,17 +143,16 @@
       document.head.appendChild(tag);
     }
 
-   function updateCurrentVideoTitle() {
-  const marquee = document.getElementById("marquee-text");
-  const title = videoTitles[currentVideoIndex] || "Untitled Video";
-  marquee.innerText = `Now Playing: ${title}`;
-}
+    function updateCurrentVideoTitle() {
+      const marquee = document.getElementById("marquee-text");
+      const title = videoTitles[currentVideoIndex] || "Untitled Video";
+      marquee.innerText = `Now Playing: ${title}`;
+    }
 
-function loadVideoAt(index, forceStartSeconds = 0) {
+    function loadVideoAt(index, forceStartSeconds = 0) {
       currentVideoIndex = index;
       hasSeeked = false;
       startSeconds = forceStartSeconds;
-      document.getElementById("status").innerText = `Playing: ${videoTitles[index] || "Video"} at ${Math.floor(startSeconds)}s`;
       updateCurrentVideoTitle();
       player.loadVideoById(playlist[index], 0);
     }
@@ -259,8 +243,6 @@ function loadVideoAt(index, forceStartSeconds = 0) {
           nextStartTime += videoDurations.reduce((a, b) => a + b, 0) * 1000;
         }
       }
-
-      // Time difference still calculated here, in case used elsewhere in future.
     }
 
     const muteToggle = document.getElementById("mute-toggle");
