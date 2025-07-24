@@ -46,6 +46,16 @@
       font-size: 14px;
       color: #888;
     }
+
+    #reset-button {
+      margin-top: 10px;
+      background: #222;
+      color: #eee;
+      border: 1px solid #555;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -55,6 +65,7 @@
     <div id="mute-toggle">🔇</div>
   </div>
   <p id="status">Loading video...</p>
+  <button id="reset-button" onclick="localStorage.removeItem('yt_resume_position'); location.reload();">🔄 Reset Resume</button>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -111,33 +122,47 @@
       document.head.appendChild(tag);
     }
 
+    function saveResumePoint() {
+      if (!player || typeof player.getCurrentTime !== "function") return;
+      localStorage.setItem("yt_resume_position", JSON.stringify({
+        index: currentVideoIndex,
+        time: player.getCurrentTime()
+      }));
+    }
+
     function loadVideoAt(index, forceStartSeconds = 0) {
       currentVideoIndex = index;
       hasSeeked = false;
       startSeconds = forceStartSeconds;
       document.getElementById("status").innerText = `Playing video ${index + 1} at ${Math.floor(startSeconds)}s`;
       player.loadVideoById(playlist[index], 0); // always seek manually later
+      localStorage.setItem("yt_resume_position", JSON.stringify({ index, time: 0 }));
     }
 
     function onYouTubeIframeAPIReady() {
-      localStorage.removeItem("yt_resume_position");
+      const saved = localStorage.getItem("yt_resume_position");
+      if (saved) {
+        const { index, time } = JSON.parse(saved);
+        currentVideoIndex = index;
+        startSeconds = time;
+      } else {
+        const now = Date.now();
+        const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
+        let cumulative = 0;
 
-      const now = Date.now();
-      const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
-      let cumulative = 0;
-
-      for (let i = 0; i < videoDurations.length; i++) {
-        if (elapsedSec < cumulative + videoDurations[i]) {
-          currentVideoIndex = i;
-          startSeconds = elapsedSec - cumulative;
-          break;
+        for (let i = 0; i < videoDurations.length; i++) {
+          if (elapsedSec < cumulative + videoDurations[i]) {
+            currentVideoIndex = i;
+            startSeconds = elapsedSec - cumulative;
+            break;
+          }
+          cumulative += videoDurations[i];
         }
-        cumulative += videoDurations[i];
-      }
 
-      if (currentVideoIndex >= playlist.length) {
-        currentVideoIndex = playlist.length - 1;
-        startSeconds = videoDurations[currentVideoIndex] - 1;
+        if (currentVideoIndex >= playlist.length) {
+          currentVideoIndex = playlist.length - 1;
+          startSeconds = videoDurations[currentVideoIndex] - 1;
+        }
       }
 
       player = new YT.Player("player", {
@@ -162,10 +187,15 @@
               hasSeeked = true;
               setTimeout(() => {
                 player.seekTo(startSeconds, true);
-              }, 200); // 200ms delay to ensure it sticks
+              }, 200);
+            }
+
+            if (event.data === YT.PlayerState.PLAYING) {
+              setInterval(saveResumePoint, 3000);
             }
 
             if (event.data === YT.PlayerState.ENDED) {
+              localStorage.removeItem("yt_resume_position");
               if (currentVideoIndex + 1 < playlist.length) {
                 loadVideoAt(currentVideoIndex + 1, 0);
               } else {
