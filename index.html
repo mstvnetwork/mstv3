@@ -80,7 +80,7 @@
 
   <p id="status">Loading video...</p>
 
-  <div id="scrolling-banner">Watch Next In: <span id="countdown">--:--</span></div>
+  <div id="scrolling-banner"></div> <!-- Only title is shown -->
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -125,7 +125,6 @@
         if (!data.items || data.items.length === 0) throw new Error("No video data");
         videoDurations = data.items.map(item => ISO8601toSeconds(item.contentDetails.duration));
         videoTitles = data.items.map(item => item.snippet.title);
-        // Fallback in case of mismatch
         if (videoDurations.length !== videoIds.length) {
           videoDurations = Array(videoIds.length).fill(600);
           videoTitles = videoIds.map((_, i) => `Video ${i + 1}`);
@@ -143,16 +142,25 @@
       document.head.appendChild(tag);
     }
 
+    function updateCurrentVideoTitle() {
+      const banner = document.getElementById("scrolling-banner");
+      if (videoTitles[currentVideoIndex]) {
+        banner.innerText = videoTitles[currentVideoIndex];
+      } else {
+        banner.innerText = "Now Playing";
+      }
+    }
+
     function loadVideoAt(index, forceStartSeconds = 0) {
       currentVideoIndex = index;
       hasSeeked = false;
       startSeconds = forceStartSeconds;
       document.getElementById("status").innerText = `Playing: ${videoTitles[index] || "Video"} at ${Math.floor(startSeconds)}s`;
+      updateCurrentVideoTitle();
       player.loadVideoById(playlist[index], 0);
     }
 
     function onYouTubeIframeAPIReady() {
-      // Load the player
       syncAndPlay();
       setInterval(updateCountdown, 1000);
     }
@@ -172,12 +180,11 @@
       }
 
       if (currentVideoIndex >= playlist.length) {
-        // Loop logic: wrap to start
         currentVideoIndex = 0;
         startSeconds = 0;
-        // Optional: also update startTimeUTC to "now" - so loop syncs exactly
-        // startTimeUTC = now;
       }
+
+      updateCurrentVideoTitle();
 
       if (!player) {
         player = new YT.Player("player", {
@@ -202,13 +209,10 @@
                 hasSeeked = true;
                 setTimeout(() => player.seekTo(startSeconds, true), 200);
               }
-
               if (event.data === YT.PlayerState.ENDED) {
-                // Play next or loop
                 if (currentVideoIndex + 1 < playlist.length) {
                   loadVideoAt(currentVideoIndex + 1, 0);
                 } else {
-                  // Loop back to first video in sync with clock
                   syncAndPlay();
                 }
               }
@@ -223,7 +227,6 @@
     function updateCountdown() {
       const now = Date.now();
       let totalMs = 0;
-      let nextTitle = "";
       let nextStartTime = null;
 
       for (let i = 0; i < videoDurations.length; i++) {
@@ -231,7 +234,6 @@
         const slotEnd = slotStart + videoDurations[i] * 1000;
 
         if (now < slotStart) {
-          nextTitle = videoTitles[i] || `Video ${i + 1}`;
           nextStartTime = slotStart;
           break;
         }
@@ -239,30 +241,18 @@
       }
 
       if (!nextStartTime) {
-        // Loop: next is first video next day or after playlist end
-        nextTitle = videoTitles[0] || "Video 1";
-        nextStartTime = startTimeUTC + videoDurations.reduce((a,b) => a+b, 0) * 1000;
-        if (now > nextStartTime) {
-          // Adjust to future loop start
-          while (nextStartTime < now) {
-            nextStartTime += videoDurations.reduce((a,b) => a+b, 0) * 1000;
-          }
+        nextStartTime = startTimeUTC + videoDurations.reduce((a, b) => a + b, 0) * 1000;
+        while (nextStartTime < now) {
+          nextStartTime += videoDurations.reduce((a, b) => a + b, 0) * 1000;
         }
       }
 
-      const diff = nextStartTime - now;
-      const mins = Math.floor(diff / 60000);
-      const secs = Math.floor((diff % 60000) / 1000);
-      const countdown = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-
-      document.getElementById("countdown").innerText = countdown;
+      // Time difference still calculated here, in case used elsewhere in future.
     }
 
-    // Persistent mute toggle using sessionStorage (cleared on tab close)
     const muteToggle = document.getElementById("mute-toggle");
     const muteKey = "ytPlayerMuted";
 
-    // Load mute state from sessionStorage
     if (sessionStorage.getItem(muteKey) === "false") {
       isMuted = false;
       muteToggle.innerText = "🔊";
