@@ -89,6 +89,7 @@
     const channel = urlParams.get("ch") || "1";
     const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
     const YT_API_KEY = "AIzaSyBirFuQl7U8Efiv04n_jWU2K_3deswjgf8";
+    const timezone = "Australia/Melbourne";
 
     let player, playlist = [], videoDurations = [], videoTitles = [], startTimeUTC = null;
     let isMuted = true;
@@ -156,15 +157,6 @@
       player.loadVideoById(playlist[index], 0);
     }
 
-    function loadNextPlayableVideo() {
-      const nextIndex = currentVideoIndex + 1;
-      if (nextIndex < playlist.length) {
-        loadVideoAt(nextIndex, 0);
-      } else {
-        syncAndPlay(); // Restart from beginning if at end
-      }
-    }
-
     function onYouTubeIframeAPIReady() {
       syncAndPlay();
       setInterval(updateCountdown, 1000);
@@ -215,13 +207,11 @@
                 setTimeout(() => player.seekTo(startSeconds, true), 200);
               }
               if (event.data === YT.PlayerState.ENDED) {
-                loadNextPlayableVideo();
-              }
-            },
-            onError: (event) => {
-              if (event.data === 101 || event.data === 150) {
-                console.warn("Video blocked from embedding. Skipping...");
-                loadNextPlayableVideo();
+                if (currentVideoIndex + 1 < playlist.length) {
+                  loadVideoAt(currentVideoIndex + 1, 0);
+                } else {
+                  syncAndPlay();
+                }
               }
             }
           }
