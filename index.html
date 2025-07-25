@@ -89,6 +89,7 @@
     const channel = urlParams.get("ch") || "1";
     const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
     const YT_API_KEY = "AIzaSyBirFuQl7U8Efiv04n_jWU2K_3deswjgf8";
+    const timezone = "Australia/Melbourne";
 
     let player, playlist = [], videoDurations = [], videoTitles = [], startTimeUTC = null;
     let isMuted = true;
@@ -108,12 +109,16 @@
       try {
         const response = await fetch(GITHUB_JSON_URL);
         const data = await response.json();
+        if (!data.video_urls || data.video_urls.length === 0) {
+          throw new Error("No video URLs found in the JSON file");
+        }
         playlist = data.video_urls;
         startTimeUTC = new Date(data.start_time_utc).getTime();
         await fetchVideoDetails(playlist);
         loadYouTubeAPI();
       } catch (e) {
         console.error("Failed to load sync data.", e);
+        alert("Error loading live stream data. Please try again later.");
       }
     }
 
@@ -125,6 +130,10 @@
         if (!data.items || data.items.length === 0) throw new Error("No video data");
         videoDurations = data.items.map(item => ISO8601toSeconds(item.contentDetails.duration));
         videoTitles = data.items.map(item => item.snippet.title);
+        if (videoDurations.length !== videoIds.length) {
+          videoDurations = Array(videoIds.length).fill(600);
+          videoTitles = videoIds.map((_, i) => `Video ${i + 1}`);
+        }
       } catch (e) {
         console.warn("Failed to fetch durations/titles, using fallback.");
         videoDurations = Array(videoIds.length).fill(600);
@@ -150,11 +159,6 @@
       startSeconds = forceStartSeconds;
       updateCurrentVideoTitle();
       player.loadVideoById(playlist[index], 0);
-    }
-
-    function loadNextPlayableVideo() {
-      console.warn("Re-syncing due to skipped video or end of playlist.");
-      syncAndPlay(); // Always re-sync based on UTC
     }
 
     function onYouTubeIframeAPIReady() {
@@ -207,13 +211,11 @@
                 setTimeout(() => player.seekTo(startSeconds, true), 200);
               }
               if (event.data === YT.PlayerState.ENDED) {
-                loadNextPlayableVideo();
-              }
-            },
-            onError: (event) => {
-              if (event.data === 101 || event.data === 150) {
-                console.warn("Video blocked from embedding. Skipping...");
-                loadNextPlayableVideo();
+                if (currentVideoIndex + 1 < playlist.length) {
+                  loadVideoAt(currentVideoIndex + 1, 0);
+                } else {
+                  syncAndPlay();
+                }
               }
             }
           }
