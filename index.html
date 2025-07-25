@@ -43,7 +43,7 @@
 
     #scrolling-banner {
       position: absolute;
-      bottom: 0;
+      bottom: 32px;
       width: 100%;
       background-color: #007BFF;
       color: white;
@@ -64,6 +64,19 @@
       animation: marquee 15s linear infinite;
     }
 
+    #countdown {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      background-color: #222;
+      color: #fff;
+      font-size: 14px;
+      font-family: monospace;
+      padding: 4px 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
     @keyframes marquee {
       0% { transform: translateX(0%); }
       100% { transform: translateX(-100%); }
@@ -78,6 +91,7 @@
     <div id="scrolling-banner">
       <div id="marquee-text">Now Playing: </div>
     </div>
+    <div id="countdown">Next video starts in: --:--</div>
   </div>
 
   <script>
@@ -90,7 +104,6 @@
     let isMuted = true;
     let currentVideoIndex = 0;
     let startSeconds = 0;
-    let hasSeeked = false;
 
     function ISO8601toSeconds(duration) {
       const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -140,14 +153,16 @@
 
     function loadVideoAt(index, forceStartSeconds = 0) {
       currentVideoIndex = index;
-      hasSeeked = false;
       startSeconds = forceStartSeconds;
       if (startSeconds < 0) startSeconds = 0;
       updateCurrentVideoTitle();
-      player.loadVideoById(playlist[index], 0);
+
+      player.loadVideoById({
+        videoId: playlist[index],
+        startSeconds: startSeconds
+      });
     }
 
-    // ✅ GLOBAL FUNCTION REQUIRED BY YouTube API
     window.onYouTubeIframeAPIReady = function () {
       syncAndPlay();
       setInterval(updateCountdown, 1000);
@@ -161,25 +176,21 @@
 
     function syncAndPlay() {
       const now = Date.now();
+      const totalDuration = videoDurations.reduce((a, b) => a + b, 0);
       const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
-      let cumulative = 0;
+      const loopedSec = elapsedSec % totalDuration;
 
+      let cumulative = 0;
       for (let i = 0; i < videoDurations.length; i++) {
-        if (elapsedSec < cumulative + videoDurations[i]) {
+        if (loopedSec < cumulative + videoDurations[i]) {
           currentVideoIndex = i;
-          startSeconds = elapsedSec - cumulative;
+          startSeconds = loopedSec - cumulative;
           break;
         }
         cumulative += videoDurations[i];
       }
 
-      if (currentVideoIndex >= playlist.length) {
-        currentVideoIndex = 0;
-        startSeconds = 0;
-      }
-
       if (startSeconds < 0) startSeconds = 0;
-
       updateCurrentVideoTitle();
 
       if (!player) {
@@ -192,7 +203,8 @@
             controls: 0,
             modestbranding: 1,
             rel: 0,
-            fs: 0
+            fs: 0,
+            start: startSeconds
           },
           events: {
             onReady: (event) => {
@@ -201,16 +213,8 @@
               event.target.playVideo();
             },
             onStateChange: (event) => {
-              if (event.data === YT.PlayerState.PLAYING && !hasSeeked) {
-                hasSeeked = true;
-                setTimeout(() => player.seekTo(startSeconds, true), 200);
-              }
               if (event.data === YT.PlayerState.ENDED) {
-                if (currentVideoIndex + 1 < playlist.length) {
-                  loadVideoAt(currentVideoIndex + 1, 0);
-                } else {
-                  syncAndPlay();
-                }
+                loadVideoAt((currentVideoIndex + 1) % playlist.length, 0);
               }
             }
           }
@@ -221,30 +225,26 @@
     }
 
     function updateCountdown() {
+      const countdownEl = document.getElementById("countdown");
       const now = Date.now();
       let totalMs = 0;
-      let nextStartTime = null;
+      const totalPlaylistDuration = videoDurations.reduce((a, b) => a + b, 0) * 1000;
+      const elapsedMs = (now - startTimeUTC) % totalPlaylistDuration;
 
       for (let i = 0; i < videoDurations.length; i++) {
-        const slotStart = startTimeUTC + totalMs;
-        const slotEnd = slotStart + videoDurations[i] * 1000;
-
-        if (now < slotStart) {
-          nextStartTime = slotStart;
+        const videoDurationMs = videoDurations[i] * 1000;
+        if (elapsedMs < totalMs + videoDurationMs) {
+          const remainingMs = (totalMs + videoDurationMs) - elapsedMs;
+          const seconds = Math.floor((remainingMs / 1000) % 60);
+          const minutes = Math.floor((remainingMs / (1000 * 60)) % 60);
+          const pad = (n) => n.toString().padStart(2, '0');
+          countdownEl.innerText = `Next video starts in: ${pad(minutes)}:${pad(seconds)}`;
           break;
         }
-        totalMs += videoDurations[i] * 1000;
-      }
-
-      if (!nextStartTime) {
-        nextStartTime = startTimeUTC + videoDurations.reduce((a, b) => a + b, 0) * 1000;
-        while (nextStartTime < now) {
-          nextStartTime += videoDurations.reduce((a, b) => a + b, 0) * 1000;
-        }
+        totalMs += videoDurationMs;
       }
     }
 
-    // Mute toggle
     const muteToggle = document.getElementById("mute-toggle");
     const muteKey = "ytPlayerMuted";
 
