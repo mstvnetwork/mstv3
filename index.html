@@ -43,7 +43,7 @@
 
     #scrolling-banner {
       position: absolute;
-      bottom: 32px;
+      bottom: 0;
       width: 100%;
       background-color: #007BFF;
       color: white;
@@ -64,19 +64,6 @@
       animation: marquee 15s linear infinite;
     }
 
-    #countdown {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      background-color: #222;
-      color: #fff;
-      font-size: 14px;
-      font-family: monospace;
-      padding: 4px 0;
-      z-index: 10;
-      pointer-events: none;
-    }
-
     @keyframes marquee {
       0% { transform: translateX(0%); }
       100% { transform: translateX(-100%); }
@@ -91,7 +78,6 @@
     <div id="scrolling-banner">
       <div id="marquee-text">Now Playing: </div>
     </div>
-    <div id="countdown">Next video starts in: --:--</div>
   </div>
 
   <script>
@@ -104,6 +90,9 @@
     let isMuted = true;
     let currentVideoIndex = 0;
     let startSeconds = 0;
+
+    const SYNC_INTERVAL_MS = 60000; // Live sync every 60 seconds
+    const DRIFT_ALLOWANCE = 3;      // Tolerate 3s desync before force-correct
 
     function ISO8601toSeconds(duration) {
       const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -135,8 +124,7 @@
         videoDurations = data.items.map(item => ISO8601toSeconds(item.contentDetails.duration));
         videoTitles = data.items.map(item => item.snippet.title);
         if (videoDurations.length !== videoIds.length) {
-          videoDurations = Array(videoIds.length).fill(600);
-          videoTitles = videoIds.map((_, i) => `Video ${i + 1}`);
+          throw new Error("Some videos not found");
         }
       } catch (e) {
         console.warn("Failed to fetch durations/titles, using fallback.");
@@ -166,6 +154,7 @@
     window.onYouTubeIframeAPIReady = function () {
       syncAndPlay();
       setInterval(updateCountdown, 1000);
+      setInterval(liveSyncCorrection, SYNC_INTERVAL_MS);
     };
 
     function loadYouTubeAPI() {
@@ -176,21 +165,20 @@
 
     function syncAndPlay() {
       const now = Date.now();
-      const totalDuration = videoDurations.reduce((a, b) => a + b, 0);
       const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
-      const loopedSec = elapsedSec % totalDuration;
+      const loopDuration = videoDurations.reduce((a, b) => a + b, 0);
+      const loopedElapsed = elapsedSec % loopDuration;
 
       let cumulative = 0;
       for (let i = 0; i < videoDurations.length; i++) {
-        if (loopedSec < cumulative + videoDurations[i]) {
+        if (loopedElapsed < cumulative + videoDurations[i]) {
           currentVideoIndex = i;
-          startSeconds = loopedSec - cumulative;
+          startSeconds = loopedElapsed - cumulative;
           break;
         }
         cumulative += videoDurations[i];
       }
 
-      if (startSeconds < 0) startSeconds = 0;
       updateCurrentVideoTitle();
 
       if (!player) {
@@ -208,8 +196,7 @@
           },
           events: {
             onReady: (event) => {
-              if (isMuted) event.target.mute();
-              else event.target.unMute();
+              isMuted ? event.target.mute() : event.target.unMute();
               event.target.playVideo();
             },
             onStateChange: (event) => {
@@ -224,51 +211,55 @@
       }
     }
 
-    function updateCountdown() {
-      const countdownEl = document.getElementById("countdown");
-      const now = Date.now();
-      let totalMs = 0;
-      const totalPlaylistDuration = videoDurations.reduce((a, b) => a + b, 0) * 1000;
-      const elapsedMs = (now - startTimeUTC) % totalPlaylistDuration;
+    function liveSyncCorrection() {
+      if (!player || videoDurations.length === 0 || !startTimeUTC) return;
 
+      const now = Date.now();
+      const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
+      const loopDuration = videoDurations.reduce((a, b) => a + b, 0);
+      const loopedElapsed = elapsedSec % loopDuration;
+
+      let cumulative = 0, correctIndex = 0, correctStartSeconds = 0;
       for (let i = 0; i < videoDurations.length; i++) {
-        const videoDurationMs = videoDurations[i] * 1000;
-        if (elapsedMs < totalMs + videoDurationMs) {
-          const remainingMs = (totalMs + videoDurationMs) - elapsedMs;
-          const seconds = Math.floor((remainingMs / 1000) % 60);
-          const minutes = Math.floor((remainingMs / (1000 * 60)) % 60);
-          const pad = (n) => n.toString().padStart(2, '0');
-          countdownEl.innerText = `Next video starts in: ${pad(minutes)}:${pad(seconds)}`;
+        if (loopedElapsed < cumulative + videoDurations[i]) {
+          correctIndex = i;
+          correctStartSeconds = loopedElapsed - cumulative;
           break;
         }
-        totalMs += videoDurationMs;
+        cumulative += videoDurations[i];
+      }
+
+      const actualVideoId = player.getVideoData().video_id;
+      const playerTime = player.getCurrentTime ? player.getCurrentTime() : 0;
+
+      const isWrongVideo = actualVideoId !== playlist[correctIndex];
+      const isOutOfSync = Math.abs(playerTime - correctStartSeconds) > DRIFT_ALLOWANCE;
+
+      if (isWrongVideo || isOutOfSync) {
+        console.log("🔄 Live resync triggered");
+        loadVideoAt(correctIndex, correctStartSeconds);
       }
     }
 
+    function updateCountdown() {
+      // Optional: Add countdown logic here if you want to show next video ETA
+    }
+
+    // Mute toggle
     const muteToggle = document.getElementById("mute-toggle");
     const muteKey = "ytPlayerMuted";
 
     if (sessionStorage.getItem(muteKey) === "false") {
       isMuted = false;
       muteToggle.innerText = "🔊";
-    } else {
-      isMuted = true;
-      muteToggle.innerText = "🔇";
     }
 
     muteToggle.addEventListener("click", () => {
       if (!player) return;
-      if (isMuted) {
-        player.unMute();
-        isMuted = false;
-        muteToggle.innerText = "🔊";
-        sessionStorage.setItem(muteKey, "false");
-      } else {
-        player.mute();
-        isMuted = true;
-        muteToggle.innerText = "🔇";
-        sessionStorage.setItem(muteKey, "true");
-      }
+      isMuted = !isMuted;
+      muteToggle.innerText = isMuted ? "🔇" : "🔊";
+      sessionStorage.setItem(muteKey, isMuted ? "true" : "false");
+      isMuted ? player.mute() : player.unMute();
     });
 
     fetchSyncData();
