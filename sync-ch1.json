@@ -1,11 +1,6 @@
 {
-  "start_time_utc": "2025-07-28T04:07:22.087Z",
+  "start_time_utc": "2025-07-28T04:29:45.220654+00:00",
   "video_list": [
-    {
-      "id": "PYvwoOKoHgo",
-      "title": "EVIL FORCE 2 Hollywood Horror Movie Hindi Dubbed | Maggie Q, Sean | Blockbuster Hindi Horror Movies",
-      "duration_seconds": 5095
-    },
     {
       "id": "XllTmDebxRM",
       "title": "NIGHT OF THE WOLF Hollywood Movie Hindi Dubbed | Horror Action Movie",
@@ -18,19 +13,18 @@
     },
     {
       "id": "qWGuRxQT_J8",
-      "title": "Best Of Alka Yagnik Kumar Sanu Udit Narayan | Bollywood 90s Romantic Hits | 90s Hits Video Jukebox",
+      "title": "Best Of Alka Yagnik Kumar Sanu Udit Narayan | Bollywood 90s Romantic Hits",
       "duration_seconds": 7101
     },
     {
       "id": "A2SrzL0p70w",
-      "title": "ANDAZ APNA APNA Comedy Full Movie 4K | 90 Bollywood Aamir Khan, Salman Khan, Raveena Karishma Kapoor",
+      "title": "ANDAZ APNA APNA Comedy Full Movie 4K | 90 Bollywood Aamir Khan, Salman Khan",
       "duration_seconds": 9230
     },
     {
       "id": "Qfc61aKPN9k",
-      "title": "Ek Duuje Ke Liye (HD) - Bollywood Superhit Romantic Movie | Kamal Haasan, Rati Agnihotri, Madhavi",
+      "title": "Ek Duuje Ke Liye (HD) - Bollywood Superhit Romantic Movie",
       "duration_seconds": 9829
     }
   ]
-
-
+}
