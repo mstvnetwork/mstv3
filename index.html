@@ -136,75 +136,67 @@ const jsonUrl = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-c
     }
   }
 
-  async function syncAndPlay() {
-    if (!startTimeUTC || playlist.length === 0) return;
+async function syncAndPlay() {
+  if (!startTimeUTC || playlist.length === 0) return;
 
-    const now = Date.now();
-    const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
-    const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
-    const loopedElapsed = elapsedSeconds % totalDuration;
+  const now = Date.now();
+  const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
+  const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
+  const loopedElapsed = elapsedSeconds % totalDuration;
 
-    let accumulated = 0;
-    for (let i = 0; i < playlist.length; i++) {
-      if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
-        currentVideoIndex = i;
-        startSeconds = loopedElapsed - accumulated;
-        break;
-      }
-      accumulated += playlist[i].duration_seconds;
-    }
-    if (startSeconds < 0) startSeconds = 0;
+  let accumulated = 0;
+  for (let i = 0; i < playlist.length; i++) {
+    if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
+      currentVideoIndex = i;
+      startSeconds = loopedElapsed - accumulated;
+      break;
+    }
+    accumulated += playlist[i].duration_seconds;
+  }
+  if (startSeconds < 0) startSeconds = 0;
 
-    // Try to load video, skip if not embeddable
-    for (let i = 0; i < playlist.length; i++) {
-      const video = playlist[currentVideoIndex];
-      const isOk = await checkEmbeddable(video.id);
-      if (isOk) {
-        updateBanner();
-        if (!player) {
-          player = new YT.Player('player', {
-            height: '360',
-            width: '640',
-            videoId: video.id,
-            playerVars: {
-              autoplay: 1,
-              controls: 0,
-              modestbranding: 1,
-              rel: 0,
-              fs: 0,
-              start: startSeconds,
-              mute: 1
-            },
-            events: {
-              onReady: (event) => {
-                isMuted ? event.target.mute() : event.target.unMute();
-                event.target.playVideo();
-              },
-              onStateChange: async (event) => {
-                if (event.data === YT.PlayerState.PLAYING) {
-                  document.getElementById('loading-overlay').style.display = 'none';
-                }
-                if (event.data === YT.PlayerState.ENDED) {
-                  for (let j = 1; j <= playlist.length; j++) {
-                    const nextIndex = (currentVideoIndex + j) % playlist.length;
-                    const nextVideo = playlist[nextIndex];
-                    const ok = await checkEmbeddable(nextVideo.id);
-                    if (ok) {
-                      currentVideoIndex = nextIndex;
-                      startSeconds = 0;
-                      player.loadVideoById({ videoId: nextVideo.id, startSeconds });
-                      updateBanner();
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-          });
-        } else {
-          player.loadVideoById({ videoId: video.id, startSeconds });
-          updateBanner();
-        }
+  const video = playlist[currentVideoIndex];
+
+  updateBanner();
+  if (!player) {
+    player = new YT.Player('player', {
+      height: '360',
+      width: '640',
+      videoId: video.id,
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        modestbranding: 1,
+        rel: 0,
+        fs: 0,
+        start: startSeconds,
+        mute: 1
+      },
+      events: {
+        onReady: (event) => {
+          isMuted ? event.target.mute() : event.target.unMute();
+          event.target.playVideo();
+        },
+        onStateChange: (event) => {
+          if (event.data === YT.PlayerState.PLAYING) {
+            document.getElementById('loading-overlay').style.display = 'none';
+          }
+          if (event.data === YT.PlayerState.ENDED) {
+            currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
+            startSeconds = 0;
+            const nextVideo = playlist[currentVideoIndex];
+            player.loadVideoById({ videoId: nextVideo.id, startSeconds });
+            updateBanner();
+          }
+        }
+      }
+    });
+  } else {
+    player.loadVideoById({ videoId: video.id, startSeconds });
+    updateBanner();
+  }
+}
+
         return;
       } else {
         currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
