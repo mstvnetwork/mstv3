@@ -1,262 +1,181 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Global Sync YouTube Player (Updated JSON)</title>
+  <meta charset="UTF-8" />
+  <title>Global Sync YouTube Player</title>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #000;
-      color: white;
+    html, body {
       margin: 0;
-      text-align: center;
-    }
-    #player-container {
-      position: relative;
-      width: 100%;
-      max-width: 640px;
-      margin: auto;
-      padding-top: 56.25%; /* 16:9 aspect ratio */
+      background: black;
+      overflow: hidden;
     }
     #player {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none;
-    }
-    #mute-toggle {
-      position: absolute;
-      top: 8px; right: 8px;
-      font-size: 24px;
-      cursor: pointer;
-      z-index: 10;
-      background: rgba(0,0,0,0.6);
-      border-radius: 50%;
-      padding: 6px;
-      user-select: none;
-    }
-    #scrolling-banner {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      background-color: #007BFF;
-      color: white;
-      font-size: clamp(14px, 3vw, 20px);
-      font-weight: bold;
-      font-family: monospace;
-      overflow: hidden;
-      user-select: none;
-      z-index: 10;
-      pointer-events: none;
-      padding: 8px 0;
-    }
-    #marquee-text {
-      display: inline-block;
-      white-space: nowrap;
-      padding-left: 100%;
-      animation: marquee 15s linear infinite;
-    }
-    @keyframes marquee {
-      0% { transform: translateX(0%); }
-      100% { transform: translateX(-100%); }
+      width: 100vw;
+      height: 100vh;
     }
     #loading-overlay {
-      position: fixed;
-      inset: 0;
-      background-color: #000;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: black;
       display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 9999;
+      z-index: 10;
     }
-    #loading-spinner {
+    .spinner {
+      border: 8px solid #ccc;
+      border-top: 8px solid gold;
+      border-radius: 50%;
       width: 60px;
       height: 60px;
-      border: 3px solid rgba(255, 215, 0, 0.2);
-      border-top: 3px solid #FFD700;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 16px;
-      box-shadow: 0 0 10px #FFD70088;
+      animation: spin 1s linear infinite;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    #loading-text {
-      color: #FFD700;
-      font-size: 20px;
-      font-weight: 600;
-      font-family: "Courier New", monospace;
-      text-shadow: 0 0 6px #FFD70099;
-      letter-spacing: 1px;
+    #banner {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      background: #0055ff;
+      color: white;
+      padding: 6px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      z-index: 9;
+    }
+    #scrolling-text {
+      display: inline-block;
+      padding-left: 100%;
+      animation: scroll 20s linear infinite;
+    }
+    @keyframes scroll {
+      to { transform: translateX(-100%); }
+    }
+    #mute-toggle {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 24px;
+      color: white;
+      cursor: pointer;
+      z-index: 20;
     }
   </style>
 </head>
 <body>
+  <div id="player"></div>
+  <div id="loading-overlay"><div class="spinner"></div></div>
+  <div id="banner"><div id="scrolling-text">Loading...</div></div>
+  <div id="mute-toggle">🔇</div>
 
-  <div id="player-container">
-    <div id="player"></div>
-    <div id="mute-toggle">🔇</div>
-    <div id="scrolling-banner">
-      <div id="marquee-text">Loading...</div>
-    </div>
-  </div>
+  <script>
+    let player;
+    let playlist = [];
+    let startTimeUTC = null;
+    let currentVideoIndex = 0;
+    let startSeconds = 0;
+    let isMuted = true;
 
-  <div id="loading-overlay">
-    <div id="loading-spinner"></div>
-    <div id="loading-text">Stream Loading...</div>
-  </div>
-<script>
-  // Dynamic channel detection based on ?ch=1, ?ch=2, etc.
-const ch = new URLSearchParams(window.location.search).get("ch") || "1";
-const jsonUrl = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${ch}.json`;
- let player;
-  let playlist = [];
-  let startTimeUTC = null;
-  let currentVideoIndex = 0;
-  let startSeconds = 0;
-  let isMuted = true;
+    const urlParams = new URLSearchParams(window.location.search);
+    const ch = urlParams.get("ch") || "1";
+    const playlistUrl = `sync-ch=${ch}.json`;
 
-  async function checkEmbeddable(videoId) {
-    try {
-      const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
-      if (!res.ok) throw new Error('Not embeddable');
-      return true;
-    } catch {
-      return false;
+    async function fetchPlaylist() {
+      const res = await fetch(playlistUrl);
+      const data = await res.json();
+      playlist = data.video_list;
+      startTimeUTC = new Date(data.start_time_utc).getTime();
+      syncAndPlay();
+      setInterval(syncAndPlay, 5000); // Sync every 5s
     }
-  }
 
-  function updateBanner() {
-    const marquee = document.getElementById('marquee-text');
-    if (playlist.length === 0) {
-      marquee.textContent = 'No videos in playlist';
-    } else {
-      marquee.textContent = `Now Playing: ${playlist[currentVideoIndex].title}`;
+    function updateBanner() {
+      const upcoming = playlist
+        .map((v, i) => (i === currentVideoIndex ? `▶️ ${v.title}` : `⏩ ${v.title}`))
+        .join("   •   ");
+      document.getElementById("scrolling-text").textContent = upcoming;
     }
-  }
 
-async function syncAndPlay() {
-  if (!startTimeUTC || playlist.length === 0) return;
+    async function syncAndPlay() {
+      if (!startTimeUTC || playlist.length === 0) return;
 
-  const now = Date.now();
-  const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
-  const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
-  const loopedElapsed = elapsedSeconds % totalDuration;
+      const now = Date.now();
+      const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
+      const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
+      const loopedElapsed = elapsedSeconds % totalDuration;
 
-  let accumulated = 0;
-  for (let i = 0; i < playlist.length; i++) {
-    if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
-      currentVideoIndex = i;
-      startSeconds = loopedElapsed - accumulated;
-      break;
-    }
-    accumulated += playlist[i].duration_seconds;
-  }
-  if (startSeconds < 0) startSeconds = 0;
+      let accumulated = 0;
+      for (let i = 0; i < playlist.length; i++) {
+        if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
+          currentVideoIndex = i;
+          startSeconds = loopedElapsed - accumulated;
+          break;
+        }
+        accumulated += playlist[i].duration_seconds;
+      }
+      if (startSeconds < 0) startSeconds = 0;
 
-  const video = playlist[currentVideoIndex];
+      const video = playlist[currentVideoIndex];
+      updateBanner();
 
-  updateBanner();
-  if (!player) {
-    player = new YT.Player('player', {
-      height: '360',
-      width: '640',
-      videoId: video.id,
-      playerVars: {
-        autoplay: 1,
-        controls: 0,
-        modestbranding: 1,
-        rel: 0,
-        fs: 0,
-        start: startSeconds,
-        mute: 1
-      },
-      events: {
-        onReady: (event) => {
-          isMuted ? event.target.mute() : event.target.unMute();
-          event.target.playVideo();
-        },
-        onStateChange: (event) => {
-          if (event.data === YT.PlayerState.PLAYING) {
-            document.getElementById('loading-overlay').style.display = 'none';
-          }
-          if (event.data === YT.PlayerState.ENDED) {
-            currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
-            startSeconds = 0;
-            const nextVideo = playlist[currentVideoIndex];
-            player.loadVideoById({ videoId: nextVideo.id, startSeconds });
-            updateBanner();
-          }
-        }
-      }
-    });
-  } else {
-    player.loadVideoById({ videoId: video.id, startSeconds });
-    updateBanner();
-  }
-}
-
-        return;
+      if (!player) {
+        player = new YT.Player("player", {
+          width: "100%",
+          height: "100%",
+          videoId: video.id,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+            fs: 0,
+            start: startSeconds,
+            mute: 1
+          },
+          events: {
+            onReady: (event) => {
+              isMuted ? event.target.mute() : event.target.unMute();
+              event.target.playVideo();
+            },
+            onStateChange: (event) => {
+              if (event.data === YT.PlayerState.PLAYING) {
+                document.getElementById("loading-overlay").style.display = "none";
+              }
+              if (event.data === YT.PlayerState.ENDED) {
+                currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
+                startSeconds = 0;
+                const nextVideo = playlist[currentVideoIndex];
+                player.loadVideoById({ videoId: nextVideo.id, startSeconds });
+                updateBanner();
+              }
+            }
+          }
+        });
       } else {
-        currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
-        startSeconds = 0;
+        player.loadVideoById({ videoId: video.id, startSeconds });
+        updateBanner();
       }
     }
 
-    document.getElementById('marquee-text').textContent = 'No embeddable videos found.';
-  }
+    document.getElementById("mute-toggle").onclick = () => {
+      isMuted = !isMuted;
+      if (player && player.unMute) {
+        isMuted ? player.mute() : player.unMute();
+        document.getElementById("mute-toggle").textContent = isMuted ? "🔇" : "🔊";
+      }
+    };
 
-  async function fetchPlaylist() {
-    try {
-      const res = await fetch(jsonUrl);
-      const data = await res.json();
-      playlist = data.video_list || [];
-      startTimeUTC = new Date(data.start_time_utc).getTime();
-      loadYouTubeAPI();
-    } catch (e) {
-      console.error('Error fetching JSON:', e);
+    function onYouTubeIframeAPIReady() {
+      fetchPlaylist();
     }
-  }
 
-  const muteToggle = document.getElementById('mute-toggle');
-  const muteKey = 'ytPlayerMuted';
-
-  if (sessionStorage.getItem(muteKey) === 'false') {
-    isMuted = false;
-    muteToggle.textContent = '🔊';
-  } else {
-    isMuted = true;
-    muteToggle.textContent = '🔇';
-  }
-
-  muteToggle.addEventListener('click', () => {
-    if (!player) return;
-    if (isMuted) {
-      player.unMute();
-      isMuted = false;
-      muteToggle.textContent = '🔊';
-      sessionStorage.setItem(muteKey, 'false');
-    } else {
-      player.mute();
-      isMuted = true;
-      muteToggle.textContent = '🔇';
-      sessionStorage.setItem(muteKey, 'true');
-    }
-  });
-
-  function loadYouTubeAPI() {
-    const tag = document.createElement('script');
+    const tag = document.createElement("script");
     tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
-  }
-
-  window.onYouTubeIframeAPIReady = () => {
-    syncAndPlay();
-    setInterval(syncAndPlay, 30000);
-  };
-
-  fetchPlaylist();
-</script>
+    document.body.appendChild(tag);
+  </script>
 </body>
 </html>
