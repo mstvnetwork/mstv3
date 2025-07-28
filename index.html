@@ -106,149 +106,164 @@
     <div id="loading-spinner"></div>
     <div id="loading-text">Stream Loading...</div>
   </div>
+<script>
+  const jsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch1.json';
 
-  <script>
-    const jsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch1.json';
+  let player;
+  let playlist = [];
+  let startTimeUTC = null;
+  let currentVideoIndex = 0;
+  let startSeconds = 0;
+  let isMuted = true;
 
-    let player;
-    let playlist = [];
-    let startTimeUTC = null;
-    let currentVideoIndex = 0;
-    let startSeconds = 0;
-    let isMuted = true;
-
-    // Load YouTube Iframe API
-    function loadYouTubeAPI() {
-      const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.head.appendChild(tag);
+  async function checkEmbeddable(videoId) {
+    try {
+      const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+      if (!res.ok) throw new Error('Not embeddable');
+      return true;
+    } catch {
+      return false;
     }
+  }
 
-    // Update marquee text with current video title
-    function updateBanner() {
-      const marquee = document.getElementById('marquee-text');
-      if (playlist.length === 0) {
-        marquee.textContent = 'No videos in playlist';
-      } else {
-        marquee.textContent = `Now Playing: ${playlist[currentVideoIndex].title}`;
-      }
+  function updateBanner() {
+    const marquee = document.getElementById('marquee-text');
+    if (playlist.length === 0) {
+      marquee.textContent = 'No videos in playlist';
+    } else {
+      marquee.textContent = `Now Playing: ${playlist[currentVideoIndex].title}`;
     }
+  }
 
-    // Sync player time to global start_time_utc and playlist durations
-    function syncAndPlay() {
-      if (!startTimeUTC || playlist.length === 0) return;
+  async function syncAndPlay() {
+    if (!startTimeUTC || playlist.length === 0) return;
 
-      const now = Date.now();
-      const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
+    const now = Date.now();
+    const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
+    const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
+    const loopedElapsed = elapsedSeconds % totalDuration;
 
-      const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
-      const loopedElapsed = elapsedSeconds % totalDuration;
-
-      let accumulated = 0;
-      for (let i = 0; i < playlist.length; i++) {
-        if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
-          currentVideoIndex = i;
-          startSeconds = loopedElapsed - accumulated;
-          break;
-        }
-        accumulated += playlist[i].duration_seconds;
+    let accumulated = 0;
+    for (let i = 0; i < playlist.length; i++) {
+      if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
+        currentVideoIndex = i;
+        startSeconds = loopedElapsed - accumulated;
+        break;
       }
-      if (startSeconds < 0) startSeconds = 0;
+      accumulated += playlist[i].duration_seconds;
+    }
+    if (startSeconds < 0) startSeconds = 0;
 
-      updateBanner();
-
-      if (!player) {
-        player = new YT.Player('player', {
-          height: '360',
-          width: '640',
-          videoId: playlist[currentVideoIndex].id,
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            modestbranding: 1,
-            rel: 0,
-            fs: 0,
-            start: startSeconds,
-            mute: 1
-          },
-          events: {
-            onReady: (event) => {
-              if (isMuted) event.target.mute();
-              else event.target.unMute();
-              event.target.playVideo();
+    // Try to load video, skip if not embeddable
+    for (let i = 0; i < playlist.length; i++) {
+      const video = playlist[currentVideoIndex];
+      const isOk = await checkEmbeddable(video.id);
+      if (isOk) {
+        updateBanner();
+        if (!player) {
+          player = new YT.Player('player', {
+            height: '360',
+            width: '640',
+            videoId: video.id,
+            playerVars: {
+              autoplay: 1,
+              controls: 0,
+              modestbranding: 1,
+              rel: 0,
+              fs: 0,
+              start: startSeconds,
+              mute: 1
             },
-            onStateChange: (event) => {
-              if (event.data === YT.PlayerState.PLAYING) {
-                document.getElementById('loading-overlay').style.display = 'none';
-              }
-              if (event.data === YT.PlayerState.ENDED) {
-                // Play next video in loop
-                currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
-                startSeconds = 0;
-                player.loadVideoById({
-                  videoId: playlist[currentVideoIndex].id,
-                  startSeconds: startSeconds
-                });
-                updateBanner();
+            events: {
+              onReady: (event) => {
+                isMuted ? event.target.mute() : event.target.unMute();
+                event.target.playVideo();
+              },
+              onStateChange: async (event) => {
+                if (event.data === YT.PlayerState.PLAYING) {
+                  document.getElementById('loading-overlay').style.display = 'none';
+                }
+                if (event.data === YT.PlayerState.ENDED) {
+                  for (let j = 1; j <= playlist.length; j++) {
+                    const nextIndex = (currentVideoIndex + j) % playlist.length;
+                    const nextVideo = playlist[nextIndex];
+                    const ok = await checkEmbeddable(nextVideo.id);
+                    if (ok) {
+                      currentVideoIndex = nextIndex;
+                      startSeconds = 0;
+                      player.loadVideoById({ videoId: nextVideo.id, startSeconds });
+                      updateBanner();
+                      break;
+                    }
+                  }
+                }
               }
             }
-          }
-        });
+          });
+        } else {
+          player.loadVideoById({ videoId: video.id, startSeconds });
+          updateBanner();
+        }
+        return;
       } else {
-        player.loadVideoById({
-          videoId: playlist[currentVideoIndex].id,
-          startSeconds: startSeconds
-        });
+        currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
+        startSeconds = 0;
       }
     }
 
-    // Fetch JSON playlist
-    async function fetchPlaylist() {
-      try {
-        const res = await fetch(jsonUrl);
-        const data = await res.json();
-        playlist = data.video_list || [];
-        startTimeUTC = new Date(data.start_time_utc).getTime();
-        loadYouTubeAPI();
-      } catch (e) {
-        console.error('Error fetching JSON:', e);
-      }
+    document.getElementById('marquee-text').textContent = 'No embeddable videos found.';
+  }
+
+  async function fetchPlaylist() {
+    try {
+      const res = await fetch(jsonUrl);
+      const data = await res.json();
+      playlist = data.video_list || [];
+      startTimeUTC = new Date(data.start_time_utc).getTime();
+      loadYouTubeAPI();
+    } catch (e) {
+      console.error('Error fetching JSON:', e);
     }
+  }
 
-    // Mute toggle logic
-    const muteToggle = document.getElementById('mute-toggle');
-    const muteKey = 'ytPlayerMuted';
+  const muteToggle = document.getElementById('mute-toggle');
+  const muteKey = 'ytPlayerMuted';
 
-    if (sessionStorage.getItem(muteKey) === 'false') {
+  if (sessionStorage.getItem(muteKey) === 'false') {
+    isMuted = false;
+    muteToggle.textContent = '🔊';
+  } else {
+    isMuted = true;
+    muteToggle.textContent = '🔇';
+  }
+
+  muteToggle.addEventListener('click', () => {
+    if (!player) return;
+    if (isMuted) {
+      player.unMute();
       isMuted = false;
       muteToggle.textContent = '🔊';
+      sessionStorage.setItem(muteKey, 'false');
     } else {
+      player.mute();
       isMuted = true;
       muteToggle.textContent = '🔇';
+      sessionStorage.setItem(muteKey, 'true');
     }
+  });
 
-    muteToggle.addEventListener('click', () => {
-      if (!player) return;
-      if (isMuted) {
-        player.unMute();
-        isMuted = false;
-        muteToggle.textContent = '🔊';
-        sessionStorage.setItem(muteKey, 'false');
-      } else {
-        player.mute();
-        isMuted = true;
-        muteToggle.textContent = '🔇';
-        sessionStorage.setItem(muteKey, 'true');
-      }
-    });
+  function loadYouTubeAPI() {
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  }
 
-    // Called by YouTube API when ready
-    window.onYouTubeIframeAPIReady = () => {
-      syncAndPlay();
-      setInterval(syncAndPlay, 30000); // re-sync every 30 seconds
-    };
+  window.onYouTubeIframeAPIReady = () => {
+    syncAndPlay();
+    setInterval(syncAndPlay, 30000);
+  };
 
-    fetchPlaylist();
-  </script>
+  fetchPlaylist();
+</script>
 </body>
 </html>
