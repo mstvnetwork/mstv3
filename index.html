@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Global Sync YouTube Player (Updated JSON)</title>
+  <title>Global Sync YouTube Player (Optimized)</title>
   <style>
     body {
       font-family: sans-serif;
@@ -109,8 +109,8 @@
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
-  const ch = urlParams.get('ch') || '1';
-  const jsonUrl = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${ch}.json`;
+    const ch = urlParams.get('ch') || '1';
+    const jsonUrl = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${ch}.json`;
 
     let player;
     let playlist = [];
@@ -119,14 +119,12 @@
     let startSeconds = 0;
     let isMuted = true;
 
-    // Load YouTube Iframe API
     function loadYouTubeAPI() {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
       document.head.appendChild(tag);
     }
 
-    // Update marquee text with current video title
     function updateBanner() {
       const marquee = document.getElementById('marquee-text');
       if (playlist.length === 0) {
@@ -136,156 +134,85 @@
       }
     }
 
-    // Sync player time to global start_time_utc and playlist durations
     function syncAndPlay() {
       if (!startTimeUTC || playlist.length === 0) return;
 
       const now = Date.now();
       const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
-
-      const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
+      const totalDuration = playlist.reduce((sum, v) => sum + v.duration_seconds, 0);
       const loopedElapsed = elapsedSeconds % totalDuration;
 
       let accumulated = 0;
+      let newIndex = 0;
+      let newStart = 0;
+
       for (let i = 0; i < playlist.length; i++) {
         if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
-          currentVideoIndex = i;
-          startSeconds = loopedElapsed - accumulated;
+          newIndex = i;
+          newStart = loopedElapsed - accumulated;
           break;
         }
         accumulated += playlist[i].duration_seconds;
       }
-      if (startSeconds < 0) startSeconds = 0;
 
-      updateBanner();
+      if (newStart < 0) newStart = 0;
 
-      if (!player) {
-        player = new YT.Player('player', {
-          height: '360',
-          width: '640',
-          videoId: playlist[currentVideoIndex].id,
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            modestbranding: 1,
-            rel: 0,
-            fs: 0,
-            start: startSeconds,
-            mute: 1
-          },
-          events: {
-            onReady: (event) => {
-              if (isMuted) event.target.mute();
-              else event.target.unMute();
-              event.target.playVideo();
+      const currentId = playlist[currentVideoIndex]?.id;
+      const newId = playlist[newIndex]?.id;
+
+      const playerTime = player?.getCurrentTime ? player.getCurrentTime() : 0;
+      const timeDrift = Math.abs(playerTime - newStart);
+      const shouldReload = newId !== currentId || timeDrift > 5;
+
+      if (shouldReload) {
+        currentVideoIndex = newIndex;
+        startSeconds = newStart;
+        updateBanner();
+
+        if (!player) {
+          player = new YT.Player('player', {
+            height: '360',
+            width: '640',
+            videoId: newId,
+            playerVars: {
+              autoplay: 1,
+              controls: 0,
+              modestbranding: 1,
+              rel: 0,
+              fs: 0,
+              start: startSeconds,
+              mute: 1
             },
-            onStateChange: (event) => {
-              if (event.data === YT.PlayerState.PLAYING) {
-                document.getElementById('loading-overlay').style.display = 'none';
+            events: {
+              onReady: (event) => {
+                if (isMuted) event.target.mute();
+                else event.target.unMute();
+                event.target.playVideo();
+              },
+              onStateChange: (event) => {
+                if (event.data === YT.PlayerState.PLAYING) {
+                  document.getElementById('loading-overlay').style.display = 'none';
+                }
+                if (event.data === YT.PlayerState.ENDED) {
+                  currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
+                  player.loadVideoById({
+                    videoId: playlist[currentVideoIndex].id,
+                    startSeconds: 0
+                  });
+                  updateBanner();
+                }
               }
-              if (event.data === YT.PlayerState.ENDED) {
-                // Play next video in loop
-                currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
-                startSeconds = 0;
-                player.loadVideoById({
-                  videoId: playlist[currentVideoIndex].id,
-                  startSeconds: startSeconds
-                });
-                updateBanner();
-              }
             }
-          }
-        });
-      } else {
-        player.loadVideoById({
-          videoId: playlist[currentVideoIndex].id,
-          startSeconds: startSeconds
-        });
-      }
-    function syncAndPlay() {
-  if (!startTimeUTC || playlist.length === 0) return;
-
-  const now = Date.now();
-  const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
-
-  const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
-  const loopedElapsed = elapsedSeconds % totalDuration;
-
-  let accumulated = 0;
-  let newIndex = 0;
-  let newStart = 0;
-
-  for (let i = 0; i < playlist.length; i++) {
-    if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
-      newIndex = i;
-      newStart = loopedElapsed - accumulated;
-      break;
-    }
-    accumulated += playlist[i].duration_seconds;
-  }
-
-  if (newStart < 0) newStart = 0;
-
-  const currentId = playlist[currentVideoIndex]?.id;
-  const newId = playlist[newIndex]?.id;
-
-  const playerTime = player?.getCurrentTime ? player.getCurrentTime() : 0;
-  const timeDrift = Math.abs(playerTime - newStart);
-
-  // Only reload if the video changed or drift is significant
-  const shouldReload = newId !== currentId || timeDrift > 5;
-
-  if (shouldReload) {
-    currentVideoIndex = newIndex;
-    startSeconds = newStart;
-    updateBanner();
-
-    if (!player) {
-      player = new YT.Player('player', {
-        height: '360',
-        width: '640',
-        videoId: newId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          modestbranding: 1,
-          rel: 0,
-          fs: 0,
-          start: startSeconds,
-          mute: 1
-        },
-        events: {
-          onReady: (event) => {
-            if (isMuted) event.target.mute();
-            else event.target.unMute();
-            event.target.playVideo();
-          },
-          onStateChange: (event) => {
-            if (event.data === YT.PlayerState.PLAYING) {
-              document.getElementById('loading-overlay').style.display = 'none';
-            }
-            if (event.data === YT.PlayerState.ENDED) {
-              currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
-              player.loadVideoById({
-                videoId: playlist[currentVideoIndex].id,
-                startSeconds: 0
-              });
-              updateBanner();
-            }
-          }
+          });
+        } else {
+          player.loadVideoById({
+            videoId: newId,
+            startSeconds: startSeconds
+          });
         }
-      });
-    } else {
-      player.loadVideoById({
-        videoId: newId,
-        startSeconds: startSeconds
-      });
+      }
     }
-  }
-}
 
-
-    // Fetch JSON playlist
     async function fetchPlaylist() {
       try {
         const res = await fetch(jsonUrl);
@@ -325,10 +252,10 @@
       }
     });
 
-    // Called by YouTube API when ready
+    // YouTube API callback
     window.onYouTubeIframeAPIReady = () => {
       syncAndPlay();
-      setInterval(syncAndPlay, 30000); // re-sync every 30 seconds
+      setInterval(syncAndPlay, 30000); // Re-sync every 30s
     };
 
     fetchPlaylist();
