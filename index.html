@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Global Synced YouTube Player</title>
+  <title>Global Sync YouTube Player</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #000;
-      color: white;
       margin: 0;
-      text-align: center;
+      background: black;
+      color: white;
+      font-family: sans-serif;
     }
-
     #player-container {
       position: relative;
       width: 100%;
@@ -18,16 +16,12 @@
       margin: auto;
       padding-top: 56.25%;
     }
-
     #player {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
       pointer-events: none;
     }
-
     #mute-toggle {
       position: absolute;
       top: 8px;
@@ -35,12 +29,11 @@
       font-size: 24px;
       cursor: pointer;
       z-index: 10;
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0,0,0,0.6);
       border-radius: 50%;
       padding: 6px;
       user-select: none;
     }
-
     #scrolling-banner {
       position: absolute;
       bottom: 0;
@@ -53,22 +46,19 @@
       overflow: hidden;
       user-select: none;
       z-index: 10;
-      pointer-events: none;
       padding: 8px 0;
+      pointer-events: none;
     }
-
     #marquee-text {
       display: inline-block;
       white-space: nowrap;
       padding-left: 100%;
       animation: marquee 15s linear infinite;
     }
-
     @keyframes marquee {
       0% { transform: translateX(0%); }
       100% { transform: translateX(-100%); }
     }
-
     #loading-overlay {
       position: fixed;
       inset: 0;
@@ -79,7 +69,6 @@
       align-items: center;
       z-index: 9999;
     }
-
     #loading-spinner {
       width: 60px;
       height: 60px;
@@ -90,18 +79,13 @@
       margin-bottom: 16px;
       box-shadow: 0 0 10px #FFD70088;
     }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
+    @keyframes spin { to { transform: rotate(360deg); } }
     #loading-text {
       color: #FFD700;
       font-size: 20px;
       font-weight: 600;
       font-family: "Courier New", monospace;
       text-shadow: 0 0 6px #FFD70099;
-      letter-spacing: 1px;
     }
   </style>
 </head>
@@ -111,14 +95,14 @@
     <div id="mute-toggle">🔇</div>
     <div id="scrolling-banner"><div id="marquee-text">Now Playing: </div></div>
   </div>
-
   <div id="loading-overlay">
     <div id="loading-spinner"></div>
     <div id="loading-text">Stream Loading...</div>
   </div>
 
   <script>
-    const GITHUB_JSON_URL = "https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch1.json";
+    const channel = new URLSearchParams(location.search).get("ch") || "1";
+    const GITHUB_JSON_URL = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${channel}.json`;
 
     let player, playlist = [], videoDurations = [], videoTitles = [], startTimeUTC = null;
     let isMuted = true;
@@ -126,83 +110,61 @@
     let startSeconds = 0;
 
     async function fetchSyncData() {
-      try {
-        const response = await fetch(GITHUB_JSON_URL);
-        const data = await response.json();
-        startTimeUTC = new Date(data.start_time_utc).getTime();
-        playlist = data.video_list.map(v => v.id);
-        videoDurations = data.video_list.map(v => v.duration || 300);
-        videoTitles = data.video_list.map(v => v.title || "Untitled");
-        loadYouTubeAPI();
-      } catch (e) {
-        console.error("Failed to load sync data.", e);
-      }
+      const response = await fetch(GITHUB_JSON_URL);
+      const data = await response.json();
+      startTimeUTC = new Date(data.start_time_utc).getTime();
+      playlist = data.video_list.map(v => v.url);
+      videoTitles = data.video_list.map(v => v.title);
+      videoDurations = data.video_list.map(v => v.duration);
+      loadYouTubeAPI();
     }
 
     function updateCurrentVideoTitle() {
-      const marquee = document.getElementById("marquee-text");
-      const title = videoTitles[currentVideoIndex] || "Untitled Video";
-      marquee.innerText = `Now Playing: ${title}`;
+      const title = videoTitles[currentVideoIndex] || "Untitled";
+      document.getElementById("marquee-text").innerText = `Now Playing: ${title}`;
     }
 
     function loadVideoAt(index, forceStartSeconds = 0) {
       currentVideoIndex = index;
-      startSeconds = forceStartSeconds;
-      if (startSeconds < 0) startSeconds = 0;
+      startSeconds = forceStartSeconds < 0 ? 0 : forceStartSeconds;
       updateCurrentVideoTitle();
-
       document.getElementById("loading-overlay").style.display = "flex";
 
-      player.loadVideoById({
-        videoId: playlist[index],
-        startSeconds: startSeconds
-      });
-    }
-
-    window.onYouTubeIframeAPIReady = function () {
-      syncAndPlay();
-      setInterval(syncAndPlay, 300000);
-    };
-
-    function loadYouTubeAPI() {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.head.appendChild(tag);
+      if (player && player.loadVideoById) {
+        player.loadVideoById({
+          videoId: playlist[index],
+          startSeconds: startSeconds
+        });
+      }
     }
 
     function syncAndPlay() {
       const now = Date.now();
       const elapsedSec = Math.floor((now - startTimeUTC) / 1000);
-      const totalPlaylistDuration = videoDurations.reduce((a, b) => a + b, 0);
-      const loopedElapsedSec = elapsedSec % totalPlaylistDuration;
-      let cumulative = 0;
+      const totalDuration = videoDurations.reduce((a, b) => a + b, 0);
+      const loopedElapsed = elapsedSec % totalDuration;
 
+      let cumulative = 0;
       for (let i = 0; i < videoDurations.length; i++) {
-        if (loopedElapsedSec < cumulative + videoDurations[i]) {
+        if (loopedElapsed < cumulative + videoDurations[i]) {
           currentVideoIndex = i;
-          startSeconds = loopedElapsedSec - cumulative;
+          startSeconds = loopedElapsed - cumulative;
           break;
         }
         cumulative += videoDurations[i];
       }
+
+      updateCurrentVideoTitle();
 
       if (!player) {
         player = new YT.Player("player", {
           height: "360",
           width: "640",
           videoId: playlist[currentVideoIndex],
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            modestbranding: 1,
-            rel: 0,
-            fs: 0,
-            start: startSeconds
-          },
+          playerVars: { autoplay: 1, controls: 0, modestbranding: 1, rel: 0, fs: 0, start: startSeconds },
           events: {
             onReady: (event) => {
-              if (isMuted) event.target.mute();
-              else event.target.unMute();
+              isMuted ? event.target.mute() : event.target.unMute();
               event.target.playVideo();
             },
             onStateChange: (event) => {
@@ -220,30 +182,39 @@
       }
     }
 
+    function initYouTubePlayer() {
+      if (player && player.destroy) {
+        player.destroy();
+        document.getElementById("player").innerHTML = "";
+      }
+      syncAndPlay();
+      setInterval(syncAndPlay, 300000); // resync every 5 minutes
+    }
+
+    function loadYouTubeAPI() {
+      if (window.YT && window.YT.Player) {
+        initYouTubePlayer();
+      } else {
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+        window.onYouTubeIframeAPIReady = initYouTubePlayer;
+      }
+    }
+
+    // Mute toggle logic
     const muteToggle = document.getElementById("mute-toggle");
     const muteKey = "ytPlayerMuted";
-
     if (sessionStorage.getItem(muteKey) === "false") {
       isMuted = false;
       muteToggle.innerText = "🔊";
-    } else {
-      isMuted = true;
-      muteToggle.innerText = "🔇";
     }
-
     muteToggle.addEventListener("click", () => {
       if (!player) return;
-      if (isMuted) {
-        player.unMute();
-        isMuted = false;
-        muteToggle.innerText = "🔊";
-        sessionStorage.setItem(muteKey, "false");
-      } else {
-        player.mute();
-        isMuted = true;
-        muteToggle.innerText = "🔇";
-        sessionStorage.setItem(muteKey, "true");
-      }
+      isMuted = !isMuted;
+      muteToggle.innerText = isMuted ? "🔇" : "🔊";
+      sessionStorage.setItem(muteKey, isMuted ? "true" : "false");
+      isMuted ? player.mute() : player.unMute();
     });
 
     fetchSyncData();
