@@ -168,9 +168,18 @@
   }
 
   function updateBanner() {
-    const title = videoList[currentIndex]?.title || "Untitled";
-    document.getElementById("marquee-text").innerText = "Now Playing: " + title;
-  }
+  const current = videoList[currentIndex];
+  const next = videoList[(currentIndex + 1) % videoList.length];
+
+  const nowTitle = current?.title || "Untitled";
+  const nextTitle = next?.title || "Upcoming";
+  const nextStartTimeUTC = new Date(Date.now() + (current.duration - startSeconds) * 1000);
+  const nextTimeStr = nextStartTimeUTC.toISOString().slice(11, 16); // HH:MM in UTC
+
+  const bannerText = `📺 Now Playing: ${nowTitle}  |  ⏭️ Next: ${nextTitle} at ${nextTimeStr} UTC`;
+  document.getElementById("marquee-text").innerText = bannerText;
+}
+
 
   function playCurrentVideo() {
     if (!player || !videoList[currentIndex]) return;
