@@ -108,7 +108,9 @@
   </div>
 
   <script>
-    const jsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch1.json';
+    const urlParams = new URLSearchParams(window.location.search);
+  const ch = urlParams.get('ch') || '1';
+  const jsonUrl = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${ch}.json`;
 
     let player;
     let playlist = [];
