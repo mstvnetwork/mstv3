@@ -107,9 +107,10 @@
     <div id="loading-text">Stream Loading...</div>
   </div>
 <script>
-  const jsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch1.json';
-
-  let player;
+  // Dynamic channel detection based on ?ch=1, ?ch=2, etc.
+const ch = new URLSearchParams(window.location.search).get("ch") || "1";
+const jsonUrl = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${ch}.json`;
+ let player;
   let playlist = [];
   let startTimeUTC = null;
   let currentVideoIndex = 0;
