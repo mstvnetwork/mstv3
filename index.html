@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Global Sync YouTube Player (Optimized)</title>
+  <title>Global Sync YouTube Player (Robust)</title>
   <style>
     body {
       font-family: sans-serif;
@@ -15,7 +15,7 @@
       width: 100%;
       max-width: 640px;
       margin: auto;
-      padding-top: 56.25%; /* 16:9 aspect ratio */
+      padding-top: 56.25%;
     }
     #player {
       position: absolute;
@@ -134,6 +134,30 @@
       }
     }
 
+    function checkEmbeddable(videoId) {
+      return new Promise((resolve) => {
+        const testIframe = document.createElement('iframe');
+        testIframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=0`;
+        testIframe.style.position = 'absolute';
+        testIframe.style.left = '-9999px';
+        testIframe.style.width = '1px';
+        testIframe.style.height = '1px';
+
+        let timeout = setTimeout(() => {
+          testIframe.remove();
+          resolve(false);
+        }, 3000);
+
+        testIframe.onload = () => {
+          clearTimeout(timeout);
+          testIframe.remove();
+          resolve(true);
+        };
+
+        document.body.appendChild(testIframe);
+      });
+    }
+
     function syncAndPlay() {
       if (!startTimeUTC || playlist.length === 0) return;
 
@@ -217,15 +241,32 @@
       try {
         const res = await fetch(jsonUrl);
         const data = await res.json();
-        playlist = data.video_list || [];
         startTimeUTC = new Date(data.start_time_utc).getTime();
+
+        const rawList = data.video_list || [];
+        const embeddableList = [];
+
+        for (const video of rawList) {
+          const ok = await checkEmbeddable(video.id);
+          if (ok) embeddableList.push(video);
+          else console.warn(`Skipped non-embeddable video: ${video.id}`);
+        }
+
+        playlist = embeddableList;
+
+        if (playlist.length === 0) {
+          document.getElementById('marquee-text').textContent = 'No embeddable videos available.';
+          document.getElementById('loading-text').textContent = 'Stream Unavailable';
+          return;
+        }
+
         loadYouTubeAPI();
       } catch (e) {
         console.error('Error fetching JSON:', e);
       }
     }
 
-    // Mute toggle logic
+    // Mute toggle
     const muteToggle = document.getElementById('mute-toggle');
     const muteKey = 'ytPlayerMuted';
 
@@ -255,7 +296,7 @@
     // YouTube API callback
     window.onYouTubeIframeAPIReady = () => {
       syncAndPlay();
-      setInterval(syncAndPlay, 30000); // Re-sync every 30s
+      setInterval(syncAndPlay, 30000);
     };
 
     fetchPlaylist();
