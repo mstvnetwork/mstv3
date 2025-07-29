@@ -1,175 +1,254 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Global Sync YouTube Player</title>
+  <title>Global Sync YouTube Player (Updated JSON)</title>
   <style>
     body {
+      font-family: sans-serif;
+      background: #000;
+      color: white;
       margin: 0;
-      background: black;
-      overflow: hidden;
+      text-align: center;
     }
     #player-container {
-      position: fixed;
+      position: relative;
+      width: 100%;
+      max-width: 640px;
+      margin: auto;
+      padding-top: 56.25%; /* 16:9 aspect ratio */
+    }
+    #player {
+      position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      pointer-events: none;
     }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-    #banner {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      background: #0066cc;
-      color: white;
-      font-weight: bold;
-      font-size: 1em;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-    #banner span {
-      display: inline-block;
-      padding-left: 100%;
-      animation: scroll 15s linear infinite;
-    }
-    @keyframes scroll {
-      from { transform: translateX(0); }
-      to { transform: translateX(-100%); }
-    }
-    #muteToggle {
-      position: fixed;
-      top: 10px;
-      right: 10px;
+    #mute-toggle {
+      position: absolute;
+      top: 8px; right: 8px;
       font-size: 24px;
-      color: white;
       cursor: pointer;
       z-index: 10;
-    }
-    #spinner {
-      position: absolute;
-      width: 50px;
-      height: 50px;
-      border: 5px solid gold;
-      border-top: 5px solid transparent;
+      background: rgba(0,0,0,0.6);
       border-radius: 50%;
-      animation: spin 1s linear infinite;
+      padding: 6px;
+      user-select: none;
+    }
+    #scrolling-banner {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      font-size: clamp(14px, 3vw, 20px);
+      font-weight: bold;
+      font-family: monospace;
+      overflow: hidden;
+      user-select: none;
+      z-index: 10;
+      pointer-events: none;
+      padding: 8px 0;
+    }
+    #marquee-text {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: marquee 15s linear infinite;
+    }
+    @keyframes marquee {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-100%); }
+    }
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: #000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    #loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 3px solid rgba(255, 215, 0, 0.2);
+      border-top: 3px solid #FFD700;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+      box-shadow: 0 0 10px #FFD70088;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    #loading-text {
+      color: #FFD700;
+      font-size: 20px;
+      font-weight: 600;
+      font-family: "Courier New", monospace;
+      text-shadow: 0 0 6px #FFD70099;
+      letter-spacing: 1px;
+    }
   </style>
 </head>
 <body>
+
   <div id="player-container">
-    <div id="spinner"></div>
+    <div id="player"></div>
+    <div id="mute-toggle">🔇</div>
+    <div id="scrolling-banner">
+      <div id="marquee-text">Loading...</div>
+    </div>
   </div>
-  <div id="banner"><span>Loading...</span></div>
-  <div id="muteToggle">🔇</div>
+
+  <div id="loading-overlay">
+    <div id="loading-spinner"></div>
+    <div id="loading-text">Stream Loading...</div>
+  </div>
 
   <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const ch = urlParams.get("ch") || "1";
     const jsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch1.json';
 
-    let videoList = [];
-    let startTimeUtc;
-    let currentSlot = -1;
-    let muted = true;
+    let player;
+    let playlist = [];
+    let startTimeUTC = null;
+    let currentVideoIndex = 0;
+    let startSeconds = 0;
+    let isMuted = true;
 
-    const banner = document.getElementById("banner").querySelector("span");
-    const spinner = document.getElementById("spinner");
-    const playerContainer = document.getElementById("player-container");
-    const muteToggle = document.getElementById("muteToggle");
-
-    muteToggle.onclick = () => {
-      muted = !muted;
-      updateMuteIcon();
-      const iframe = document.querySelector("iframe");
-      if (iframe) {
-        const src = new URL(iframe.src);
-        src.searchParams.set("mute", muted ? "1" : "0");
-        iframe.src = src.toString();
-      }
-    };
-
-    function updateMuteIcon() {
-      muteToggle.textContent = muted ? "🔇" : "🔊";
+    // Load YouTube Iframe API
+    function loadYouTubeAPI() {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
     }
 
-    function updateBanner(text) {
-      banner.textContent = '';
-      const span = document.createElement("span");
-      span.textContent = text;
-      banner.appendChild(span);
-    }
-
-    async function loadJson() {
-      try {
-        const response = await fetch(jsonUrl);
-        const data = await response.json();
-        videoList = data.video_list;
-        startTimeUtc = new Date(data.start_time_utc).getTime();
-        syncVideo();
-        setInterval(syncVideo, 10000);
-      } catch (e) {
-        updateBanner("Failed to load JSON");
-        console.error("Error loading JSON:", e);
+    // Update marquee text with current video title
+    function updateBanner() {
+      const marquee = document.getElementById('marquee-text');
+      if (playlist.length === 0) {
+        marquee.textContent = 'No videos in playlist';
+      } else {
+        marquee.textContent = `Now Playing: ${playlist[currentVideoIndex].title}`;
       }
     }
 
-    function syncVideo() {
+    // Sync player time to global start_time_utc and playlist durations
+    function syncAndPlay() {
+      if (!startTimeUTC || playlist.length === 0) return;
+
       const now = Date.now();
-      const offset = (now - startTimeUtc) / 1000;
+      const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
+
+      const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
+      const loopedElapsed = elapsedSeconds % totalDuration;
+
       let accumulated = 0;
-      for (let i = 0; i < videoList.length; i++) {
-        const video = videoList[i];
-        accumulated += video.duration_seconds;
-        if (offset < accumulated) {
-          const startOffset = Math.floor(offset - (accumulated - video.duration_seconds));
-          if (currentSlot !== i) {
-            currentSlot = i;
-            playVideo(video.id, startOffset, video.title);
-          }
+      for (let i = 0; i < playlist.length; i++) {
+        if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
+          currentVideoIndex = i;
+          startSeconds = loopedElapsed - accumulated;
           break;
         }
+        accumulated += playlist[i].duration_seconds;
+      }
+      if (startSeconds < 0) startSeconds = 0;
+
+      updateBanner();
+
+      if (!player) {
+        player = new YT.Player('player', {
+          height: '360',
+          width: '640',
+          videoId: playlist[currentVideoIndex].id,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+            fs: 0,
+            start: startSeconds,
+            mute: 1
+          },
+          events: {
+            onReady: (event) => {
+              if (isMuted) event.target.mute();
+              else event.target.unMute();
+              event.target.playVideo();
+            },
+            onStateChange: (event) => {
+              if (event.data === YT.PlayerState.PLAYING) {
+                document.getElementById('loading-overlay').style.display = 'none';
+              }
+              if (event.data === YT.PlayerState.ENDED) {
+                // Play next video in loop
+                currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
+                startSeconds = 0;
+                player.loadVideoById({
+                  videoId: playlist[currentVideoIndex].id,
+                  startSeconds: startSeconds
+                });
+                updateBanner();
+              }
+            }
+          }
+        });
+      } else {
+        player.loadVideoById({
+          videoId: playlist[currentVideoIndex].id,
+          startSeconds: startSeconds
+        });
       }
     }
 
-    function playVideo(videoId, startSeconds, title) {
-      updateBanner(`Now Playing: ${title}`);
-      const iframe = document.createElement("iframe");
-      iframe.allow = "autoplay; encrypted-media";
-      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${muted ? 1 : 0}&start=${startSeconds}&playsinline=1&enablejsapi=1&rel=0`;
-      iframe.onload = () => spinner.style.display = "none";
-
-      // Auto-skip if video fails to embed
-      let loaded = false;
-      const timeout = setTimeout(() => {
-        if (!loaded) {
-          console.warn("Video failed to load, skipping...");
-          currentSlot++;
-          syncVideo();
-        }
-      }, 10000); // 10 seconds
-
-      iframe.onload = () => {
-        loaded = true;
-        spinner.style.display = "none";
-      };
-
-      playerContainer.innerHTML = "";
-      playerContainer.appendChild(iframe);
-      spinner.style.display = "block";
+    // Fetch JSON playlist
+    async function fetchPlaylist() {
+      try {
+        const res = await fetch(jsonUrl);
+        const data = await res.json();
+        playlist = data.video_list || [];
+        startTimeUTC = new Date(data.start_time_utc).getTime();
+        loadYouTubeAPI();
+      } catch (e) {
+        console.error('Error fetching JSON:', e);
+      }
     }
 
-    updateMuteIcon();
-    loadJson();
+    // Mute toggle logic
+    const muteToggle = document.getElementById('mute-toggle');
+    const muteKey = 'ytPlayerMuted';
+
+    if (sessionStorage.getItem(muteKey) === 'false') {
+      isMuted = false;
+      muteToggle.textContent = '🔊';
+    } else {
+      isMuted = true;
+      muteToggle.textContent = '🔇';
+    }
+
+    muteToggle.addEventListener('click', () => {
+      if (!player) return;
+      if (isMuted) {
+        player.unMute();
+        isMuted = false;
+        muteToggle.textContent = '🔊';
+        sessionStorage.setItem(muteKey, 'false');
+      } else {
+        player.mute();
+        isMuted = true;
+        muteToggle.textContent = '🔇';
+        sessionStorage.setItem(muteKey, 'true');
+      }
+    });
+
+    // Called by YouTube API when ready
+    window.onYouTubeIframeAPIReady = () => {
+      syncAndPlay();
+      setInterval(syncAndPlay, 30000); // re-sync every 30 seconds
+    };
+
+    fetchPlaylist();
   </script>
 </body>
 </html>
