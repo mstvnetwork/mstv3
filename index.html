@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Global Sync YouTube Player (Updated JSON)</title>
+  <title>Global Sync YouTube Player (Multichannel Support)</title>
   <style>
     body {
       font-family: sans-serif;
@@ -13,9 +13,8 @@
     #player-container {
       position: relative;
       width: 100%;
-      max-width: 640px;
-      margin: auto;
-      padding-top: 56.25%; /* 16:9 aspect ratio */
+      height: 0;
+      padding-bottom: 56.25%; /* 16:9 aspect ratio */
     }
     #player {
       position: absolute;
@@ -108,7 +107,15 @@
   </div>
 
   <script>
-    const jsonUrl = 'https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch1.json';
+    // Parse 'ch' param from URL query string, default to '1'
+    function getChannelFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const ch = params.get('ch');
+      return ch ? ch : '1';
+    }
+
+    const ch = getChannelFromUrl();
+    const jsonUrl = `https://raw.githubusercontent.com/mstvnetwork/mstv3/main/sync-ch${ch}.json`;
 
     let player;
     let playlist = [];
@@ -116,6 +123,7 @@
     let currentVideoIndex = 0;
     let startSeconds = 0;
     let isMuted = true;
+    let failSafeTimeout;
 
     // Load YouTube Iframe API
     function loadYouTubeAPI() {
@@ -134,13 +142,28 @@
       }
     }
 
+    // Fail-safe timeout logic for skipping failed loads
+    function setFailSafe() {
+      clearTimeout(failSafeTimeout);
+      failSafeTimeout = setTimeout(() => {
+        console.warn("Video failed to load within 10 seconds. Skipping...");
+        currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
+        startSeconds = 0;
+        player.loadVideoById({
+          videoId: playlist[currentVideoIndex].id,
+          startSeconds: startSeconds
+        });
+        updateBanner();
+        setFailSafe(); // restart timeout for new video
+      }, 10000); // 10 seconds
+    }
+
     // Sync player time to global start_time_utc and playlist durations
     function syncAndPlay() {
       if (!startTimeUTC || playlist.length === 0) return;
 
       const now = Date.now();
       const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
-
       const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
       const loopedElapsed = elapsedSeconds % totalDuration;
 
@@ -176,13 +199,14 @@
               if (isMuted) event.target.mute();
               else event.target.unMute();
               event.target.playVideo();
+              setFailSafe();
             },
             onStateChange: (event) => {
               if (event.data === YT.PlayerState.PLAYING) {
                 document.getElementById('loading-overlay').style.display = 'none';
+                clearTimeout(failSafeTimeout);
               }
               if (event.data === YT.PlayerState.ENDED) {
-                // Play next video in loop
                 currentVideoIndex = (currentVideoIndex + 1) % playlist.length;
                 startSeconds = 0;
                 player.loadVideoById({
@@ -190,6 +214,7 @@
                   startSeconds: startSeconds
                 });
                 updateBanner();
+                setFailSafe();
               }
             }
           }
@@ -199,6 +224,7 @@
           videoId: playlist[currentVideoIndex].id,
           startSeconds: startSeconds
         });
+        setFailSafe();
       }
     }
 
