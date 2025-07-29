@@ -268,13 +268,18 @@
       }
     });
 
-    // Called by YouTube API when ready
     window.onYouTubeIframeAPIReady = () => {
-      syncAndPlay();
-      setInterval(syncAndPlay, 30000); // re-sync every 30 seconds
-    };
+  syncAndPlay();
 
-    fetchPlaylist();
+  // Optional smarter resync every 30s ONLY if not currently playing
+  setInterval(() => {
+    if (!player || player.getPlayerState() !== YT.PlayerState.PLAYING) {
+      console.log("Re-syncing because player not playing...");
+      syncAndPlay();
+    }
+  }, 30000);
+};
+  fetchPlaylist();
   </script>
 </body>
 </html>
