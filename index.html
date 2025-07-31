@@ -200,7 +200,16 @@
               else event.target.unMute();
               event.target.playVideo();
               setFailSafe();
-            },
+              // ✅ Green screen fix for Galaxy A34 and similar
+             const iframe = document.querySelector('#player iframe');
+           if (iframe) {
+           iframe.style.transform = 'translateZ(0)';
+           iframe.style.backfaceVisibility = 'hidden';
+           iframe.style.willChange = 'transform';
+           iframe.style.backgroundColor = 'black';
+           }
+            }
+            
             onStateChange: (event) => {
               if (event.data === YT.PlayerState.PLAYING) {
                 document.getElementById('loading-overlay').style.display = 'none';
