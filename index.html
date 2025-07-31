@@ -200,16 +200,16 @@
               else event.target.unMute();
               event.target.playVideo();
               setFailSafe();
-              // ✅ Green screen fix for Galaxy A34 and similar
-             const iframe = document.querySelector('#player iframe');
-           if (iframe) {
-           iframe.style.transform = 'translateZ(0)';
-           iframe.style.backfaceVisibility = 'hidden';
-           iframe.style.willChange = 'transform';
-           iframe.style.backgroundColor = 'black';
-           }
-            }
-            
+
+              // ✅ Green screen fix (injected styling)
+              const iframe = document.querySelector('#player iframe');
+              if (iframe) {
+                iframe.style.transform = 'translateZ(0)';
+                iframe.style.backfaceVisibility = 'hidden';
+                iframe.style.willChange = 'transform';
+                iframe.style.backgroundColor = 'black';
+              }
+            },
             onStateChange: (event) => {
               if (event.data === YT.PlayerState.PLAYING) {
                 document.getElementById('loading-overlay').style.display = 'none';
@@ -278,17 +278,18 @@
     });
 
     window.onYouTubeIframeAPIReady = () => {
-  syncAndPlay();
-
-  // Optional smarter resync every 30s ONLY if not currently playing
-  setInterval(() => {
-    if (!player || player.getPlayerState() !== YT.PlayerState.PLAYING) {
-      console.log("Re-syncing because player not playing...");
       syncAndPlay();
-    }
-  }, 30000);
-};
-  fetchPlaylist();
+
+      // Optional smarter resync every 30s ONLY if not currently playing
+      setInterval(() => {
+        if (!player || player.getPlayerState() !== YT.PlayerState.PLAYING) {
+          console.log("Re-syncing because player not playing...");
+          syncAndPlay();
+        }
+      }, 30000);
+    };
+
+    fetchPlaylist();
   </script>
 </body>
 </html>
