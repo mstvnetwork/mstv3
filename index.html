@@ -92,21 +92,6 @@
   </style>
 </head>
 <body>
-    <div id="video-warning" style="
-  display: none;
-  background: #ffcccc;
-  color: #800000;
-  padding: 12px;
-  text-align: center;
-  font-size: 16px;
-  font-weight: bold;
-  position: sticky;
-  top: 0;
-  z-index: 9999;
-">
-  ⚠️ Your browser may show YouTube controls or not support full playback. For best experience, please use Chrome or Firefox.
-</div>
-
 
   <div id="player-container">
     <div id="player"></div>
@@ -305,38 +290,6 @@
     };
 
     fetchPlaylist();
-    <script>
-  function detectProblematicBrowser() {
-    const ua = navigator.userAgent;
-
-    const isSamsung = /SamsungBrowser/i.test(ua);
-    const isFacebook = /FBAV|FBAN|FB_IAB/i.test(ua);
-    const isInstagram = /Instagram/i.test(ua);
-    const isTwitter = /Twitter/i.test(ua);
-    const isMIUI = /MiuiBrowser/i.test(ua);
-    const isAmazonSilk = /Silk/i.test(ua);
-    const isOperaMini = /Opera Mini/i.test(ua);
-
-    return {
-      isSamsung,
-      isFacebook,
-      isInstagram,
-      isTwitter,
-      isMIUI,
-      isAmazonSilk,
-      isOperaMini,
-      isAny: isSamsung || isFacebook || isInstagram || isTwitter || isMIUI || isAmazonSilk || isOperaMini
-    };
-  }
-
-  const browserInfo = detectProblematicBrowser();
-
-  if (browserInfo.isAny) {
-    const warningDiv = document.getElementById("video-warning");
-    if (warningDiv) warningDiv.style.display = "block";
-  }
-</script>
-
   </script>
 </body>
 </html>
