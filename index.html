@@ -107,7 +107,6 @@
   </div>
 
   <script>
-    // Parse 'ch' param from URL query string, default to '1'
     function getChannelFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const ch = params.get('ch');
@@ -124,15 +123,14 @@
     let startSeconds = 0;
     let isMuted = true;
     let failSafeTimeout;
+    let seekLockInterval;
 
-    // Load YouTube Iframe API
     function loadYouTubeAPI() {
       const tag = document.createElement('script');
       tag.src = "https://www.youtube.com/iframe_api";
       document.head.appendChild(tag);
     }
 
-    // Update marquee text with current video title
     function updateBanner() {
       const marquee = document.getElementById('marquee-text');
       if (playlist.length === 0) {
@@ -142,7 +140,6 @@
       }
     }
 
-    // Fail-safe timeout logic for skipping failed loads
     function setFailSafe() {
       clearTimeout(failSafeTimeout);
       failSafeTimeout = setTimeout(() => {
@@ -154,11 +151,49 @@
           startSeconds: startSeconds
         });
         updateBanner();
-        setFailSafe(); // restart timeout for new video
-      }, 10000); // 10 seconds
+        setFailSafe();
+      }, 10000);
     }
 
-    // Sync player time to global start_time_utc and playlist durations
+    function startSeekLockLoop() {
+      if (seekLockInterval) clearInterval(seekLockInterval);
+
+      seekLockInterval = setInterval(() => {
+        if (!player || player.getPlayerState() !== YT.PlayerState.PLAYING) return;
+
+        const now = Date.now();
+        const elapsedSeconds = Math.floor((now - startTimeUTC) / 1000);
+        const totalDuration = playlist.reduce((sum, video) => sum + video.duration_seconds, 0);
+        const loopedElapsed = elapsedSeconds % totalDuration;
+
+        let accumulated = 0;
+        let expectedIndex = 0;
+        let expectedTime = 0;
+
+        for (let i = 0; i < playlist.length; i++) {
+          if (loopedElapsed < accumulated + playlist[i].duration_seconds) {
+            expectedIndex = i;
+            expectedTime = loopedElapsed - accumulated;
+            break;
+          }
+          accumulated += playlist[i].duration_seconds;
+        }
+
+        const currentTime = player.getCurrentTime();
+        const delta = Math.abs(currentTime - expectedTime);
+
+        if (currentVideoIndex !== expectedIndex || delta > 2) {
+          console.warn('Seek detected. Resetting...');
+          currentVideoIndex = expectedIndex;
+          player.loadVideoById({
+            videoId: playlist[expectedIndex].id,
+            startSeconds: expectedTime
+          });
+          updateBanner();
+        }
+      }, 2000);
+    }
+
     function syncAndPlay() {
       if (!startTimeUTC || playlist.length === 0) return;
 
@@ -200,8 +235,8 @@
               else event.target.unMute();
               event.target.playVideo();
               setFailSafe();
+              startSeekLockLoop(); // 🔒 Seek lock starts here
 
-              // ✅ Green screen fix (injected styling)
               const iframe = document.querySelector('#player iframe');
               if (iframe) {
                 iframe.style.transform = 'translateZ(0)';
@@ -237,7 +272,6 @@
       }
     }
 
-    // Fetch JSON playlist
     async function fetchPlaylist() {
       try {
         const res = await fetch(jsonUrl);
@@ -250,7 +284,6 @@
       }
     }
 
-    // Mute toggle logic
     const muteToggle = document.getElementById('mute-toggle');
     const muteKey = 'ytPlayerMuted';
 
@@ -279,8 +312,6 @@
 
     window.onYouTubeIframeAPIReady = () => {
       syncAndPlay();
-
-      // Optional smarter resync every 30s ONLY if not currently playing
       setInterval(() => {
         if (!player || player.getPlayerState() !== YT.PlayerState.PLAYING) {
           console.log("Re-syncing because player not playing...");
