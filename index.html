@@ -124,6 +124,7 @@
     let isMuted = true;
     let failSafeTimeout;
     let seekLockInterval;
+    let mismatchCount = 0;
 
     function loadYouTubeAPI() {
       const tag = document.createElement('script');
@@ -182,8 +183,16 @@
         const currentTime = player.getCurrentTime();
         const delta = Math.abs(currentTime - expectedTime);
 
-        if (currentVideoIndex !== expectedIndex || delta > 2) {
-          console.warn('Seek detected. Resetting...');
+        if (currentVideoIndex !== expectedIndex || delta > 5) {
+          mismatchCount++;
+        } else {
+          mismatchCount = 0; // reset if synced
+        }
+
+        // Only reset if mismatch is persistent (3 checks)
+        if (mismatchCount >= 3) {
+          console.warn('Persistent seek detected. Resetting...');
+          mismatchCount = 0;
           currentVideoIndex = expectedIndex;
           player.loadVideoById({
             videoId: playlist[expectedIndex].id,
@@ -235,7 +244,7 @@
               else event.target.unMute();
               event.target.playVideo();
               setFailSafe();
-              startSeekLockLoop(); // 🔒 Seek lock starts here
+              startSeekLockLoop();
 
               const iframe = document.querySelector('#player iframe');
               if (iframe) {
