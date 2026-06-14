@@ -303,7 +303,7 @@ footer{text-align:center;padding:10px;font-size:11px;color:var(--text-dim);borde
 // ── CONFIG ────────────────────────────────────────────────────────────────
 // WORKER_URL is automatically set to the same origin as this page.
 // If you host the HTML separately, replace with your Worker URL.
-const WORKER_URL = window.location.origin;
+const WORKER_URL = https://linear-tv-sync.mstvindianetworkusa.workers.dev/;
 const SYNC_MS        = 10000;   // re-sync interval (ms). Raise to 30000 for 30+ viewers
 const MAX_DRIFT_S    = 2.0;     // max seconds of drift before forcing correction
 const NET_COMP_MS    = 400;     // subtract this from seek to compensate for load time
