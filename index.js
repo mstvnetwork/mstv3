@@ -32,21 +32,21 @@ const PLAYLIST = [
   {
     id: "video-1",
     title: "Big Buck Bunny",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    url: "https://archive.org/serve/cooking_202606/nagin.ia.mp4",
     type: "mp4",
-    duration: 596, // 9m 56s
+    duration: 60, // 9m 56s
   },
   {
     id: "video-2",
     title: "Elephant Dream",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    url: "https://archive.org/serve/cooking_202606/nagin.ia.mp4",
     type: "mp4",
-    duration: 653, // 10m 53s
+    duration: 60, // 10m 53s
   },
   {
     id: "video-3",
     title: "For Bigger Blazes",
-    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    url: "https://archive.org/serve/cooking_202606/nagin.ia.mp4",
     type: "mp4",
     duration: 15,
   },
