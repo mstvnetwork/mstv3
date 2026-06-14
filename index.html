@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinearTV — Live Channel</title>
+
+  <!-- Video.js + HLS plugin (from cdnjs - always free) -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/video.js/8.10.0/video-js.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/8.10.0/video.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/videojs-contrib-hls/5.15.0/videojs-contrib-hls.min.js"></script>
+
+  <style>
+    /* ── DESIGN SYSTEM ────────────────────────────────────────── */
+    :root {
+      --bg:         #0a0a0f;
+      --surface:    #13131a;
+      --surface2:   #1c1c28;
+      --border:     #2a2a3d;
+      --accent:     #e8384f;      /* broadcast red */
+      --accent2:    #ff6b35;      /* warm orange for LIVE dot */
+      --text:       #f0f0f5;
+      --text-sub:   #7a7a96;
+      --text-dim:   #44445a;
+      --green:      #22c55e;
+      --mono:       'JetBrains Mono', 'Fira Mono', 'Courier New', monospace;
+      --sans:       'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ───────────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(232,56,79,0.15);
+      border: 1px solid rgba(232,56,79,0.4);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .utc-clock {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-sub);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── MAIN LAYOUT ──────────────────────────────────────────── */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 0;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+
+    /* ── PLAYER SECTION ───────────────────────────────────────── */
+    .player-section {
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+    }
+
+    .video-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      overflow: hidden;
+    }
+
+    /* Override Video.js skin */
+    .video-js {
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute !important;
+      top: 0; left: 0;
+    }
+
+    /* ── LOCK THE SEEK BAR ──────────────────────────────────── */
+    /* Prevent any visual interaction with the progress bar */
+    .video-js .vjs-progress-control {
+      pointer-events: none !important;
+      cursor: default !important;
+    }
+    .video-js .vjs-progress-holder {
+      cursor: default !important;
+    }
+    .video-js .vjs-play-progress::before {
+      /* Hide the seek handle dot */
+      display: none !important;
+    }
+    /* Remove skip-forward/back buttons if present */
+    .video-js .vjs-skip-forward-button,
+    .video-js .vjs-skip-backward-button,
+    .video-js .vjs-seek-to-live-control { display: none !important; }
+
+    /* Custom progress bar color */
+    .video-js .vjs-play-progress { background: var(--accent) !important; }
+    .video-js .vjs-load-progress { background: rgba(232,56,79,0.25) !important; }
+    .video-js .vjs-slider { background: rgba(255,255,255,0.1) !important; }
+
+    /* Big play button */
+    .video-js .vjs-big-play-button {
+      background: rgba(232,56,79,0.8) !important;
+      border: none !important;
+      border-radius: 50% !important;
+      width: 72px !important; height: 72px !important;
+      line-height: 72px !important;
+      left: 50% !important; top: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      margin: 0 !important;
+    }
+
+    /* Control bar */
+    .video-js .vjs-control-bar {
+      background: linear-gradient(transparent, rgba(0,0,0,0.85)) !important;
+      height: 44px !important;
+    }
+
+    /* ── NOW PLAYING INFO ─────────────────────────────────────── */
+    .now-playing {
+      padding: 16px 20px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .now-playing-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .channel-chip {
+      background: var(--accent);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 3px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .now-playing-title {
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+
+    .now-playing-sub {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+
+    .sync-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--green);
+      font-family: var(--mono);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .sync-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .sync-dot.syncing { background: #f59e0b; animation: pulse 0.8s infinite; }
+    .sync-dot.error   { background: var(--accent); }
+
+    /* Progress bar below now-playing */
+    .channel-progress {
+      height: 3px;
+      background: var(--border);
+    }
+    .channel-progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 1s linear;
+    }
+
+    /* ── SIDEBAR ──────────────────────────────────────────────── */
+    .sidebar {
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-sub);
+    }
+
+    .playlist-scroll {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .playlist-scroll::-webkit-scrollbar { width: 4px; }
+    .playlist-scroll::-webkit-scrollbar-track { background: transparent; }
+    .playlist-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .playlist-item {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      cursor: default;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: background 0.15s;
+      user-select: none;
+    }
+
+    .playlist-item.active {
+      background: rgba(232,56,79,0.08);
+      border-left: 3px solid var(--accent);
+      padding-left: 17px;
+    }
+
+    .playlist-item:not(.active) {
+      opacity: 0.55;
+    }
+
+    .item-index {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      width: 24px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .item-active-icon {
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: pulse 1.4s infinite;
+    }
+
+    .item-type-badge {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 2px 5px;
+      border-radius: 2px;
+      background: var(--surface2);
+      color: var(--text-sub);
+      flex-shrink: 0;
+    }
+
+    .item-type-badge.hls { background: rgba(99,102,241,0.2); color: #818cf8; }
+    .item-type-badge.mp4 { background: rgba(34,197,94,0.15); color: #4ade80; }
+
+    .item-info { min-width: 0; flex: 1; }
+
+    .item-title {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item-duration {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+
+    /* ── STATUS PANEL ─────────────────────────────────────────── */
+    .status-panel {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-sub);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .status-val { color: var(--text); }
+
+    /* ── LOADING OVERLAY ──────────────────────────────────────── */
+    #loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 50;
+      transition: opacity 0.4s;
+    }
+
+    #loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spinner {
+      width: 44px; height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-size: 13px;
+      color: var(--text-sub);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── SEEK-LOCK TOAST ──────────────────────────────────────── */
+    #seek-toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(232,56,79,0.95);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 200;
+      white-space: nowrap;
+    }
+
+    #seek-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── FOOTER ───────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 12px;
+      font-size: 11px;
+      color: var(--text-dim);
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ──────────────────────────────────────────────────────────────── HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">📺</div>
+    <span>LinearTV</span>
+  </div>
+  <div class="header-right">
+    <div class="utc-clock" id="utc-clock">--:--:-- UTC</div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      Live
+    </div>
+  </div>
+</header>
+
+<!-- ──────────────────────────────────────────────────────────────── MAIN -->
+<main>
+
+  <!-- Player -->
+  <div class="player-section">
+    <div class="video-wrapper">
+      <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Syncing to channel…</div>
+      </div>
+      <video
+        id="tv-player"
+        class="video-js vjs-default-skin vjs-big-play-centered"
+        playsinline
+      ></video>
+    </div>
+
+    <!-- Channel progress bar -->
+    <div class="channel-progress">
+      <div class="channel-progress-fill" id="channel-progress-fill" style="width:0%"></div>
+    </div>
+
+    <!-- Now playing info -->
+    <div class="now-playing">
+      <div class="now-playing-left">
+        <div class="channel-chip">On Air</div>
+        <div>
+          <div class="now-playing-title" id="now-playing-title">Connecting…</div>
+          <div class="now-playing-sub" id="now-playing-sub"></div>
+        </div>
+      </div>
+      <div class="sync-indicator">
+        <div class="sync-dot syncing" id="sync-dot"></div>
+        <span id="sync-label">Syncing</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Schedule</div>
+    </div>
+    <div class="playlist-scroll">
+      <div id="playlist-container"></div>
+    </div>
+    <div class="status-panel" id="status-panel">
+      <div class="status-row">
+        <span>Server time</span>
+        <span class="status-val" id="stat-time">—</span>
+      </div>
+      <div class="status-row">
+        <span>Drift</span>
+        <span class="status-val" id="stat-drift">—</span>
+      </div>
+      <div class="status-row">
+        <span>Next video in</span>
+        <span class="status-val" id="stat-next">—</span>
+      </div>
+      <div class="status-row">
+        <span>Seek attempts</span>
+        <span class="status-val" id="stat-seeks">0</span>
+      </div>
+    </div>
+  </aside>
+
+</main>
+
+<div id="seek-toast">⛔ This is a live channel — seeking is disabled</div>
+
+<footer>
+  LinearTV · Synchronized worldwide · All viewers watch the same moment in time
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  CONFIG — Edit these values
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CONFIG = {
+  // Your deployed Cloudflare Worker URL
+  // After deployment, replace this with: https://linear-tv-sync.YOUR-SUBDOMAIN.workers.dev
+  WORKER_URL: "https://linear-tv-sync.YOUR-SUBDOMAIN.workers.dev",
+
+  // How often to re-sync with server (milliseconds)
+  // 10000 = every 10 seconds. Increase to 30000 if you have many viewers.
+  SYNC_INTERVAL_MS: 10000,
+
+  // Max allowed drift before forcing a seek correction (seconds)
+  // If viewer's local time drifts more than this from server, we correct.
+  MAX_DRIFT_SECONDS: 2.5,
+
+  // How many ms to add to seekPosition to account for network round-trip
+  NETWORK_LATENCY_COMPENSATION_MS: 500,
+
+  // Show debug panel in sidebar
+  SHOW_DEBUG: true,
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════════════
+
+const state = {
+  player: null,
+  currentVideoId: null,
+  currentUrl: null,
+  currentType: null,
+  syncData: null,
+  syncInterval: null,
+  clockInterval: null,
+  seekAttempts: 0,
+  isSynced: false,
+  lastSyncMs: 0,
+  playlist: [],
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════
+
+function fmtTime(seconds) {
+  if (!isFinite(seconds) || seconds < 0) return "—";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
+
+function fmtDuration(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function setSyncStatus(status) {
+  const dot   = document.getElementById("sync-dot");
+  const label = document.getElementById("sync-label");
+  dot.className = "sync-dot";
+  if (status === "synced") {
+    dot.style.background = "var(--green)";
+    label.textContent = "Synced";
+  } else if (status === "syncing") {
+    dot.classList.add("syncing");
+    dot.style.background = "";
+    label.textContent = "Syncing…";
+  } else {
+    dot.classList.add("error");
+    dot.style.background = "";
+    label.textContent = "Error";
+  }
+}
+
+function showSeekToast() {
+  state.seekAttempts++;
+  document.getElementById("stat-seeks").textContent = state.seekAttempts;
+  const toast = document.getElementById("seek-toast");
+  toast.classList.add("show");
+  clearTimeout(state._toastTimer);
+  state._toastTimer = setTimeout(() => toast.classList.remove("show"), 2500);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  UTC CLOCK
+// ═══════════════════════════════════════════════════════════════════════════
+
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const h = String(now.getUTCHours()).padStart(2,"0");
+    const m = String(now.getUTCMinutes()).padStart(2,"0");
+    const s = String(now.getUTCSeconds()).padStart(2,"0");
+    document.getElementById("utc-clock").textContent = `${h}:${m}:${s} UTC`;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PLAYLIST SIDEBAR
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderPlaylist(playlist, activeIndex) {
+  const container = document.getElementById("playlist-container");
+  container.innerHTML = "";
+
+  playlist.forEach((item, i) => {
+    const isActive = i === activeIndex;
+    const el = document.createElement("div");
+    el.className = "playlist-item" + (isActive ? " active" : "");
+    el.innerHTML = `
+      ${isActive
+        ? `<div class="item-active-icon"></div>`
+        : `<div class="item-index">${i + 1}</div>`}
+      <div class="item-info">
+        <div class="item-title">${item.title}</div>
+        <div class="item-duration">${fmtDuration(item.duration)}</div>
+      </div>
+      <div class="item-type-badge ${item.type}">${item.type.toUpperCase()}</div>
+    `;
+    container.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SERVER SYNC
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function fetchSync() {
+  const res  = await fetch(`${CONFIG.WORKER_URL}/sync?t=${Date.now()}`);
+  const data = await res.json();
+  return data;
+}
+
+async function fetchPlaylist() {
+  const res  = await fetch(`${CONFIG.WORKER_URL}/playlist`);
+  const data = await res.json();
+  return data.playlist || [];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  VIDEO.JS PLAYER SETUP
+// ═══════════════════════════════════════════════════════════════════════════
+
+function initPlayer() {
+  return new Promise((resolve) => {
+    const player = videojs("tv-player", {
+      controls: true,
+      autoplay: true,
+      muted: true,        // Required for autoplay in modern browsers
+      preload: "auto",
+      fluid: false,
+      fill: true,
+      playbackRates: [],  // Remove playback rate selector
+      controlBar: {
+        children: [
+          "playToggle",
+          "volumePanel",
+          "currentTimeDisplay",
+          "timeDivider",
+          "durationDisplay",
+          "progressControl",  // We render it but make it non-interactive via CSS
+          "fullscreenToggle",
+        ],
+        volumePanel: { inline: true },
+      },
+      userActions: {
+        // Disable keyboard shortcuts that could seek
+        hotkeys: false,
+      },
+    });
+
+    // ── SEEK LOCK ──────────────────────────────────────────────────────────
+    // Block native seeking events triggered by UI
+    player.on("seeking", () => {
+      if (!state._allowSeek) {
+        // Revert to correct position
+        if (state.syncData) {
+          const correctPos = computeCurrentSeekPosition();
+          state._allowSeek = true;
+          player.currentTime(correctPos);
+          state._allowSeek = false;
+        }
+        showSeekToast();
+      }
+    });
+
+    // Prevent keyboard arrow keys from seeking
+    player.el().addEventListener("keydown", (e) => {
+      if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) {
+        e.preventDefault();
+        e.stopPropagation();
+        showSeekToast();
+      }
+    });
+
+    // ── MUTE TOGGLE ────────────────────────────────────────────────────────
+    // Clicking the video itself unmutes (better UX for autoplay)
+    player.on("click", () => {
+      if (player.muted()) {
+        player.muted(false);
+        player.volume(0.8);
+      }
+    });
+
+    player.ready(() => resolve(player));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  COMPUTE CURRENT SEEK POSITION (client-side interpolation)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function computeCurrentSeekPosition() {
+  if (!state.syncData) return 0;
+  // Time elapsed since last sync
+  const elapsedSinceSync = (Date.now() - state.lastSyncMs) / 1000;
+  return state.syncData.seekPosition + elapsedSinceSync;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  LOAD / SWITCH VIDEO
+// ═══════════════════════════════════════════════════════════════════════════
+
+function loadVideo(sync) {
+  const player   = state.player;
+  const seekPos  = sync.seekPosition + (CONFIG.NETWORK_LATENCY_COMPENSATION_MS / 1000);
+  const isNewVid = state.currentVideoId !== sync.videoId;
+
+  if (!isNewVid) return; // Same video, just a seek correction will handle drift
+
+  console.log(`[LinearTV] Loading video: ${sync.title} @ ${seekPos.toFixed(1)}s`);
+
+  state.currentVideoId = sync.videoId;
+  state.currentUrl     = sync.url;
+  state.currentType    = sync.type;
+
+  const source = sync.type === "hls"
+    ? { src: sync.url, type: "application/x-mpegURL" }
+    : { src: sync.url, type: "video/mp4" };
+
+  state._allowSeek = true;
+  player.src(source);
+  player.ready(() => {
+    player.currentTime(seekPos);
+    state._allowSeek = false;
+    player.play().catch(() => {
+      // Autoplay blocked — wait for user gesture
+      console.log("[LinearTV] Autoplay blocked, waiting for user click");
+    });
+  });
+
+  // Update UI
+  document.getElementById("now-playing-title").textContent = sync.title;
+  document.getElementById("now-playing-sub").textContent =
+    `${sync.type.toUpperCase()} · ${fmtDuration(sync.duration)}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SYNC TICK — called every SYNC_INTERVAL_MS
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function syncTick() {
+  setSyncStatus("syncing");
+  try {
+    const t0   = Date.now();
+    const sync = await fetchSync();
+    const rtt  = Date.now() - t0;
+
+    // Adjust seek for network round-trip
+    const adjustedSeek = sync.seekPosition + (rtt / 2 / 1000);
+
+    state.syncData   = { ...sync, seekPosition: adjustedSeek };
+    state.lastSyncMs = Date.now();
+
+    // Render playlist on first sync or if playlist changed
+    if (state.playlist.length === 0) {
+      try {
+        state.playlist = await fetchPlaylist();
+      } catch {}
+    }
+
+    // Build a simple playlist from sync data if fetchPlaylist failed
+    if (state.playlist.length === 0) {
+      state.playlist = [{ title: sync.title, url: sync.url, type: sync.type, duration: sync.duration }];
+    }
+
+    renderPlaylist(state.playlist, sync.currentIndex);
+
+    // ── LOAD VIDEO IF NEW ──────────────────────────────────────────────────
+    if (state.currentVideoId !== sync.videoId) {
+      // Hide loading overlay until video actually plays
+      state.player.one("playing", () => {
+        document.getElementById("loading-overlay").classList.add("hidden");
+      });
+      loadVideo(state.syncData);
+    } else {
+      // ── DRIFT CORRECTION ──────────────────────────────────────────────
+      const playerPos = state.player.currentTime();
+      const drift     = Math.abs(playerPos - adjustedSeek);
+
+      if (drift > CONFIG.MAX_DRIFT_SECONDS) {
+        console.log(`[LinearTV] Correcting drift: ${drift.toFixed(2)}s`);
+        state._allowSeek = true;
+        state.player.currentTime(adjustedSeek);
+        state._allowSeek = false;
+      }
+
+      document.getElementById("stat-drift").textContent =
+        drift < 0.1 ? "<0.1s" : `${drift.toFixed(2)}s`;
+    }
+
+    // ── PROGRESS BAR ──────────────────────────────────────────────────────
+    const pct = (adjustedSeek / sync.duration) * 100;
+    document.getElementById("channel-progress-fill").style.width = `${Math.min(pct, 100)}%`;
+
+    // ── STATUS PANEL ──────────────────────────────────────────────────────
+    const d = new Date(sync.serverTimeMs);
+    document.getElementById("stat-time").textContent =
+      `${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")} UTC`;
+    document.getElementById("stat-next").textContent =
+      fmtDuration(sync.remainingSeconds);
+
+    state.isSynced = true;
+    setSyncStatus("synced");
+
+  } catch (err) {
+    console.error("[LinearTV] Sync failed:", err);
+    setSyncStatus("error");
+
+    // Fallback: keep playing if we have a video loaded
+    if (!state.currentVideoId) {
+      document.getElementById("now-playing-title").textContent = "Connection error — retrying…";
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PROGRESS BAR INTERPOLATION (runs every second between syncs)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function startProgressInterpolation() {
+  setInterval(() => {
+    if (!state.syncData || !state.isSynced) return;
+    const pos  = computeCurrentSeekPosition();
+    const pct  = (pos / state.syncData.duration) * 100;
+    document.getElementById("channel-progress-fill").style.width =
+      `${Math.min(pct, 100)}%`;
+
+    // Countdown to next video
+    const remaining = state.syncData.duration - pos;
+    if (remaining > 0) {
+      document.getElementById("stat-next").textContent = fmtDuration(remaining);
+    }
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  AUTO-ADVANCE when video ends (backup in case server sync is delayed)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function onVideoEnded() {
+  console.log("[LinearTV] Video ended — waiting for next sync tick");
+  // The next syncTick will load the next video automatically.
+  // Force an immediate sync:
+  syncTick();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  BOOTSTRAP
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function init() {
+  startClock();
+
+  state.player = await initPlayer();
+
+  // Video ended event
+  state.player.on("ended", onVideoEnded);
+
+  // First sync
+  await syncTick();
+
+  // Recurring syncs
+  state.syncInterval = setInterval(syncTick, CONFIG.SYNC_INTERVAL_MS);
+
+  // Progress interpolation
+  startProgressInterpolation();
+}
+
+window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
